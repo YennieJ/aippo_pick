@@ -1,4 +1,4 @@
-import { IconSymbol } from '@/components/ui/icon-symbol';
+import { IconSymbol } from '../../../shared/components/ui/icon-symbol';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface CalendarHeaderProps {

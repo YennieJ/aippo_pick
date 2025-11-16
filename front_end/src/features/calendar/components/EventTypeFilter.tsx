@@ -1,5 +1,5 @@
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { EventType, EventTypeValue } from '../../constants/ipo.constants';
+import { EventType, EventTypeValue } from '../constants/event.constants';
 
 // 이벤트 타입별 색상 (부드러운 톤)
 const TYPE_COLORS = {

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { useBrokerRanking, useTodayIpo } from '@/hooks/useIpoQueries';
+import { IconSymbol } from '../../src/shared/components/ui/icon-symbol';
+import { useBrokerRanking, useTodayIpo } from '../../src/features/ipo/hooks/useIpoQueries';
 import { useRouter } from 'expo-router';
 import {
   Dimensions,

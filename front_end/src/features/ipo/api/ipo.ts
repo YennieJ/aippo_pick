@@ -1,4 +1,4 @@
-import { api } from './client';
+import { api } from '../../../shared/api/client';
 
 export const getTodayIpo = async () => {
   const response = await api.get('/data_ipo/today');

@@ -3,7 +3,7 @@ import {
   EventMeta,
   EventType,
   EventTypeValue,
-} from '../constants/ipo.constants';
+} from '../constants/event.constants';
 import { formatDate, isWeekend } from '../utils/calendar.utils';
 import { getColorFromCodeId } from '../utils/color.utils';
 

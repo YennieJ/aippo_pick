@@ -16,10 +16,11 @@ import {
   CalendarHeader,
   CalendarWeek,
   EventTypeFilter,
-} from '@/components/calendar';
-import { useAllBrokers, useCalendarEvents, useIpoCalendar } from '@/hooks';
-import { EventType, EventTypeValue } from '../../constants/ipo.constants';
-import { generateCalendarWeeks, getDayWidth } from '../../utils/calendar.utils';
+} from '../../src/features/calendar';
+import { useCalendarEvents } from '../../src/features/calendar/hooks/useCalendarEvents';
+import { useAllBrokers, useIpoCalendar } from '../../src/features/ipo/hooks/useIpoQueries';
+import { EventType, EventTypeValue } from '../../src/features/calendar/constants/event.constants';
+import { generateCalendarWeeks, getDayWidth } from '../../src/features/calendar/utils/calendar.utils';
 
 export default function CalendarScreen() {
   // 오늘 날짜

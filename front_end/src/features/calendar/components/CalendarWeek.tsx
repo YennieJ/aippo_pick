@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { EventType } from '../../constants/ipo.constants';
-import { getCumulativeWidth, getDayWidth } from '../../utils/calendar.utils';
-import { getTextColorForBackground } from '../../utils/color.utils';
+import { EventType } from '../constants/event.constants';
+import { getCumulativeWidth, getDayWidth } from '../utils/calendar.utils';
+import { getTextColorForBackground } from '../utils/color.utils';
 
 // 이벤트 타입별 뱃지 색상 (부드러운 톤)
 const BADGE_COLORS = {
