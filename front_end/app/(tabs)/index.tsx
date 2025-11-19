@@ -1,7 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
-import { IconSymbol } from '../../src/shared/components/ui/icon-symbol';
-import { useBrokerRanking, useTodayIpo } from '../../src/features/ipo/hooks/useIpoQueries';
 import { useRouter } from 'expo-router';
 import {
   Dimensions,
@@ -13,6 +11,11 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  useBrokerRanking,
+  useTodayIpo,
+} from '../../src/features/ipo/hooks/useIpoQueries';
+import { IconSymbol } from '../../src/shared/components/ui/icon-symbol';
 
 const { width } = Dimensions.get('window'); // Get screen width
 const ITEM_WIDTH = width * 0.8; // 화면의 90%
@@ -110,16 +113,17 @@ export default function HomeScreen() {
     item,
   }: {
     item: {
-      id: string;
+      seq: string;
       status: string;
       title: string;
-      bank: string[];
+      brokers: string[];
       subscriptiondate?: string;
       listingdate?: string;
       refunddate?: string;
       date: string;
       confirmedprice?: string;
       desiredprice?: string;
+      code_id: string;
     };
   }) => {
     const targetDate = getDateByStatus(item);
@@ -129,8 +133,18 @@ export default function HomeScreen() {
     const price = getPrice(item);
     const statusColor = getStatusColor(item.status);
 
+    const handlePress = () => {
+      if (item.code_id) {
+        router.push(`/ipo/${item.code_id}`);
+      }
+    };
+
     return (
-      <View style={styles.slideItemContainer}>
+      <TouchableOpacity
+        style={styles.slideItemContainer}
+        onPress={handlePress}
+        activeOpacity={0.7}
+      >
         {/* 상단: status와 디데이 */}
         <View style={styles.statusSection}>
           <View style={[styles.statusBadge, { borderColor: statusColor }]}>
@@ -154,13 +168,13 @@ export default function HomeScreen() {
 
         {/* 은행 */}
         <View style={styles.bankSection}>
-          {item.bank.map((bankName, index) => (
+          {item.brokers.map((bankName, index) => (
             <View key={index} style={styles.bankTag}>
               <Text style={styles.bankText}>{bankName}</Text>
             </View>
           ))}
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -179,7 +193,7 @@ export default function HomeScreen() {
   };
 
   const handleShowAll = () => {
-    router.push('/(tabs)/calendar');
+    router.push('/calendar');
   };
 
   // 수익률 포맷팅 (소수점 2자리, % 표시)
@@ -335,7 +349,7 @@ export default function HomeScreen() {
           <FlatList
             data={todayIpo}
             renderItem={sliderItem}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item) => item.seq}
             horizontal
             pagingEnabled={false}
             showsHorizontalScrollIndicator={false}

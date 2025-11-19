@@ -27,6 +27,10 @@ export default function RootLayout() {
             name="modal"
             options={{ presentation: 'modal', title: 'Modal' }}
           />
+          <Stack.Screen
+            name="ipo/[codeId]"
+            options={{ title: '공모주 상세' }}
+          />
         </Stack>
         <StatusBar style="auto" translucent={false} />
       </ThemeProvider>

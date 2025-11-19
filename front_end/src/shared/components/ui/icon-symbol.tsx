@@ -25,6 +25,8 @@ const MAPPING = {
   'chevron.up': 'keyboard-arrow-up',
   'chevron.down': 'keyboard-arrow-down',
   calendar: 'calendar-today',
+  'checkmark.circle.fill': 'check-circle',
+  circle: 'radio-button-unchecked',
 } as IconMapping;
 
 /**

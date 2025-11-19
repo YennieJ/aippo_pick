@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { EventType } from '../constants/event.constants';
 import { getCumulativeWidth, getDayWidth } from '../utils/calendar.utils';
 import { getTextColorForBackground } from '../utils/color.utils';
@@ -29,6 +30,7 @@ export default function CalendarWeek({
   currentYear,
   currentMonth,
 }: CalendarWeekProps) {
+  const router = useRouter();
   const maxRow = events.length > 0 ? Math.max(...events.map((e) => e.row)) : 0;
   const eventSpacing = 28;
   const weekHeight = Math.max(70, 50 + (maxRow + 1) * eventSpacing);
@@ -116,8 +118,17 @@ export default function CalendarWeek({
             BADGE_COLORS[segment.type as keyof typeof BADGE_COLORS] ||
             '#666666';
 
+          // segment.id는 `${code_id}-${eventType}` 형식
+          const codeId = segment.id.split('-')[0];
+
+          const handleEventPress = () => {
+            if (codeId) {
+              router.push(`/ipo/${codeId}`);
+            }
+          };
+
           return (
-            <View
+            <TouchableOpacity
               key={segment.segmentId}
               style={[
                 styles.eventBar,
@@ -127,6 +138,8 @@ export default function CalendarWeek({
                   top: segment.row * 28,
                 },
               ]}
+              onPress={handleEventPress}
+              activeOpacity={0.7}
             >
               <View style={styles.eventContent}>
                 {badgeText && (
@@ -158,7 +171,7 @@ export default function CalendarWeek({
                   </Text>
                 </View>
               </View>
-            </View>
+            </TouchableOpacity>
           );
         })}
       </View>

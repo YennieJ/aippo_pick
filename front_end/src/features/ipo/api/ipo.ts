@@ -23,3 +23,9 @@ export const getAllBrokers = async () => {
   const response = await api.get('/master_broker/all');
   return response.data;
 };
+
+export const getIpoByCodeId = async (codeId: string) => {
+  // 코드 ID로 IPO 상세 정보 조회
+  const response = await api.get(`/data_ipo/code/${codeId}`);
+  return response.data;
+};

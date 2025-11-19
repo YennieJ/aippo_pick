@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   getAllBrokers,
   getBrokerRanking,
+  getIpoByCodeId,
   getIpoCalendar,
   getTodayIpo,
 } from '../api/ipo';
@@ -31,5 +32,13 @@ export function useAllBrokers() {
   return useQuery({
     queryKey: ['ipo', 'broker', 'all'],
     queryFn: getAllBrokers,
+  });
+}
+
+export function useIpoByCodeId(codeId: string) {
+  return useQuery({
+    queryKey: ['ipo', 'detail', codeId],
+    queryFn: () => getIpoByCodeId(codeId),
+    enabled: !!codeId, // codeId가 있을 때만 쿼리 실행
   });
 }
