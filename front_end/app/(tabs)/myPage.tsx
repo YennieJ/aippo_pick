@@ -1,26 +1,23 @@
 // app/(tabs)/myPage.tsx  같은 위치라고 가정
 
-import React, { useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-} from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useState } from 'react';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
-import {
-  loadFavorites,
-  toggleFavorite,
-} from '../../src/features/storage/favoriteStorage';
-import {
-  loadRecent,
-  clearRecent,
-  removeRecentIpo,
-} from '../../src/features/storage/recentStorage';
 import { getIpoByCodeId } from '../../src/features/ipo/api/ipo';
 import { IpoDetailData } from '../../src/features/ipo/types/ipo.types';
+import {
+  loadStringArray,
+  removeItem,
+  saveStringArray,
+  STORAGE_KEYS,
+} from '../../src/shared/utils/storage.utils';
 
 // 문자열("24,650", " 8,000원") → 숫자로 안전하게 변환
 const parseNumber = (value?: string | null): number | null => {
@@ -50,7 +47,7 @@ export default function MyPageScreen() {
       if (!ids.length) return [];
 
       const results = await Promise.all(
-        ids.map(async codeId => {
+        ids.map(async (codeId) => {
           try {
             const data = await getIpoByCodeId(codeId);
             const detail: IpoDetailData | undefined = Array.isArray(data)
@@ -61,7 +58,7 @@ export default function MyPageScreen() {
             console.log('getIpoByCodeId error', codeId, e);
             return null;
           }
-        }),
+        })
       );
 
       const unique: IpoDetailData[] = [];
@@ -76,12 +73,12 @@ export default function MyPageScreen() {
 
       return unique;
     },
-    [],
+    []
   );
 
   const isFavorite = useCallback(
     (ipoId: string) => favorites.includes(ipoId),
-    [favorites],
+    [favorites]
   );
 
   // 즐겨찾기 상세
@@ -100,7 +97,7 @@ export default function MyPageScreen() {
         setFavoriteLoading(false);
       }
     },
-    [fetchIpoDetailsByIds],
+    [fetchIpoDetailsByIds]
   );
 
   // 최근 본 상세
@@ -119,7 +116,7 @@ export default function MyPageScreen() {
         setRecentLoading(false);
       }
     },
-    [fetchIpoDetailsByIds],
+    [fetchIpoDetailsByIds]
   );
 
   // 탭 포커스시 즐겨찾기 + 최근 본 동시 로딩
@@ -130,8 +127,8 @@ export default function MyPageScreen() {
       const load = async () => {
         try {
           const [favoriteList, recentList] = await Promise.all([
-            loadFavorites(),
-            loadRecent(),
+            loadStringArray(STORAGE_KEYS.FAVORITES),
+            loadStringArray(STORAGE_KEYS.RECENT_IPO),
           ]);
           if (cancelled) return;
 
@@ -154,13 +151,13 @@ export default function MyPageScreen() {
       return () => {
         cancelled = true;
       };
-    }, [loadFavoriteDetails, loadRecentDetails]),
+    }, [loadFavoriteDetails, loadRecentDetails])
   );
 
   // 최근 본 전체 삭제
   const onClearRecent = useCallback(async () => {
     try {
-      await clearRecent();
+      await removeItem(STORAGE_KEYS.RECENT_IPO);
       setRecentDetails([]);
     } catch (e) {
       console.log('onClearRecent error', e);
@@ -170,8 +167,10 @@ export default function MyPageScreen() {
   // 최근 본 한 줄 삭제
   const onRemoveRecent = useCallback(async (ipoId: string) => {
     try {
-      await removeRecentIpo(ipoId);
-      setRecentDetails(prev => prev.filter(item => item.code_id !== ipoId));
+      const current = await loadStringArray(STORAGE_KEYS.RECENT_IPO);
+      const next = current.filter((id) => id !== ipoId);
+      await saveStringArray(STORAGE_KEYS.RECENT_IPO, next);
+      setRecentDetails((prev) => prev.filter((item) => item.code_id !== ipoId));
     } catch (e) {
       console.log('onRemoveRecent error', e);
     }
@@ -182,14 +181,16 @@ export default function MyPageScreen() {
     async (ipoId: string) => {
       const existsNow = favorites.includes(ipoId);
       const nextIds = existsNow
-        ? favorites.filter(id => id !== ipoId)
+        ? favorites.filter((id) => id !== ipoId)
         : [...favorites, ipoId];
 
+      // 스토리지에 저장
+      await saveStringArray(STORAGE_KEYS.FAVORITES, nextIds);
       setFavorites(nextIds);
 
       if (existsNow) {
         // 즐겨찾기 해제 → 상세 리스트에서도 제거
-        setFavoriteDetails(prev => prev.filter(x => x.code_id !== ipoId));
+        setFavoriteDetails((prev) => prev.filter((x) => x.code_id !== ipoId));
       } else {
         // 즐겨찾기 추가 → 해당 공모주만 개별 호출해서 append
         try {
@@ -199,8 +200,8 @@ export default function MyPageScreen() {
             : data;
 
           if (detail) {
-            setFavoriteDetails(prev => {
-              if (prev.some(x => x.code_id === detail.code_id)) return prev;
+            setFavoriteDetails((prev) => {
+              if (prev.some((x) => x.code_id === detail.code_id)) return prev;
               return [...prev, detail];
             });
           }
@@ -208,14 +209,8 @@ export default function MyPageScreen() {
           console.log('getIpoByCodeId error (single)', e);
         }
       }
-
-      try {
-        await toggleFavorite(ipoId);
-      } catch (e) {
-        console.log('toggleFavorite error', e);
-      }
     },
-    [favorites],
+    [favorites]
   );
 
   return (
@@ -263,19 +258,21 @@ export default function MyPageScreen() {
             </View>
           ) : favoriteDetails.length === 0 ? (
             <View style={styles.emptyBox}>
-              <Text style={styles.emptyTitle}>즐겨찾기한 공모주가 없습니다.</Text>
+              <Text style={styles.emptyTitle}>
+                즐겨찾기한 공모주가 없습니다.
+              </Text>
               <Text style={styles.emptySub}>
                 공모주 상세 화면에서 ⭐ 버튼을 눌러 즐겨찾기를 추가해보세요.
               </Text>
             </View>
           ) : (
-            favoriteDetails.map(item => {
+            favoriteDetails.map((item) => {
               const id = item.code_id;
               const favorite = isFavorite(id);
 
               const priceNum = parseNumber(item.price ?? null);
               const confirmedPriceNum = parseNumber(
-                item.confirmedprice ?? null,
+                item.confirmedprice ?? null
               );
               const hasPrice = priceNum !== null;
               const hasConfirmed = confirmedPriceNum !== null;
@@ -283,12 +280,13 @@ export default function MyPageScreen() {
               const displayPrice = hasPrice
                 ? priceNum
                 : hasConfirmed
-                  ? confirmedPriceNum
-                  : null;
+                ? confirmedPriceNum
+                : null;
 
               const priceLabel = hasPrice ? '현재가' : '공모가';
 
-              const institutionRate = item.institutional_competition_rate ?? null;
+              const institutionRate =
+                item.institutional_competition_rate ?? null;
 
               return (
                 <TouchableOpacity
@@ -337,7 +335,9 @@ export default function MyPageScreen() {
                     {item.competitionrate ? (
                       <>
                         <Text style={styles.label}>청약 경쟁률</Text>
-                        <Text style={styles.valueHighlight}>{item.competitionrate}</Text>
+                        <Text style={styles.valueHighlight}>
+                          {item.competitionrate}
+                        </Text>
                       </>
                     ) : item.institutional_competition_rate ? (
                       <>
@@ -357,7 +357,9 @@ export default function MyPageScreen() {
                   >
                     <Text
                       style={
-                        favorite ? styles.favoriteIconOn : styles.favoriteIconOff
+                        favorite
+                          ? styles.favoriteIconOn
+                          : styles.favoriteIconOff
                       }
                     >
                       {favorite ? '★' : '☆'}
@@ -397,7 +399,7 @@ export default function MyPageScreen() {
               </Text>
             </View>
           ) : (
-            recentDetails.map(item => (
+            recentDetails.map((item) => (
               <TouchableOpacity
                 key={item.code_id}
                 style={styles.listRow}
@@ -436,7 +438,9 @@ export default function MyPageScreen() {
           <TouchableOpacity style={styles.listRow}>
             <View>
               <Text style={styles.listTitle}>카카오모빌리티</Text>
-              <Text style={styles.listSub}>청약 완료 · 환불 예정 200,000원</Text>
+              <Text style={styles.listSub}>
+                청약 완료 · 환불 예정 200,000원
+              </Text>
             </View>
           </TouchableOpacity>
 
@@ -490,9 +494,7 @@ export default function MyPageScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.settingRow}>
-            <Text style={styles.settingLabel}>
-              약관 및 개인정보 처리방침
-            </Text>
+            <Text style={styles.settingLabel}>약관 및 개인정보 처리방침</Text>
             <Text style={styles.settingValue}>보기</Text>
           </TouchableOpacity>
 
@@ -517,8 +519,8 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingHorizontal: 20,
     paddingBottom: 10,
-    backgroundColor: '#F9FAFB',                     // 살짝 밝은 회색 톤
-    borderBottomWidth: StyleSheet.hairlineWidth,    // 얇은 구분선
+    backgroundColor: '#F9FAFB', // 살짝 밝은 회색 톤
+    borderBottomWidth: StyleSheet.hairlineWidth, // 얇은 구분선
     borderBottomColor: '#E5E7EB',
   },
   headerTitle: {
@@ -707,5 +709,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-start',
   },
-
 });

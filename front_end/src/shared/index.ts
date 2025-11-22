@@ -11,6 +11,7 @@ export * from './hooks/use-theme-color';
 
 // Utils
 export * from './utils/linking.utils';
+export * from './utils/storage.utils';
 
 // Constants
 export * from './constants/theme';

@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { IconSymbol } from '../../src/shared/components/ui/icon-symbol';
 import { Colors } from '../../src/shared/constants/theme';
@@ -7,6 +8,7 @@ import { useColorScheme } from '../../src/shared/hooks/use-color-scheme';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tabs
@@ -14,8 +16,9 @@ export default function TabLayout() {
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false, // 헤더 숨김
         tabBarStyle: {
-          height: 80,
+          height: 70 + insets.bottom,
           paddingTop: 10,
+          paddingBottom: insets.bottom,
         },
       }}
     >

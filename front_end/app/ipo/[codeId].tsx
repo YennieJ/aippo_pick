@@ -15,10 +15,10 @@ import { DeepLinkButton, IconSymbol } from '../../src/shared';
 
 import { useEffect, useState } from 'react'; // React 훅
 import {
-  loadFavorites,
-  toggleFavorite,
-} from '../../src/features/storage/favoriteStorage'; // 즐겨찾기 관련 함수
-import { addRecentIpo } from '../../src/features/storage/recentStorage'; // 최근 본 공모주 추가 함수
+  loadStringArray,
+  saveStringArray,
+  STORAGE_KEYS,
+} from '../../src/shared/utils/storage.utils';
 
 export default function IpoDetailScreen() {
   const { codeId } = useLocalSearchParams<{ codeId: string }>();
@@ -42,14 +42,27 @@ export default function IpoDetailScreen() {
     if (!codeIdStr) return;
     if (!data) return; // 데이터 없으면 기록 X
 
-    addRecentIpo(codeIdStr);
+    // 최근 본 공모주 추가 (최대 10개)
+    const addRecentIpo = async () => {
+      try {
+        const current = await loadStringArray(STORAGE_KEYS.RECENT_IPO);
+        const next = [
+          codeIdStr,
+          ...current.filter((id) => id !== codeIdStr),
+        ].slice(0, 10);
+        await saveStringArray(STORAGE_KEYS.RECENT_IPO, next);
+      } catch (e) {
+        console.log('addRecentIpo error', e);
+      }
+    };
+    addRecentIpo();
   }, [codeIdStr, data]);
 
   // ✅ 2) 즐겨찾기 상태 로드
   useEffect(() => {
     if (!favoriteKey) return;
 
-    loadFavorites().then((list) => {
+    loadStringArray(STORAGE_KEYS.FAVORITES).then((list) => {
       setFavorites(list);
       setIsFavorite(list.includes(favoriteKey));
     });
@@ -58,7 +71,12 @@ export default function IpoDetailScreen() {
   const onToggleFavorite = async () => {
     if (!favoriteKey) return;
 
-    const next = await toggleFavorite(favoriteKey);
+    const current = await loadStringArray(STORAGE_KEYS.FAVORITES);
+    const exists = current.includes(favoriteKey);
+    const next = exists
+      ? current.filter((id) => id !== favoriteKey)
+      : [...current, favoriteKey];
+    await saveStringArray(STORAGE_KEYS.FAVORITES, next);
     setFavorites(next);
     setIsFavorite(next.includes(favoriteKey));
   };
