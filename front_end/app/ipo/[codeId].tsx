@@ -5,13 +5,12 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useIpoByCodeId } from '../../src/features/ipo/hooks/useIpoQueries';
 import { IpoDetailData } from '../../src/features/ipo/types/ipo.types';
-import { IconSymbol } from '../../src/shared/components/ui/icon-symbol';
+import { DeepLinkButton, IconSymbol } from '../../src/shared';
 
 export default function IpoDetailScreen() {
   const { codeId } = useLocalSearchParams<{ codeId: string }>();
@@ -177,13 +176,6 @@ export default function IpoDetailScreen() {
             <View style={styles.companyTag}>
               <Text style={styles.companyTagText}>{ipoData.company}</Text>
             </View>
-            {industry && (
-              <View style={styles.industryTag}>
-                <Text style={styles.industryTagText}>
-                  {industry.split(' ')[0]}
-                </Text>
-              </View>
-            )}
           </View>
           {statusInfo && (
             <View
@@ -212,9 +204,11 @@ export default function IpoDetailScreen() {
                   <Text style={styles.brokerName}>{broker}</Text>
                   <Text style={styles.brokerFee}>수수료: 1,500원</Text>
                 </View>
-                <TouchableOpacity style={styles.goButton}>
-                  <Text style={styles.goButtonText}>바로가기</Text>
-                </TouchableOpacity>
+                <DeepLinkButton
+                  brokerName={broker}
+                  style={styles.goButton}
+                  textStyle={styles.goButtonText}
+                />
               </View>
             ))}
           </View>
@@ -412,7 +406,7 @@ export default function IpoDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#fff',
   },
   loadingContainer: {
     flex: 1,
@@ -424,11 +418,11 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    gap: 12,
+    gap: 16,
     paddingBottom: 24,
   },
   headerSection: {
-    marginBottom: 4,
+    marginBottom: 8,
   },
   tagRow: {
     flexDirection: 'row',
@@ -477,6 +471,14 @@ const styles = StyleSheet.create({
     borderColor: '#E5E5E5',
     flexDirection: 'row',
     gap: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   priceColumn: {
     flex: 1,
@@ -525,6 +527,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E5E5E5',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   cardTitle: {
     fontSize: 16,

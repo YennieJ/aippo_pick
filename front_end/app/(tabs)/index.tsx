@@ -12,10 +12,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
+  useAllBrokers,
   useBrokerRanking,
   useTodayIpo,
 } from '../../src/features/ipo/hooks/useIpoQueries';
-import { IconSymbol } from '../../src/shared/components/ui/icon-symbol';
+import { DeepLinkButton, IconSymbol } from '../../src/shared';
 
 const { width } = Dimensions.get('window'); // Get screen width
 const ITEM_WIDTH = width * 0.8; // 화면의 90%
@@ -50,6 +51,7 @@ export default function HomeScreen() {
   const startDate = `${currentYear}.01.01`;
   const endDate = `${currentYear}.12.31`;
   const { data: brokerRanking } = useBrokerRanking(startDate, endDate);
+  const { data: allBrokers } = useAllBrokers();
 
   // 아코디언용 현재 선택된 탭의 데이터
   const currentAccordionData = useMemo(() => {
@@ -331,6 +333,15 @@ export default function HomeScreen() {
                 {item.minus_count}건
               </Text>
             </View>
+            <View style={styles.accordionDetailRow}>
+              <Text style={styles.accordionDetailLabel}>앱 바로가기</Text>
+              <DeepLinkButton
+                brokerName={item.broker}
+                buttonText="바로가기"
+                style={styles.deepLinkButton}
+                textStyle={styles.deepLinkButtonText}
+              />
+            </View>
           </View>
         )}
       </View>
@@ -430,6 +441,26 @@ export default function HomeScreen() {
                 minus_count: number;
               }) => renderAccordionItem(item)
             )}
+          </View>
+        </View>
+
+        {/* 전체 증권사 테스트 */}
+        <View style={styles.allBrokersSection}>
+          <View style={styles.headerContainer}>
+            {renderHeader('전체 증권사 테스트')}
+          </View>
+          <View style={styles.allBrokersContainer}>
+            {allBrokers?.map((broker: any) => (
+              <View key={broker.broker_id} style={styles.brokerTestItem}>
+                <Text style={styles.brokerTestName}>{broker.broker_name}</Text>
+                <DeepLinkButton
+                  brokerName={broker.broker_name}
+                  buttonText="바로가기"
+                  style={styles.brokerTestButton}
+                  textStyle={styles.brokerTestButtonText}
+                />
+              </View>
+            ))}
           </View>
         </View>
       </ScrollView>
@@ -693,5 +724,45 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#1A1A1A',
     fontWeight: '600',
+  },
+  deepLinkButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  deepLinkButtonText: {
+    fontSize: 13,
+  },
+  allBrokersSection: {
+    paddingBottom: 24,
+  },
+  allBrokersContainer: {
+    marginHorizontal: 16,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+    overflow: 'hidden',
+  },
+  brokerTestItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  brokerTestName: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#1A1A1A',
+    flex: 1,
+  },
+  brokerTestButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  brokerTestButtonText: {
+    fontSize: 14,
   },
 });
