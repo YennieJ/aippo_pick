@@ -12,9 +12,53 @@ import { useIpoByCodeId } from '../../src/features/ipo/hooks/useIpoQueries';
 import { IpoDetailData } from '../../src/features/ipo/types/ipo.types';
 import { DeepLinkButton, IconSymbol } from '../../src/shared';
 
+import { loadFavorites, toggleFavorite } from '../../src/features/storage/favoriteStorage'; // 즐겨찾기 관련 함수
+import { useEffect, useState } from 'react'; // React 훅
+import { addRecentIpo } from '../../src/features/storage/recentStorage'; // 최근 본 공모주 추가 함수
+
+
 export default function IpoDetailScreen() {
   const { codeId } = useLocalSearchParams<{ codeId: string }>();
   const { data, isLoading, error } = useIpoByCodeId(codeId || '');
+  const codeIdStr = Array.isArray(codeId) ? codeId[0] : (codeId ?? '');
+
+  // 즐겨찾기 훅은 조건문보다 "무조건 위에"
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  // API 응답은 배열로 반환됨
+  const ipoData: IpoDetailData | undefined = Array.isArray(data)
+    ? data[0]
+    : data;
+
+  // codeId(혹은 ipoData?.code_id)를 키로 사용
+  const favoriteKey = ipoData?.code_id ?? codeId ?? '';
+
+  // 상세 데이터가 준비되면 최근 본 공모주에 기록
+  useEffect(() => {
+    if (!codeIdStr) return;
+    if (!data) return; // 데이터 없으면 기록 X
+
+    addRecentIpo(codeIdStr);
+  }, [codeIdStr, data]);
+
+  // ✅ 2) 즐겨찾기 상태 로드
+  useEffect(() => {
+    if (!favoriteKey) return;
+
+    loadFavorites().then((list) => {
+      setFavorites(list);
+      setIsFavorite(list.includes(favoriteKey));
+    });
+  }, [favoriteKey]);
+
+  const onToggleFavorite = async () => {
+    if (!favoriteKey) return;
+
+    const next = await toggleFavorite(favoriteKey);
+    setFavorites(next);
+    setIsFavorite(next.includes(favoriteKey));
+  };
 
   if (isLoading) {
     return (
@@ -37,11 +81,6 @@ export default function IpoDetailScreen() {
       </SafeAreaView>
     );
   }
-
-  // API 응답은 배열로 반환됨
-  const ipoData: IpoDetailData | undefined = Array.isArray(data)
-    ? data[0]
-    : data;
 
   if (!ipoData) {
     return (
@@ -190,7 +229,20 @@ export default function IpoDetailScreen() {
         {/* 회사 소개 */}
         {industry && (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>회사 소개</Text>
+            {/* 회사 소개 제목 + 즐겨찾기 */}
+            <View style={styles.headerRow}>
+              <Text style={styles.cardTitle}>회사 소개</Text>
+              <TouchableOpacity
+                onPress={onToggleFavorite}
+                style={styles.favoriteButton}
+              >
+                <Text style={styles.favoriteIcon}>
+                  {isFavorite ? '★' : '☆'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* 회사 설명 */}
             <Text style={styles.cardValue}>{industry}</Text>
           </View>
         )}
@@ -609,6 +661,7 @@ const styles = StyleSheet.create({
   },
   brokerInfo: {
     flex: 1,
+    marginRight: 12,
   },
   brokerName: {
     fontSize: 15,
@@ -686,5 +739,20 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#1A1A1A',
     fontWeight: '600',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12, // 카드 내용과 간격
+  },
+  favoriteButton: {
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+  },
+  favoriteIcon: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#F59E0B',
   },
 });

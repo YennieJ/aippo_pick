@@ -27,6 +27,7 @@ const MAPPING = {
   calendar: 'calendar-today',
   'checkmark.circle.fill': 'check-circle',
   circle: 'radio-button-unchecked',
+  'person.fill': 'person',
 } as IconMapping;
 
 /**
