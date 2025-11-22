@@ -5,6 +5,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -12,15 +13,17 @@ import { useIpoByCodeId } from '../../src/features/ipo/hooks/useIpoQueries';
 import { IpoDetailData } from '../../src/features/ipo/types/ipo.types';
 import { DeepLinkButton, IconSymbol } from '../../src/shared';
 
-import { loadFavorites, toggleFavorite } from '../../src/features/storage/favoriteStorage'; // 즐겨찾기 관련 함수
 import { useEffect, useState } from 'react'; // React 훅
+import {
+  loadFavorites,
+  toggleFavorite,
+} from '../../src/features/storage/favoriteStorage'; // 즐겨찾기 관련 함수
 import { addRecentIpo } from '../../src/features/storage/recentStorage'; // 최근 본 공모주 추가 함수
-
 
 export default function IpoDetailScreen() {
   const { codeId } = useLocalSearchParams<{ codeId: string }>();
   const { data, isLoading, error } = useIpoByCodeId(codeId || '');
-  const codeIdStr = Array.isArray(codeId) ? codeId[0] : (codeId ?? '');
+  const codeIdStr = Array.isArray(codeId) ? codeId[0] : codeId ?? '';
 
   // 즐겨찾기 훅은 조건문보다 "무조건 위에"
   const [favorites, setFavorites] = useState<string[]>([]);
