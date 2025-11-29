@@ -10,52 +10,54 @@ export const BROKER_DEEP_LINKS: Record<
 > = {
   DB금융투자: {
     scheme: 'dbfn://',
-    playStoreUrl: 'https://play.google.com/store/apps/details?id=com.dbfg.mts',
+    playStoreUrl: 'https://play.google.com/store/apps/details?id=com.dbfi.xts',
     appStoreUrl: 'https://apps.apple.com/kr/app/id1234567890',
   },
   IBK투자증권: {
     scheme: 'ibks://',
     playStoreUrl:
-      'https://play.google.com/store/apps/details?id=com.ibks.android',
+      'https://play.google.com/store/apps/details?id=com.ibks.ione.mts',
     appStoreUrl: 'https://apps.apple.com/kr/app/id1234567890',
   },
   KB증권: {
     scheme: 'kbsmartstock://',
-    playStoreUrl: 'https://play.google.com/store/apps/details?id=com.kbsec.mts',
+    playStoreUrl:
+      'https://play.google.com/store/apps/details?id=com.kbsec.mts.iplustarngm2',
     appStoreUrl: 'https://apps.apple.com/kr/app/id1234567890',
   },
   KTB투자증권: {
+    // 다올투자증권으로변경됨
     scheme: 'daol://',
-    playStoreUrl: 'https://play.google.com/store/apps/details?id=com.ktb.daol',
+    playStoreUrl:
+      'https://play.google.com/store/apps/details?id=com.ktb.android.mobiletrading',
     appStoreUrl: 'https://apps.apple.com/kr/app/id1234567890',
   },
   NH투자증권: {
     scheme: 'nhqv://',
     playStoreUrl:
-      'https://play.google.com/store/apps/details?id=com.nhwm.newnavi',
+      'https://play.google.com/store/apps/details?id=com.wooriwm.mugsmart',
     appStoreUrl: 'https://apps.apple.com/kr/app/id1234567890',
   },
   SK증권: {
     scheme: 'sks://',
-    playStoreUrl: 'https://play.google.com/store/apps/details?id=com.sks.cts',
+    playStoreUrl:
+      'https://play.google.com/store/apps/details?id=com.sks.android.neojoopasoo',
     appStoreUrl: 'https://apps.apple.com/kr/app/id1234567890',
   },
   교보증권: {
     scheme: 'kyobo://',
-    playStoreUrl:
-      'https://play.google.com/store/apps/details?id=com.kyobo.smartstock',
+    playStoreUrl: 'https://play.google.com/store/apps/details?id=kr.com.wink',
     appStoreUrl: 'https://apps.apple.com/kr/app/id1234567890',
   },
   대신증권: {
     scheme: 'daishin://',
-    playStoreUrl:
-      'https://play.google.com/store/apps/details?id=com.daishin.etna',
+    playStoreUrl: 'https://play.google.com/store/apps/details?id=com.daishins',
     appStoreUrl: 'https://apps.apple.com/kr/app/id1234567890',
   },
   메리츠증권: {
     scheme: 'meritz://',
     playStoreUrl:
-      'https://play.google.com/store/apps/details?id=com.meritz.mts',
+      'https://play.google.com/store/apps/details?id=com.imeritz.smartmeritz',
     appStoreUrl: 'https://apps.apple.com/kr/app/id1234567890',
   },
   미래에셋증권: {
@@ -68,43 +70,46 @@ export const BROKER_DEEP_LINKS: Record<
   부국증권: {
     scheme: 'bookook://',
     playStoreUrl:
-      'https://play.google.com/store/apps/details?id=com.bookook.mts',
+      'https://play.google.com/store/apps/details?id=com.bookook.mtsplus',
     appStoreUrl: 'https://apps.apple.com/kr/app/id1234567890',
   },
   삼성증권: {
     scheme: 'samsungpop://',
     playStoreUrl:
-      'https://play.google.com/store/apps/details?id=com.samsung.sp9',
+      'https://play.google.com/store/apps/details?id=com.samsungpop.android.mpop',
     appStoreUrl: 'https://apps.apple.com/kr/app/id1234567890',
   },
   신영증권: {
     scheme: 'shinyoung://',
-    playStoreUrl: 'https://play.google.com/store/apps/details?id=com.sy.mts',
+    playStoreUrl:
+      'https://play.google.com/store/apps/details?id=com.shinyoung.mts',
     appStoreUrl: 'https://apps.apple.com/kr/app/id1234567890',
   },
   신한투자증권: {
     scheme: 'shinhan://',
     playStoreUrl:
-      'https://play.google.com/store/apps/details?id=com.shinhaninvest.mts',
+      'https://play.google.com/store/apps/details?id=com.shinhaninvest.nsmts',
     appStoreUrl: 'https://apps.apple.com/kr/app/id1234567890',
   },
   유안타증권: {
     scheme: 'yuanta://',
     playStoreUrl:
-      'https://play.google.com/store/apps/details?id=com.yuanta.mts',
+      'https://play.google.com/store/apps/details?id=com.yuanta.tradars',
     appStoreUrl: 'https://apps.apple.com/kr/app/id1234567890',
   },
   유진투자증권: {
     scheme: 'eugene://',
     playStoreUrl:
-      'https://play.google.com/store/apps/details?id=com.eugenefn.mts',
+      'https://play.google.com/store/apps/details?id=com.eugenefn.smartchampion2',
     appStoreUrl: 'https://apps.apple.com/kr/app/id1234567890',
   },
+  //존재안함
   유화증권: {
     scheme: 'yuwa://',
     playStoreUrl: 'https://play.google.com/store/apps/details?id=com.yuwa.mts',
     appStoreUrl: 'https://apps.apple.com/kr/app/id1234567890',
   },
+  //뭐 이거 카카오페이임?
   카카오페이증권: {
     scheme: 'kakaopaysec://',
     playStoreUrl:
@@ -113,21 +118,23 @@ export const BROKER_DEEP_LINKS: Record<
   },
   케이프투자증권: {
     scheme: 'cape://',
-    playStoreUrl: 'https://play.google.com/store/apps/details?id=com.cape.mts',
+    playStoreUrl:
+      'https://play.google.com/store/apps/details?id=com.ligstock.mtsplus',
     appStoreUrl: 'https://apps.apple.com/kr/app/id1234567890',
   },
   키움증권: {
     scheme: 'kiwoom://',
     playStoreUrl:
-      'https://play.google.com/store/apps/details?id=com.kiwoom.hero4',
+      'https://play.google.com/store/apps/details?id=com.kiwoom.heromts',
     appStoreUrl: 'https://apps.apple.com/kr/app/id1234567890',
   },
   토스증권: {
     scheme: 'toss-securities://',
     playStoreUrl:
-      'https://play.google.com/store/apps/details?id=viva.republica.toss.securities',
+      'https://play.google.com/store/apps/details?id=viva.republica.toss',
     appStoreUrl: 'https://apps.apple.com/kr/app/id1234567890',
   },
+  //존재안함
   한국포스증권: {
     scheme: 'foss://',
     playStoreUrl:
@@ -137,36 +144,36 @@ export const BROKER_DEEP_LINKS: Record<
   하나증권: {
     scheme: 'hana://',
     playStoreUrl:
-      'https://play.google.com/store/apps/details?id=com.hanaw.atrade',
+      'https://play.google.com/store/apps/details?id=com.hanasec.stock',
     appStoreUrl: 'https://apps.apple.com/kr/app/id1234567890',
   },
   하이투자증권: {
     scheme: 'hi://',
-    playStoreUrl: 'https://play.google.com/store/apps/details?id=com.hi.mts',
+    playStoreUrl:
+      'https://play.google.com/store/apps/details?id=com.hiib.android.imhim',
     appStoreUrl: 'https://apps.apple.com/kr/app/id1234567890',
   },
   한국투자증권: {
     scheme: 'truefriend://',
     playStoreUrl:
-      'https://play.google.com/store/apps/details?id=kr.co.koreainvestment.mts',
+      'https://play.google.com/store/apps/details?id=com.truefriend.neosmartarenewal',
     appStoreUrl: 'https://apps.apple.com/kr/app/id1234567890',
   },
   한양증권: {
     scheme: 'hanyang://',
     playStoreUrl:
-      'https://play.google.com/store/apps/details?id=com.hanyang.mts',
+      'https://play.google.com/store/apps/details?id=com.hygood.mtsplus',
     appStoreUrl: 'https://apps.apple.com/kr/app/id1234567890',
   },
   한화투자증권: {
     scheme: 'hanwha://',
     playStoreUrl:
-      'https://play.google.com/store/apps/details?id=com.hanwha.smartvictory',
+      'https://play.google.com/store/apps/details?id=plus.steps.sapp',
     appStoreUrl: 'https://apps.apple.com/kr/app/id1234567890',
   },
   현대차증권: {
     scheme: 'hmcsec://',
-    playStoreUrl:
-      'https://play.google.com/store/apps/details?id=com.hmcsec.mts',
+    playStoreUrl: 'https://play.google.com/store/apps/details?id=com.hmsec.mts',
     appStoreUrl: 'https://apps.apple.com/kr/app/id1234567890',
   },
 };

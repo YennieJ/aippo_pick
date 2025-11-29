@@ -14,11 +14,15 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarInactiveTintColor: Colors[colorScheme ?? 'light'].tabIconDefault,
         headerShown: false, // 헤더 숨김
         tabBarStyle: {
           height: 70 + insets.bottom,
           paddingTop: 10,
           paddingBottom: insets.bottom,
+          backgroundColor: Colors[colorScheme ?? 'light'].tabBarBackground,
+          borderTopColor: colorScheme === 'dark' ? '#1f2937' : '#e5e7eb',
+          borderTopWidth: 1,
         },
       }}
     >

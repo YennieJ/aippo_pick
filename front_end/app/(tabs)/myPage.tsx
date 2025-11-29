@@ -280,8 +280,8 @@ export default function MyPageScreen() {
               const displayPrice = hasPrice
                 ? priceNum
                 : hasConfirmed
-                ? confirmedPriceNum
-                : null;
+                  ? confirmedPriceNum
+                  : null;
 
               const priceLabel = hasPrice ? '현재가' : '공모가';
 

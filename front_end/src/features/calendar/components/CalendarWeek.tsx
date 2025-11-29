@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useColorScheme } from '../../../shared/hooks/use-color-scheme';
 import { EventType } from '../constants/event.constants';
 import { getCumulativeWidth, getDayWidth } from '../utils/calendar.utils';
 import { getTextColorForBackground } from '../utils/color.utils';
@@ -31,6 +32,8 @@ export default function CalendarWeek({
   currentMonth,
 }: CalendarWeekProps) {
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
   const maxRow = events.length > 0 ? Math.max(...events.map((e) => e.row)) : 0;
   const eventSpacing = 28;
   const weekHeight = Math.max(70, 50 + (maxRow + 1) * eventSpacing);
@@ -76,7 +79,18 @@ export default function CalendarWeek({
                   <Text
                     style={[
                       styles.dayNumber,
-                      !dayObj.isCurrentMonth && styles.otherMonthNumber,
+                      !dayObj.isCurrentMonth && {
+                        ...styles.otherMonthNumber,
+                        color: isDark ? '#666' : '#ccc',
+                      },
+                      !dayObj.isCurrentMonth &&
+                        !isToday(dayObj.day) && {
+                          color: isDark ? '#666' : '#ccc',
+                        },
+                      dayObj.isCurrentMonth &&
+                        !isToday(dayObj.day) && {
+                          color: isDark ? '#fff' : '#000',
+                        },
                       dayObj.isCurrentMonth &&
                         isToday(dayObj.day) &&
                         styles.todayNumber,

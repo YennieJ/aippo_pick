@@ -1,4 +1,4 @@
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 import { EventType, EventTypeValue } from '../constants/event.constants';
 
 // 이벤트 타입별 색상 (부드러운 톤)
@@ -24,7 +24,7 @@ export default function EventTypeFilter({
   ];
 
   return (
-    <View style={styles.typeFilterGroup}>
+    <View className="flex-row gap-3 flex-1">
       {filters.map(({ type, label }) => {
         const isActive = selectedTypes.has(type);
         const typeColor = TYPE_COLORS[type as keyof typeof TYPE_COLORS];
@@ -32,20 +32,21 @@ export default function EventTypeFilter({
         return (
           <TouchableOpacity
             key={type}
-            style={[
-              styles.filterButton,
-              isActive && {
-                backgroundColor: '#fff',
-                borderColor: typeColor,
-              },
-            ]}
+            className={`px-4 py-1 rounded-2xl border-2 items-center justify-center ${
+              isActive
+                ? 'bg-white dark:bg-gray-800'
+                : 'bg-gray-100 dark:bg-gray-700'
+            }`}
+            style={
+              isActive ? { borderColor: typeColor } : { borderColor: '#f5f5f5' }
+            }
             onPress={() => onToggle(type)}
           >
             <Text
-              style={[
-                styles.filterButtonText,
-                isActive && { color: typeColor },
-              ]}
+              className={`text-sm font-semibold ${
+                !isActive ? 'text-gray-600 dark:text-gray-400' : ''
+              }`}
+              style={isActive ? { color: typeColor } : undefined}
             >
               {label}
             </Text>
@@ -55,26 +56,3 @@ export default function EventTypeFilter({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  typeFilterGroup: {
-    flexDirection: 'row',
-    gap: 12,
-    flex: 1,
-  },
-  filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 4,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#f5f5f5',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  filterButtonText: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '600',
-  },
-});

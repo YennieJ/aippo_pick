@@ -2,27 +2,33 @@ import { Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useColorScheme } from '../../src/shared/hooks/use-color-scheme';
 
 import {
   CalendarHeader,
   CalendarWeek,
   EventTypeFilter,
 } from '../../src/features/calendar';
+import {
+  EventType,
+  EventTypeValue,
+} from '../../src/features/calendar/constants/event.constants';
 import { useCalendarEvents } from '../../src/features/calendar/hooks/useCalendarEvents';
-import { useAllBrokers, useIpoCalendar } from '../../src/features/ipo/hooks/useIpoQueries';
-import { EventType, EventTypeValue } from '../../src/features/calendar/constants/event.constants';
-import { generateCalendarWeeks, getDayWidth } from '../../src/features/calendar/utils/calendar.utils';
+import {
+  generateCalendarWeeks,
+  getDayWidth,
+} from '../../src/features/calendar/utils/calendar.utils';
+import {
+  useAllBrokers,
+  useIpoCalendar,
+} from '../../src/features/ipo/hooks/useIpoQueries';
 
 export default function CalendarScreen() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+
   // 오늘 날짜
   const today = new Date();
   const todayYear = today.getFullYear();
@@ -250,23 +256,25 @@ export default function CalendarScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+    <SafeAreaView className="flex-1 bg-white dark:bg-black">
       <ScrollView
         ref={scrollViewRef}
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        className="flex-1"
+        contentContainerStyle={{ flexGrow: 1 }}
       >
-        <Text style={styles.headerTitle}>월별 달력</Text>
+        <Text className="py-4 px-4 text-xl font-bold text-[#1A1A1A] dark:text-white">
+          월별 달력
+        </Text>
 
         {/* 필터 버튼들 */}
-        <View style={styles.filterContainer}>
+        <View className="flex-row px-4 items-center justify-between gap-3 mb-2">
           <EventTypeFilter
             selectedTypes={selectedTypes}
             onToggle={toggleType}
           />
           <TouchableOpacity
             onPress={() => setIsFilterModalVisible(true)}
-            style={styles.brokerFilterButton}
+            className="p-2 min-w-[36px] min-h-[36px] items-center justify-center"
           >
             <Feather
               name="filter"
@@ -274,7 +282,9 @@ export default function CalendarScreen() {
               color={
                 selectedBrokers.length > 0 || excludeSpec || excludeReits
                   ? '#4A90E2'
-                  : 'black'
+                  : isDark
+                    ? '#fff'
+                    : '#000'
               }
             />
           </TouchableOpacity>
@@ -288,13 +298,16 @@ export default function CalendarScreen() {
         />
 
         {/* 요일 헤더 */}
-        <View style={styles.weekDaysContainer}>
+        <View className="flex-row px-4">
           {weekDays.map((day, index) => (
             <View
               key={index}
-              style={[styles.weekDayCell, { width: `${getDayWidth(index)}%` }]}
+              className="p-2.5 items-center justify-center"
+              style={{ width: `${getDayWidth(index)}%` }}
             >
-              <Text style={styles.weekDayText}>{day}</Text>
+              <Text className="text-xs font-semibold text-[#666] dark:text-gray-400">
+                {day}
+              </Text>
             </View>
           ))}
         </View>
@@ -360,90 +373,102 @@ export default function CalendarScreen() {
         animationType="slide"
         onRequestClose={() => setIsFilterModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
+        <View className="flex-1 justify-end bg-black/50">
           <TouchableOpacity
-            style={styles.modalBackdrop}
+            className="flex-1"
             activeOpacity={1}
             onPress={() => setIsFilterModalVisible(false)}
           />
-          <View style={styles.bottomSheet}>
-            <View style={styles.bottomSheetHeader}>
-              <Text style={styles.bottomSheetTitle}>캘린더 필터</Text>
+          <View className="bg-white dark:bg-gray-800 rounded-t-[20px] max-h-[85%] min-h-[500px] flex-col">
+            <View className="flex-row justify-between items-center p-5">
+              <Text className="text-lg font-bold text-gray-900 dark:text-white">
+                캘린더 필터
+              </Text>
               <TouchableOpacity onPress={() => setIsFilterModalVisible(false)}>
-                <Text style={styles.closeButton}>✕</Text>
+                <Text className="text-2xl text-[#666] dark:text-gray-400">
+                  ✕
+                </Text>
               </TouchableOpacity>
             </View>
 
             <ScrollView
-              style={styles.modalScrollView}
-              contentContainerStyle={styles.modalScrollContent}
+              className="flex-1 min-h-0"
+              contentContainerStyle={{ paddingBottom: 20 }}
             >
               {/* 조회 종목 필터 */}
-              <View style={styles.modalSection}>
-                <Text style={[styles.modalSectionTitle, { marginBottom: 12 }]}>
+              <View className="px-5 py-4 border-b border-b-[#f0f0f0] dark:border-b-gray-700">
+                <Text className="text-base font-semibold text-[#333] dark:text-white mb-3">
                   조회 종목
                 </Text>
-                <View style={styles.stockTypeFilterOptions}>
+                <View className="flex-row gap-4">
                   <TouchableOpacity
-                    style={styles.stockTypeFilterItem}
+                    className="flex-row items-center gap-2"
                     onPress={() => setTempExcludeSpec(!tempExcludeSpec)}
                   >
                     <View
-                      style={[
-                        styles.stockTypeCheckbox,
-                        tempExcludeSpec && styles.stockTypeCheckboxChecked,
-                      ]}
+                      className={`w-5 h-5 border-2 rounded items-center justify-center ${
+                        tempExcludeSpec
+                          ? 'bg-[#4A90E2] border-[#4A90E2]'
+                          : 'border-[#ddd] dark:border-gray-600'
+                      }`}
                     >
                       {tempExcludeSpec && (
-                        <Text style={styles.stockTypeCheckmark}>✓</Text>
+                        <Text className="text-white text-xs font-bold">✓</Text>
                       )}
                     </View>
-                    <Text style={styles.stockTypeFilterText}>스펙 제외</Text>
+                    <Text className="text-sm text-[#333] dark:text-white font-medium">
+                      스펙 제외
+                    </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={styles.stockTypeFilterItem}
+                    className="flex-row items-center gap-2"
                     onPress={() => setTempExcludeReits(!tempExcludeReits)}
                   >
                     <View
-                      style={[
-                        styles.stockTypeCheckbox,
-                        tempExcludeReits && styles.stockTypeCheckboxChecked,
-                      ]}
+                      className={`w-5 h-5 border-2 rounded items-center justify-center ${
+                        tempExcludeReits
+                          ? 'bg-[#4A90E2] border-[#4A90E2]'
+                          : 'border-[#ddd] dark:border-gray-600'
+                      }`}
                     >
                       {tempExcludeReits && (
-                        <Text style={styles.stockTypeCheckmark}>✓</Text>
+                        <Text className="text-white text-xs font-bold">✓</Text>
                       )}
                     </View>
-                    <Text style={styles.stockTypeFilterText}>리츠 제외</Text>
+                    <Text className="text-sm text-[#333] dark:text-white font-medium">
+                      리츠 제외
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
 
               {/* 증권사 필터 */}
-              <View style={styles.modalSection}>
-                <View style={styles.modalSectionHeader}>
-                  <Text style={styles.modalSectionTitle}>증권사</Text>
+              <View className="px-5 py-4 border-b border-b-[#f0f0f0] dark:border-b-gray-700">
+                <View className="flex-row justify-between items-center mb-3">
+                  <Text className="text-base font-semibold text-[#333] dark:text-white">
+                    증권사
+                  </Text>
                   <TouchableOpacity
-                    style={[
-                      styles.resetButton,
-                      tempSelectedBrokers.length === 0 &&
-                        styles.resetButtonDisabled,
-                    ]}
+                    className={`px-3 py-1.5 rounded ${
+                      tempSelectedBrokers.length === 0
+                        ? 'bg-[#f0f0f0] dark:bg-gray-700 opacity-50'
+                        : 'bg-[#f5f5f5] dark:bg-gray-700'
+                    }`}
                     onPress={resetToAll}
                     disabled={tempSelectedBrokers.length === 0}
                   >
                     <Text
-                      style={[
-                        styles.resetButtonText,
-                        tempSelectedBrokers.length === 0 &&
-                          styles.resetButtonTextDisabled,
-                      ]}
+                      className={`text-[13px] font-semibold ${
+                        tempSelectedBrokers.length === 0
+                          ? 'text-[#999] dark:text-gray-500'
+                          : 'text-[#333] dark:text-white'
+                      }`}
                     >
                       전체
                     </Text>
                   </TouchableOpacity>
                 </View>
-                <View style={styles.ipoList}>
+                <View className="gap-0">
                   {allBrokers.map((broker: any) => {
                     const isSelected = tempSelectedBrokers.includes(
                       broker.broker_name
@@ -451,22 +476,25 @@ export default function CalendarScreen() {
                     return (
                       <TouchableOpacity
                         key={broker.broker_id}
-                        style={styles.ipoItem}
+                        className="flex-row justify-between items-center px-5 py-3"
                         onPress={() => toggleBroker(broker.broker_name)}
                       >
-                        <View style={styles.ipoItemContent}>
-                          <Text style={styles.ipoName}>
+                        <View className="flex-row items-center gap-3">
+                          <Text className="text-base font-medium text-gray-900 dark:text-white">
                             {broker.broker_name}
                           </Text>
                         </View>
                         <View
-                          style={[
-                            styles.checkbox,
-                            isSelected && styles.checkboxChecked,
-                          ]}
+                          className={`w-6 h-6 border-2 rounded items-center justify-center ${
+                            isSelected
+                              ? 'bg-[#4A90E2] border-[#4A90E2]'
+                              : 'border-[#ddd] dark:border-gray-600'
+                          }`}
                         >
                           {isSelected && (
-                            <Text style={styles.checkmark}>✓</Text>
+                            <Text className="text-white text-base font-bold">
+                              ✓
+                            </Text>
                           )}
                         </View>
                       </TouchableOpacity>
@@ -476,8 +504,11 @@ export default function CalendarScreen() {
               </View>
             </ScrollView>
 
-            <TouchableOpacity style={styles.applyButton} onPress={applyFilters}>
-              <Text style={styles.applyButtonText}>적용</Text>
+            <TouchableOpacity
+              className="mx-5 mt-4 py-3.5 bg-[#4A90E2] rounded-lg items-center"
+              onPress={applyFilters}
+            >
+              <Text className="text-white text-base font-bold">적용</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -485,235 +516,3 @@ export default function CalendarScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  headerTitle: {
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-  },
-  weekDaysContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-  },
-  weekDayCell: {
-    padding: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  weekDayText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#666',
-  },
-  filterContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 8,
-  },
-  brokerFilterButton: {
-    padding: 8,
-    minWidth: 36,
-    minHeight: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  filterIconContainer: {
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  filterBadge: {
-    position: 'absolute',
-    top: -6,
-    right: -8,
-    backgroundColor: '#4A90E2',
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    paddingHorizontal: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
-  filterBadgeText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: 'bold',
-  },
-  // 모달 스크롤뷰
-  modalScrollView: {
-    flex: 1,
-    minHeight: 0,
-  },
-  modalScrollContent: {
-    paddingBottom: 20,
-  },
-  // 모달 섹션
-  modalSection: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  modalSectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  modalSectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-  },
-  resetButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 6,
-  },
-  resetButtonDisabled: {
-    backgroundColor: '#f0f0f0',
-    opacity: 0.5,
-  },
-  resetButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#333',
-  },
-  resetButtonTextDisabled: {
-    color: '#999',
-  },
-  // 조회 종목 필터 스타일
-  stockTypeFilterOptions: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  stockTypeFilterItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stockTypeCheckbox: {
-    width: 20,
-    height: 20,
-    borderWidth: 2,
-    borderColor: '#ddd',
-    borderRadius: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stockTypeCheckboxChecked: {
-    backgroundColor: '#4A90E2',
-    borderColor: '#4A90E2',
-  },
-  stockTypeCheckmark: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  stockTypeFilterText: {
-    fontSize: 14,
-    color: '#333',
-    fontWeight: '500',
-  },
-  // 모달 스타일
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalBackdrop: {
-    flex: 1,
-  },
-  bottomSheet: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '85%',
-    minHeight: 500,
-    flexDirection: 'column',
-  },
-  bottomSheetHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-  },
-  bottomSheetTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  closeButton: {
-    fontSize: 24,
-    color: '#666',
-  },
-  ipoList: {
-    gap: 0,
-  },
-  ipoItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-  },
-  ipoItemContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  colorIndicator: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-  },
-  ipoName: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderWidth: 2,
-    borderColor: '#ddd',
-    borderRadius: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: '#4A90E2',
-    borderColor: '#4A90E2',
-  },
-  checkmark: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  applyButton: {
-    marginHorizontal: 20,
-    marginTop: 16,
-    paddingVertical: 14,
-    backgroundColor: '#4A90E2',
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  applyButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-});

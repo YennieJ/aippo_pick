@@ -1,5 +1,6 @@
+import { Text, TouchableOpacity, View } from 'react-native';
 import { IconSymbol } from '../../../shared/components/ui/icon-symbol';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useColorScheme } from '../../../shared/hooks/use-color-scheme';
 
 interface CalendarHeaderProps {
   year: number;
@@ -14,45 +15,28 @@ export default function CalendarHeader({
   onPrevious,
   onNext,
 }: CalendarHeaderProps) {
+  const colorScheme = useColorScheme();
+  const iconColor = colorScheme === 'dark' ? '#fff' : '#000';
+
   return (
-    <View style={styles.header}>
-      <View style={styles.calendarControls}>
-        <TouchableOpacity onPress={onPrevious} style={styles.navButton}>
-          <IconSymbol size={24} name="chevron.left" color="black" />
+    <View className="flex-row items-center px-2.5 py-2 justify-between">
+      <View className="flex-row items-center gap-9">
+        <TouchableOpacity
+          onPress={onPrevious}
+          className="p-2.5 min-w-[44px] items-center justify-center"
+        >
+          <IconSymbol size={24} name="chevron.left" color={iconColor} />
         </TouchableOpacity>
-        <Text style={styles.headerText}>
+        <Text className="text-xl font-bold text-center text-gray-900 dark:text-white">
           {year}년 {month}월
         </Text>
-        <TouchableOpacity onPress={onNext} style={styles.navButton}>
-          <IconSymbol size={24} name="chevron.right" color="black" />
+        <TouchableOpacity
+          onPress={onNext}
+          className="p-2.5 min-w-[44px] items-center justify-center"
+        >
+          <IconSymbol size={24} name="chevron.right" color={iconColor} />
         </TouchableOpacity>
       </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    justifyContent: 'space-between',
-  },
-  calendarControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 36,
-  },
-  headerText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  navButton: {
-    padding: 10,
-    minWidth: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

@@ -5,7 +5,6 @@ import {
   Dimensions,
   FlatList,
   ScrollView,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -16,7 +15,9 @@ import {
   useBrokerRanking,
   useTodayIpo,
 } from '../../src/features/ipo/hooks/useIpoQueries';
+import { cn } from '../../src/lib/cn';
 import { DeepLinkButton, IconSymbol } from '../../src/shared';
+import { useColorScheme } from '../../src/shared/hooks/use-color-scheme';
 
 const { width } = Dimensions.get('window'); // Get screen width
 const ITEM_WIDTH = width * 0.8; // 화면의 90%
@@ -27,6 +28,8 @@ type RankingType = 'topByCount' | 'topByAvg' | 'topByMax';
 export default function HomeScreen() {
   const { data: todayIpo } = useTodayIpo();
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const iconColor = colorScheme === 'dark' ? '#fff' : '#000';
   const [selectedTab2, setSelectedTab2] = useState<RankingType>('topByAvg');
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
@@ -143,36 +146,56 @@ export default function HomeScreen() {
 
     return (
       <TouchableOpacity
-        style={styles.slideItemContainer}
+        className="bg-white dark:bg-gray-800 p-4 mx-2 rounded-xl justify-between border border-gray-200 dark:border-gray-700 shadow-sm"
+        style={{ width: ITEM_WIDTH, height: 180 }}
         onPress={handlePress}
         activeOpacity={0.7}
       >
         {/* 상단: status와 디데이 */}
-        <View style={styles.statusSection}>
-          <View style={[styles.statusBadge, { borderColor: statusColor }]}>
-            <Text style={[styles.statusText, { color: statusColor }]}>
+        <View className="flex-row items-center gap-2 mb-2">
+          <View
+            className="px-4 py-1 bg-white dark:bg-gray-800 rounded-2xl border-2 items-center justify-center"
+            style={{ borderColor: statusColor }}
+          >
+            <Text
+              className="text-sm font-semibold"
+              style={{ color: statusColor }}
+            >
               {item.status}
             </Text>
           </View>
-          <Text style={styles.ddayText}>{ddayText}</Text>
+          <Text className="text-sm font-bold text-gray-900 dark:text-white">
+            {ddayText}
+          </Text>
         </View>
 
         {/* 타이틀 */}
-        <View style={styles.titleSection}>
-          <Text style={styles.slideItemTitle}>{item.title}</Text>
+        <View className="self-start mb-2">
+          <Text className="text-xl font-bold text-gray-900 dark:text-white">
+            {item.title}
+          </Text>
         </View>
 
         {/* 공모가 */}
-        <View style={styles.priceSection}>
-          <Text style={styles.priceLabel}>공모가</Text>
-          <Text style={styles.priceValue}>{price}</Text>
+        <View className="flex-row items-center gap-2 mb-2">
+          <Text className="text-sm text-gray-600 dark:text-gray-400">
+            공모가
+          </Text>
+          <Text className="text-base font-semibold text-gray-900 dark:text-white">
+            {price}
+          </Text>
         </View>
 
         {/* 은행 */}
-        <View style={styles.bankSection}>
+        <View className="flex-row flex-wrap gap-2">
           {item.brokers.map((bankName, index) => (
-            <View key={index} style={styles.bankTag}>
-              <Text style={styles.bankText}>{bankName}</Text>
+            <View
+              key={index}
+              className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded"
+            >
+              <Text className="text-xs text-gray-600 dark:text-gray-300">
+                {bankName}
+              </Text>
             </View>
           ))}
         </View>
@@ -182,12 +205,19 @@ export default function HomeScreen() {
 
   const renderHeader = (title: string, onPress?: () => void) => {
     return (
-      <View style={styles.headerTop}>
-        <Text style={styles.headerTitle}>{title}</Text>
+      <View className="flex-row justify-between items-center">
+        <Text className="text-xl font-bold text-gray-900 dark:text-white">
+          {title}
+        </Text>
         {onPress && (
-          <TouchableOpacity style={styles.headerButton} onPress={onPress}>
-            <Text style={styles.headerButtonText}>전체보기</Text>
-            <IconSymbol size={16} name="chevron.right" color="black" />
+          <TouchableOpacity
+            className="flex-row items-center gap-1"
+            onPress={onPress}
+          >
+            <Text className="text-sm font-medium text-gray-900 dark:text-gray-300">
+              전체보기
+            </Text>
+            <IconSymbol size={16} name="chevron.right" color={iconColor} />
           </TouchableOpacity>
         )}
       </View>
@@ -243,37 +273,43 @@ export default function HomeScreen() {
     const keyMetric = getKeyMetric(item, selectedTab2);
 
     return (
-      <View key={key} style={styles.accordionItem}>
+      <View key={key} className="border-b border-gray-200 dark:border-gray-700">
         <TouchableOpacity
-          style={styles.accordionHeader}
+          className="flex-row items-center justify-between px-4 py-3.5 min-h-[56px] border-b border-gray-100 dark:border-gray-700"
           onPress={() => toggleAccordion(key)}
           activeOpacity={0.7}
         >
-          <View style={styles.accordionHeaderContent}>
-            <View style={styles.accordionRankCell}>
-              <Text style={styles.accordionRankText}>{item.rank}위</Text>
+          <View className="flex-1 flex-row items-center gap-3">
+            <View className="w-10 items-start justify-center">
+              <Text className="text-base font-semibold text-gray-900 dark:text-white">
+                {item.rank}위
+              </Text>
             </View>
-            <View style={styles.accordionBrokerCell}>
-              <Text style={styles.accordionBrokerText}>{item.broker}</Text>
+            <View className="flex-1 justify-center">
+              <Text className="text-[15px] font-semibold text-gray-900 dark:text-white">
+                {item.broker}
+              </Text>
             </View>
-            <View style={styles.accordionMetricCell}>
-              <Text style={styles.accordionMetricLabel}>{keyMetric.label}</Text>
+            <View className="items-end justify-center min-w-[100px]">
+              <Text className="text-[11px] text-gray-600 dark:text-gray-400 mb-1">
+                {keyMetric.label}
+              </Text>
               <Text
-                style={[
-                  styles.accordionMetricValue,
+                className={cn(
+                  'text-base font-semibold',
                   keyMetric.value.includes('%') &&
-                  parseFloat(keyMetric.value.replace(/[+%]/g, '')) >= 0
-                    ? styles.positiveRate
+                    parseFloat(keyMetric.value.replace(/[+%]/g, '')) >= 0
+                    ? 'text-red-600 dark:text-red-400'
                     : keyMetric.value.includes('%')
-                    ? styles.negativeRate
-                    : {},
-                ]}
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : 'text-gray-900 dark:text-white'
+                )}
               >
                 {keyMetric.value}
               </Text>
             </View>
           </View>
-          <View style={styles.accordionToggle}>
+          <View className="flex-row items-center gap-1 pl-3">
             <IconSymbol
               name={isExpanded ? 'chevron.up' : 'chevron.down'}
               size={18}
@@ -283,63 +319,77 @@ export default function HomeScreen() {
         </TouchableOpacity>
 
         {isExpanded && (
-          <View style={styles.accordionContent}>
-            <View style={styles.accordionDetailRow}>
-              <Text style={styles.accordionDetailLabel}>상장 건수</Text>
-              <Text style={styles.accordionDetailValue}>{item.count}건</Text>
+          <View className="px-4 pt-3 pb-4 bg-gray-50 dark:bg-gray-900">
+            <View className="flex-row justify-between items-center py-3 border-b border-gray-200 dark:border-gray-700">
+              <Text className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                상장 건수
+              </Text>
+              <Text className="text-sm text-gray-900 dark:text-white font-semibold">
+                {item.count}건
+              </Text>
             </View>
-            <View style={styles.accordionDetailRow}>
-              <Text style={styles.accordionDetailLabel}>평균 수익률</Text>
+            <View className="flex-row justify-between items-center py-3 border-b border-gray-200 dark:border-gray-700">
+              <Text className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                평균 수익률
+              </Text>
               <Text
-                style={[
-                  styles.accordionDetailValue,
+                className={cn(
+                  'text-sm font-semibold',
                   item.avg_return_rate >= 0
-                    ? styles.positiveRate
-                    : styles.negativeRate,
-                ]}
+                    ? 'text-red-600 dark:text-red-400'
+                    : 'text-blue-600 dark:text-blue-400'
+                )}
               >
                 {formatRate(item.avg_return_rate)}
               </Text>
             </View>
-            <View style={styles.accordionDetailRow}>
-              <Text style={styles.accordionDetailLabel}>최대 수익률</Text>
+            <View className="flex-row justify-between items-center py-3 border-b border-gray-200 dark:border-gray-700">
+              <Text className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                최대 수익률
+              </Text>
               <Text
-                style={[
-                  styles.accordionDetailValue,
+                className={cn(
+                  'text-sm font-semibold',
                   item.max_return_rate >= 0
-                    ? styles.positiveRate
-                    : styles.negativeRate,
-                ]}
+                    ? 'text-red-600 dark:text-red-400'
+                    : 'text-blue-600 dark:text-blue-400'
+                )}
               >
                 {formatRate(item.max_return_rate)}
               </Text>
             </View>
-            <View style={styles.accordionDetailRow}>
-              <Text style={styles.accordionDetailLabel}>최소 수익률</Text>
+            <View className="flex-row justify-between items-center py-3 border-b border-gray-200 dark:border-gray-700">
+              <Text className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                최소 수익률
+              </Text>
               <Text
-                style={[
-                  styles.accordionDetailValue,
+                className={cn(
+                  'text-sm font-semibold',
                   item.min_return_rate >= 0
-                    ? styles.positiveRate
-                    : styles.negativeRate,
-                ]}
+                    ? 'text-red-600 dark:text-red-400'
+                    : 'text-blue-600 dark:text-blue-400'
+                )}
               >
                 {formatRate(item.min_return_rate)}
               </Text>
             </View>
-            <View style={styles.accordionDetailRow}>
-              <Text style={styles.accordionDetailLabel}>손실 건수</Text>
-              <Text style={styles.accordionDetailValue}>
+            <View className="flex-row justify-between items-center py-3 border-b border-gray-200 dark:border-gray-700">
+              <Text className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                손실 건수
+              </Text>
+              <Text className="text-sm text-gray-900 dark:text-white font-semibold">
                 {item.minus_count}건
               </Text>
             </View>
-            <View style={styles.accordionDetailRow}>
-              <Text style={styles.accordionDetailLabel}>앱 바로가기</Text>
+            <View className="flex-row justify-between items-center py-3 border-b border-gray-200 dark:border-gray-700">
+              <Text className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                앱 바로가기
+              </Text>
               <DeepLinkButton
                 brokerName={item.broker}
                 buttonText="바로가기"
-                style={styles.deepLinkButton}
-                textStyle={styles.deepLinkButtonText}
+                style={{ paddingHorizontal: 12, paddingVertical: 6 }}
+                textStyle={{ fontSize: 13 }}
               />
             </View>
           </View>
@@ -349,12 +399,14 @@ export default function HomeScreen() {
   };
 
   return (
-    // SafeAreaView가 설정한 헤더를 덮지 않음
-    <SafeAreaView style={{ flex: 1 }}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 24 }}>
+    <SafeAreaView className="flex-1 bg-white dark:bg-black" edges={['top']}>
+      <ScrollView
+        className="flex-1 bg-white dark:bg-black"
+        contentContainerStyle={{ gap: 24 }}
+      >
         {/* 슬라이더 */}
-        <View style={styles.sliderContainer}>
-          <View style={styles.headerContainer}>
+        <View className="py-5 justify-center">
+          <View className="pb-4 px-4">
             {renderHeader('오늘의 공모주', handleShowAll)}
           </View>
           <FlatList
@@ -371,57 +423,69 @@ export default function HomeScreen() {
         </View>
 
         {/* 증권사별 수익률 (아코디언) */}
-        <View style={styles.rankingSection}>
-          <View style={styles.headerContainer}>
+        <View className="pb-6">
+          <View className="pb-4 px-4">
             {renderHeader('증권사별 수익률 순위')}
           </View>
 
           {/* 탭 */}
-          <View style={styles.tabContainer}>
+          <View className="flex-row px-4 gap-3 mb-4">
             <TouchableOpacity
-              style={[
-                styles.tab,
-                selectedTab2 === 'topByAvg' && styles.activeTab,
-              ]}
+              className={cn(
+                'flex-1 py-3 px-3 rounded-xl items-center justify-center border shadow-sm',
+                selectedTab2 === 'topByAvg'
+                  ? 'bg-gray-900 dark:bg-white border-gray-900 dark:border-white'
+                  : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+              )}
               onPress={() => setSelectedTab2('topByAvg')}
             >
               <Text
-                style={[
-                  styles.tabText,
-                  selectedTab2 === 'topByAvg' && styles.activeTabText,
-                ]}
+                className={cn(
+                  'text-[13px] font-medium',
+                  selectedTab2 === 'topByAvg'
+                    ? 'text-white dark:text-gray-900 font-semibold'
+                    : 'text-gray-600 dark:text-gray-400'
+                )}
               >
                 평균 수익률
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[
-                styles.tab,
-                selectedTab2 === 'topByMax' && styles.activeTab,
-              ]}
+              className={cn(
+                'flex-1 py-3 px-3 rounded-xl items-center justify-center border shadow-sm',
+                selectedTab2 === 'topByMax'
+                  ? 'bg-gray-900 dark:bg-white border-gray-900 dark:border-white'
+                  : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+              )}
               onPress={() => setSelectedTab2('topByMax')}
             >
               <Text
-                style={[
-                  styles.tabText,
-                  selectedTab2 === 'topByMax' && styles.activeTabText,
-                ]}
+                className={cn(
+                  'text-[13px] font-medium',
+                  selectedTab2 === 'topByMax'
+                    ? 'text-white dark:text-gray-900 font-semibold'
+                    : 'text-gray-600 dark:text-gray-400'
+                )}
               >
                 최대 수익률
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[
-                styles.tab,
-                selectedTab2 === 'topByCount' && styles.activeTab,
-              ]}
+              className={cn(
+                'flex-1 py-3 px-3 rounded-xl items-center justify-center border shadow-sm',
+                selectedTab2 === 'topByCount'
+                  ? 'bg-gray-900 dark:bg-white border-gray-900 dark:border-white'
+                  : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+              )}
               onPress={() => setSelectedTab2('topByCount')}
             >
               <Text
-                style={[
-                  styles.tabText,
-                  selectedTab2 === 'topByCount' && styles.activeTabText,
-                ]}
+                className={cn(
+                  'text-[13px] font-medium',
+                  selectedTab2 === 'topByCount'
+                    ? 'text-white dark:text-gray-900 font-semibold'
+                    : 'text-gray-600 dark:text-gray-400'
+                )}
               >
                 상장 건수
               </Text>
@@ -429,7 +493,7 @@ export default function HomeScreen() {
           </View>
 
           {/* 아코디언 리스트 */}
-          <View style={styles.accordionContainer}>
+          <View className="mx-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             {currentAccordionData.map(
               (item: {
                 rank: number;
@@ -445,19 +509,24 @@ export default function HomeScreen() {
         </View>
 
         {/* 전체 증권사 테스트 */}
-        <View style={styles.allBrokersSection}>
-          <View style={styles.headerContainer}>
+        <View>
+          <View className="pb-4 px-4">
             {renderHeader('전체 증권사 테스트')}
           </View>
-          <View style={styles.allBrokersContainer}>
+          <View className="mx-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             {allBrokers?.map((broker: any) => (
-              <View key={broker.broker_id} style={styles.brokerTestItem}>
-                <Text style={styles.brokerTestName}>{broker.broker_name}</Text>
+              <View
+                key={broker.broker_id}
+                className="flex-row justify-between items-center px-4 py-3.5 border-b border-gray-100 dark:border-gray-700"
+              >
+                <Text className="text-[15px] font-medium text-gray-900 dark:text-white flex-1">
+                  {broker.broker_name}
+                </Text>
                 <DeepLinkButton
                   brokerName={broker.broker_name}
                   buttonText="바로가기"
-                  style={styles.brokerTestButton}
-                  textStyle={styles.brokerTestButtonText}
+                  style={{ paddingHorizontal: 16, paddingVertical: 8 }}
+                  textStyle={{ fontSize: 14 }}
                 />
               </View>
             ))}
@@ -467,302 +536,3 @@ export default function HomeScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  headerContainer: {
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-  },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-  },
-  headerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  headerButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  sliderContainer: {
-    paddingVertical: 20,
-    justifyContent: 'center',
-  },
-  slideItemContainer: {
-    width: ITEM_WIDTH,
-    height: 180,
-    backgroundColor: '#fff',
-    padding: 16,
-    marginHorizontal: 8,
-    borderRadius: 12,
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: '#E5E5E5',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  statusSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  statusBadge: {
-    paddingHorizontal: 16,
-    paddingVertical: 4,
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statusText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  ddayText: {
-    color: '#1A1A1A',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  titleSection: {
-    alignSelf: 'flex-start',
-    marginBottom: 8,
-  },
-  slideItemTitle: {
-    color: '#1A1A1A',
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  priceSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  priceLabel: {
-    color: '#666',
-    fontSize: 14,
-  },
-  priceValue: {
-    color: '#1A1A1A',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  bankSection: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  bankTag: {
-    backgroundColor: '#F5F5F5',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  bankText: {
-    color: '#666',
-    fontSize: 12,
-  },
-  rankingSection: {
-    paddingBottom: 24,
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    gap: 12,
-    marginBottom: 16,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E5E5',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  activeTab: {
-    backgroundColor: '#1A1A1A',
-    borderColor: '#1A1A1A',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  tabText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#666',
-  },
-  activeTabText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  positiveRate: {
-    color: '#DC2626',
-  },
-  negativeRate: {
-    color: '#2563EB',
-  },
-  accordionContainer: {
-    marginHorizontal: 16,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E5E5',
-    overflow: 'hidden',
-  },
-  accordionItem: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E5',
-  },
-  accordionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    minHeight: 56,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  accordionHeaderContent: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  accordionRankCell: {
-    width: 40,
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-  },
-  accordionRankText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  accordionBrokerCell: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  accordionBrokerText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  accordionMetricCell: {
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    minWidth: 100,
-  },
-  accordionMetricLabel: {
-    fontSize: 11,
-    color: '#666',
-    marginBottom: 4,
-  },
-  accordionMetricValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  accordionToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingLeft: 12,
-  },
-  accordionToggleText: {
-    fontSize: 13,
-    color: '#666',
-    fontWeight: '500',
-  },
-  accordionContent: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 16,
-    backgroundColor: '#F9FAFB',
-  },
-  accordionDetailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  accordionDetailLabel: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '500',
-  },
-  accordionDetailValue: {
-    fontSize: 14,
-    color: '#1A1A1A',
-    fontWeight: '600',
-  },
-  deepLinkButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  deepLinkButtonText: {
-    fontSize: 13,
-  },
-  allBrokersSection: {
-    paddingBottom: 24,
-  },
-  allBrokersContainer: {
-    marginHorizontal: 16,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E5E5',
-    overflow: 'hidden',
-  },
-  brokerTestItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  brokerTestName: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#1A1A1A',
-    flex: 1,
-  },
-  brokerTestButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  brokerTestButtonText: {
-    fontSize: 14,
-  },
-});
