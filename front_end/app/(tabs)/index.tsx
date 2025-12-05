@@ -17,6 +17,7 @@ import {
   useTodayIpo,
 } from '../../src/features/ipo/hooks/useIpoQueries';
 import { DeepLinkButton, IconSymbol } from '../../src/shared';
+import Constants from "expo-constants";
 
 const { width } = Dimensions.get('window'); // Get screen width
 const ITEM_WIDTH = width * 0.8; // 화면의 90%
@@ -32,6 +33,7 @@ export default function HomeScreen() {
 
   // 탭 변경 시 아코디언 모두 닫기
   useEffect(() => {
+    console.log("🔥 API_BASE_URL =", Constants.expoConfig?.extra?.apiBaseUrl);
     setExpandedItems(new Set());
   }, [selectedTab2]);
 

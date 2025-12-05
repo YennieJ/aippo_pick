@@ -10,6 +10,7 @@ import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { useColorScheme } from '../src/shared/hooks/use-color-scheme';
+import "../src/shared/api/client";
 
 export const unstable_settings = {
   anchor: '(tabs)',

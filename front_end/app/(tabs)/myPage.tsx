@@ -8,6 +8,9 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Platform,
+  Switch,
+  Alert,
 } from 'react-native';
 
 import { getIpoByCodeId } from '../../src/features/ipo/api/ipo';
@@ -19,21 +22,72 @@ import {
   STORAGE_KEYS,
 } from '../../src/shared/utils/storage.utils';
 
-// 문자열("24,650", " 8,000원") → 숫자로 안전하게 변환
-const parseNumber = (value?: string | null): number | null => {
-  if (!value) return null;
-
-  // 숫자, -, . 만 남기고 다 제거
-  const cleaned = value.replace(/[^\d.-]/g, '').trim();
-  if (!cleaned) return null;
-
-  const num = Number(cleaned);
-  return Number.isNaN(num) ? null : num;
-};
+import * as Device from 'expo-device';
+import * as Notifications from 'expo-notifications';
+import axios from 'axios';
 
 export default function MyPageScreen() {
   const router = useRouter();
 
+  // 문자열("24,650", " 8,000원") → 숫자로 안전하게 변환
+  const parseNumber = (value?: string | null): number | null => {
+    if (!value) return null;
+
+    // 숫자, -, . 만 남기고 다 제거
+    const cleaned = value.replace(/[^\d.-]/g, '').trim();
+    if (!cleaned) return null;
+
+    const num = Number(cleaned);
+    return Number.isNaN(num) ? null : num;
+  };
+
+  // 🔔 전체 알림 스위치 상태
+  const [notifyAll, setNotifyAll] = useState(false);
+
+  // 🔔 권한 확인 및 요청
+  async function ensureNotificationPermission() {
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+
+    if (finalStatus !== 'granted') {
+      Alert.alert(
+        '알림 권한 필요',
+        '알림을 받으려면 권한이 필요합니다.\n설정에서 알림을 켜주세요.'
+      );
+      return false;
+    }
+    return true;
+  }
+
+  // 🔔 서버에 알림 설정 저장
+  async function saveNotifyAll(newValue: boolean) {
+    try {
+      const deviceId =
+        Device.osInternalBuildId ??
+        Device.modelId ??
+        `${Device.osName}-unknown`;
+
+      await axios.put('http://122.42.248.81:4000/notification_setting', {
+        deviceId,
+        notifyAll: newValue,
+        broker: "",       // 기본값
+        spac: true,      // 기본값
+        reits: true,     // 기본값
+        alarmTime: "08:00", // 기본값
+      });
+
+      console.log('⭐ notifyAll updated:', newValue);
+    } catch (e) {
+      console.log('notifyAll 업데이트 실패:', e);
+    }
+  }
+
+  // ⭐⭐⭐ 그 다음이 기존 Hook들 시작 영역
   const [favorites, setFavorites] = useState<string[]>([]);
   const [favoriteDetails, setFavoriteDetails] = useState<IpoDetailData[]>([]);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
@@ -280,8 +334,8 @@ export default function MyPageScreen() {
               const displayPrice = hasPrice
                 ? priceNum
                 : hasConfirmed
-                ? confirmedPriceNum
-                : null;
+                  ? confirmedPriceNum
+                  : null;
 
               const priceLabel = hasPrice ? '현재가' : '공모가';
 
@@ -456,10 +510,23 @@ export default function MyPageScreen() {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>🔔 알림 설정</Text>
 
-          <TouchableOpacity style={styles.settingRow}>
-            <Text style={styles.settingLabel}>위젯 사용</Text>
-            <Text style={styles.settingValue}>ON</Text>
-          </TouchableOpacity>
+          {/* 전체 알림 */}
+          <View style={styles.settingRow}>
+            <Text style={styles.settingLabel}>전체 알림</Text>
+            <Switch
+              value={notifyAll}
+              onValueChange={async (newValue) => {
+                // ON → 권한 요청
+                if (newValue === true) {
+                  const ok = await ensureNotificationPermission();
+                  if (!ok) return;
+                }
+
+                setNotifyAll(newValue);
+                await saveNotifyAll(newValue);
+              }}
+            />
+          </View>
 
           <TouchableOpacity style={styles.settingRow}>
             <Text style={styles.settingLabel}>알림 시간</Text>
