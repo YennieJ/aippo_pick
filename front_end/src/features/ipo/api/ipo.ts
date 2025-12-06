@@ -29,3 +29,16 @@ export const getIpoByCodeId = async (codeId: string) => {
   const response = await api.get(`/data_ipo/code/${codeId}`);
   return response.data;
 };
+
+export type IpoSearchResult = {
+  company: string;
+  code_id: string;
+};
+
+export const searchAndResolve = async (
+  keyword: string,
+): Promise<IpoSearchResult[]> => {
+  const res = await api.get<IpoSearchResult[]>(`/data_ipo/search/${encodeURIComponent(keyword)}`
+  );
+  return res.data;
+};

@@ -28,6 +28,7 @@ const MAPPING = {
   'checkmark.circle.fill': 'check-circle',
   circle: 'radio-button-unchecked',
   'person.fill': 'person',
+  'magnifyingglass': 'search',
 } as IconMapping;
 
 /**
