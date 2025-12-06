@@ -1,178 +1,470 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+    ActivityIndicator,
+    FlatList,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter, useFocusEffect } from 'expo-router';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useCallback } from 'react';
 
-/**
- * 스토리지 키 상수
- */
-export const STORAGE_KEYS = {
-  /** 즐겨찾기 공모주 ID 리스트 */
-  FAVORITES: 'favorites',
-  /** 최근 본 공모주 ID 리스트 */
-  RECENT_IPO: 'recent_ipo',
-  /** 최근 검색어 */
-  RECENT_SEARCH: 'recent_search_keywords',
-  // 필요시 추가 키들을 여기에 정의
-} as const satisfies Record<string, string>;
+import { searchAndResolve } from '../../src/features/ipo/api/ipo';
+import {
+    STORAGE_KEYS,
+    loadStringArray,
+    saveStringArray,
+    loadRecentSearches,
+    addRecentSearch,
+    removeRecentSearch,
+    clearRecentSearches,
+} from '../../src/shared/utils/storage.utils';
 
-/**
- * AsyncStorage에서 문자열 배열을 불러오기
- * @param key 저장소 키
- * @returns Promise<string[]> 문자열 배열 (에러 시 빈 배열)
- */
-export async function loadStringArray(key: string): Promise<string[]> {
-  try {
-    const json = await AsyncStorage.getItem(key);
-    if (!json) return [];
+const SEARCH_DEBOUNCE_MS = 300;
 
-    const parsed = JSON.parse(json);
-    return Array.isArray(parsed) ? (parsed as string[]) : [];
-  } catch (e) {
-    return [];
-  }
+// company: 실제로는 "증권사 명 / 종목명"을 의미
+type SearchResult = {
+    company: string;
+    code_id: string;
+};
+
+export default function SearchScreen() {
+    const router = useRouter();
+
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+    const [searchLoading, setSearchLoading] = useState(false);
+    const [searchError, setSearchError] = useState<string | null>(null);
+    const [favorites, setFavorites] = useState<string[]>([]);
+    const [recentKeywords, setRecentKeywords] = useState<string[]>([]);
+
+    // 입력 포커스용 ref
+    const inputRef = useRef<TextInput>(null);
+
+    // 즐겨찾기 & 최근 검색 초기 로딩
+    useFocusEffect(
+        useCallback(() => {
+            let isActive = true;
+
+            const syncFromStorage = async () => {
+                try {
+                    const fav = await loadStringArray(STORAGE_KEYS.FAVORITES);
+                    const recent = await loadRecentSearches();
+
+                    if (isActive) {
+                        setFavorites(fav);
+                        setRecentKeywords(recent);
+                    }
+                } catch (e) {
+                    console.log('sync favorites/recent error', e);
+                }
+            };
+
+            syncFromStorage();
+
+            // 포커스 빠질 때 cleanup
+            return () => {
+                isActive = false;
+            };
+        }, [])
+    );
+
+    // 페이지 진입 시 자동 포커스
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            inputRef.current?.focus();
+        }, 80);
+        return () => clearTimeout(timer);
+    }, []);
+
+    // 검색 API 호출
+    const fetchSearchResults = async (keyword: string) => {
+        const term = keyword.trim();
+        if (!term) {
+            setSearchResults([]);
+            setSearchError(null);
+            return;
+        }
+
+        try {
+            setSearchLoading(true);
+            setSearchError(null);
+            const data = await searchAndResolve(term);
+            setSearchResults(data);
+        } catch (e) {
+            console.log('search error', e);
+            setSearchError('검색 중 오류가 발생했어요.');
+        } finally {
+            setSearchLoading(false);
+        }
+    };
+
+    // 입력 변경
+    const handleChangeSearchText = (text: string) => {
+        setSearchQuery(text);
+    };
+
+    // 검색 버튼(엔터) → 검색만 수행 (최근검색 저장 X)
+    const handleSubmitSearch = async () => {
+        const term = searchQuery.trim();
+        if (!term) return;
+
+        fetchSearchResults(term);
+    };
+
+    // 디바운스 검색
+    useEffect(() => {
+        const term = searchQuery.trim();
+        if (!term) {
+            setSearchResults([]);
+            setSearchError(null);
+            setSearchLoading(false);
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            fetchSearchResults(term);
+        }, SEARCH_DEBOUNCE_MS);
+
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
+    // 🔥 검색 결과 아이템 클릭 → 상세 이동 + 최근검색에 "증권사명(company)" 저장
+    const handlePressResultItem = async (item: SearchResult) => {
+        try {
+            const next = await addRecentSearch(item.company);
+            setRecentKeywords(next);
+        } catch (e) {
+            console.log('handlePressResultItem error', e);
+        } finally {
+            router.push(`/ipo/${item.code_id}`);
+        }
+    };
+
+    // ⭐ 즐겨찾기 토글 + 최근검색에 "증권사명(company)" 저장
+    const handleToggleFavorite = async (item: SearchResult) => {
+        try {
+            // 1) 즐겨찾기 토글 (code_id 기준)
+            const current = await loadStringArray(STORAGE_KEYS.FAVORITES);
+            const exists = current.includes(item.code_id);
+            const updated = exists
+                ? current.filter((id) => id !== item.code_id)
+                : [...current, item.code_id];
+
+            await saveStringArray(STORAGE_KEYS.FAVORITES, updated);
+            setFavorites(updated);
+
+            // 2) 최근 검색어에 증권사명 추가
+            const next = await addRecentSearch(item.company);
+            setRecentKeywords(next);
+        } catch (e) {
+            console.log('handleToggleFavorite error', e);
+        }
+    };
+
+    // 최근 검색어 클릭 → 검색창에 넣고 검색만 수행 (저장/갱신 X)
+    const handlePressRecentKeyword = async (keyword: string) => {
+        setSearchQuery(keyword);
+        fetchSearchResults(keyword);
+    };
+
+    // 최근 검색어 개별 삭제
+    const handleRemoveRecentKeyword = async (keyword: string) => {
+        try {
+            const next = await removeRecentSearch(keyword);
+            setRecentKeywords(next);
+        } catch (e) {
+            console.log('removeRecentSearch error', e);
+        }
+    };
+
+    // 최근 검색어 전체 삭제
+    const handleClearRecentKeywords = async () => {
+        try {
+            await clearRecentSearches();
+            setRecentKeywords([]);
+        } catch (e) {
+            console.log('clearRecentSearches error', e);
+        }
+    };
+
+    const trimmedQuery = searchQuery.trim();
+    const showRecent = trimmedQuery.length === 0; // 검색어 없으면 최근 검색어 화면
+
+    return (
+        <SafeAreaView style={styles.safeArea}>
+            <View style={styles.container}>
+                {/* 헤더 */}
+                <View style={styles.header}>
+                    <Text style={styles.headerTitle}>공모주 검색</Text>
+                    <Text style={styles.headerSubtitle}>
+                        공모주 명 또는 종목코드를 입력해서 빠르게 찾아보세요.
+                    </Text>
+
+                    {/* 검색창 */}
+                    <View style={styles.searchBar}>
+                        <MaterialIcons
+                            name="search"
+                            size={24}
+                            color="#9CA3AF"
+                            style={{ marginRight: 8 }}
+                        />
+
+                        <TextInput
+                            ref={inputRef}
+                            style={styles.searchInput}
+                            placeholder="예) 삼성, 207940"
+                            placeholderTextColor="#9CA3AF"
+                            value={searchQuery}
+                            onChangeText={handleChangeSearchText}
+                            onSubmitEditing={handleSubmitSearch}
+                            returnKeyType="search"
+                            autoFocus
+                            blurOnSubmit={false}
+                        />
+                    </View>
+                </View>
+
+                {/* 본문 영역 */}
+                <View style={styles.resultContainer}>
+                    {/* 검색어가 없으면 → 최근 검색어 리스트 */}
+                    {showRecent ? (
+                        recentKeywords.length > 0 ? (
+                            <View>
+                                <View style={styles.recentHeader}>
+                                    <Text style={styles.recentTitle}>최근 검색한 증권사</Text>
+
+                                    <TouchableOpacity onPress={handleClearRecentKeywords}>
+                                        <Text style={styles.recentClearText}>전체 삭제</Text>
+                                    </TouchableOpacity>
+                                </View>
+
+                                {recentKeywords.map((item) => (
+                                    <View key={item}>
+                                        <View style={styles.recentItemRow}>
+                                            <TouchableOpacity
+                                                style={styles.recentKeywordBox}
+                                                activeOpacity={0.7}
+                                                onPress={() => handlePressRecentKeyword(item)}
+                                            >
+                                                <MaterialIcons
+                                                    name="history"
+                                                    size={18}
+                                                    color="#9CA3AF"
+                                                    style={{ marginRight: 6 }}
+                                                />
+                                                <Text style={styles.recentKeywordText}>{item}</Text>
+                                            </TouchableOpacity>
+
+                                            <TouchableOpacity
+                                                onPress={() => handleRemoveRecentKeyword(item)}
+                                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                            >
+                                                <MaterialIcons name="close" size={18} color="#9CA3AF" />
+                                            </TouchableOpacity>
+                                        </View>
+                                        <View style={styles.separator} />
+                                    </View>
+                                ))}
+                            </View>
+                        ) : (
+                            <View style={styles.centerBox}>
+                                <Text style={styles.emptyText}>
+                                    최근 검색어가 없습니다. 공모주를 검색해 보세요.
+                                </Text>
+                            </View>
+                        )
+                    ) : (
+                        // 검색어가 있으면 → 검색 결과 영역
+                        <>
+                            {searchLoading && (
+                                <View style={styles.centerBox}>
+                                    <ActivityIndicator />
+                                </View>
+                            )}
+
+                            {!searchLoading && searchError && (
+                                <View style={styles.centerBox}>
+                                    <Text style={styles.errorText}>{searchError}</Text>
+                                </View>
+                            )}
+
+                            {!searchLoading &&
+                                !searchError &&
+                                searchResults.length === 0 &&
+                                trimmedQuery.length > 0 && (
+                                    <View style={styles.centerBox}>
+                                        <Text style={styles.emptyText}>검색 결과가 없어요.</Text>
+                                    </View>
+                                )}
+
+                            {!searchLoading && searchResults.length > 0 && (
+                                <FlatList<SearchResult>
+                                    data={searchResults}
+                                    keyExtractor={(item) => item.code_id + item.company}
+                                    keyboardShouldPersistTaps="always"
+                                    ItemSeparatorComponent={() => <View style={styles.separator} />}
+                                    renderItem={({ item }) => {
+                                        const isFavorite = favorites.includes(item.code_id);
+
+                                        return (
+                                            <View style={styles.resultItem}>
+                                                {/* 상세 이동 + 최근검색 저장 */}
+                                                <TouchableOpacity
+                                                    style={{ flex: 1 }}
+                                                    activeOpacity={0.7}
+                                                    onPress={() => handlePressResultItem(item)}
+                                                >
+                                                    <View style={styles.resultTextBox}>
+                                                        <Text style={styles.resultCompany}>
+                                                            {item.company}
+                                                        </Text>
+                                                        <Text style={styles.resultCode}>{item.code_id}</Text>
+                                                    </View>
+                                                </TouchableOpacity>
+
+                                                {/* 즐겨찾기 + 최근검색 저장 */}
+                                                <TouchableOpacity
+                                                    style={styles.favoriteButton}
+                                                    onPress={() => handleToggleFavorite(item)}
+                                                >
+                                                    <MaterialIcons
+                                                        name={isFavorite ? 'star' : 'star-border'}
+                                                        size={22}
+                                                        color={isFavorite ? '#FACC15' : '#9CA3AF'}
+                                                    />
+                                                </TouchableOpacity>
+                                            </View>
+                                        );
+                                    }}
+                                />
+                            )}
+                        </>
+                    )}
+                </View>
+            </View>
+        </SafeAreaView>
+    );
 }
 
-/**
- * AsyncStorage에 문자열 배열 저장하기
- * @param key 저장소 키
- * @param list 저장할 문자열 배열
- */
-export async function saveStringArray(
-  key: string,
-  list: string[]
-): Promise<void> {
-  try {
-    await AsyncStorage.setItem(key, JSON.stringify(list ?? []));
-  } catch (e) {
-    // 저장 실패 시 무시
-  }
-}
+const styles = StyleSheet.create({
+    safeArea: {
+        flex: 1,
+        backgroundColor: '#F3F4F6',
+    },
+    container: {
+        flex: 1,
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+    },
+    header: {
+        marginBottom: 16,
+    },
+    headerTitle: {
+        fontSize: 22,
+        fontWeight: '700',
+        color: '#111827',
+        marginBottom: 4,
+    },
+    headerSubtitle: {
+        fontSize: 14,
+        color: '#6B7280',
+    },
+    searchBar: {
+        marginTop: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderRadius: 999,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        backgroundColor: '#FFFFFF',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+    },
+    searchInput: {
+        flex: 1,
+        fontSize: 16,
+        color: '#111827',
+    },
+    resultContainer: {
+        flex: 1,
+        marginTop: 16,
+    },
+    centerBox: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    errorText: {
+        fontSize: 14,
+        color: '#DC2626',
+    },
+    emptyText: {
+        fontSize: 14,
+        color: '#6B7280',
+    },
+    separator: {
+        height: 1,
+        backgroundColor: '#E5E7EB',
+        marginLeft: 8,
+    },
+    resultItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 4,
+    },
+    resultTextBox: {
+        gap: 4,
+    },
+    resultCompany: {
+        fontSize: 16,
+        fontWeight: '500',
+        color: '#111827',
+    },
+    resultCode: {
+        fontSize: 13,
+        color: '#6B7280',
+    },
+    favoriteButton: {
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+    },
 
-/**
- * AsyncStorage에서 객체 불러오기
- * @param key 저장소 키
- * @returns Promise<T | null> 파싱된 객체 (에러 시 null)
- */
-export async function loadObject<T>(key: string): Promise<T | null> {
-  try {
-    const json = await AsyncStorage.getItem(key);
-    if (!json) return null;
-
-    return JSON.parse(json) as T;
-  } catch (e) {
-    return null;
-  }
-}
-
-/**
- * AsyncStorage에 객체 저장하기
- * @param key 저장소 키
- * @param value 저장할 객체
- */
-export async function saveObject<T>(key: string, value: T): Promise<void> {
-  try {
-    await AsyncStorage.setItem(key, JSON.stringify(value));
-  } catch (e) {
-    // 저장 실패 시 무시
-  }
-}
-
-/**
- * AsyncStorage에서 문자열 불러오기
- * @param key 저장소 키
- * @returns Promise<string | null> 저장된 문자열 (없으면 null)
- */
-export async function loadString(key: string): Promise<string | null> {
-  try {
-    return await AsyncStorage.getItem(key);
-  } catch (e) {
-    return null;
-  }
-}
-
-/**
- * AsyncStorage에 문자열 저장하기
- * @param key 저장소 키
- * @param value 저장할 문자열
- */
-export async function saveString(key: string, value: string): Promise<void> {
-  try {
-    await AsyncStorage.setItem(key, value);
-  } catch (e) {
-    // 저장 실패 시 무시
-  }
-}
-
-/**
- * AsyncStorage에서 특정 키 삭제하기
- * @param key 삭제할 키
- */
-export async function removeItem(key: string): Promise<void> {
-  try {
-    await AsyncStorage.removeItem(key);
-  } catch (e) {
-    // 삭제 실패 시 무시
-  }
-}
-
-/**
- * AsyncStorage의 모든 키-값 쌍 삭제하기
- */
-export async function clearAll(): Promise<void> {
-  try {
-    await AsyncStorage.clear();
-  } catch (e) {
-    // 삭제 실패 시 무시
-  }
-}
-
-/**
- * AsyncStorage에 저장된 모든 키 가져오기
- * @returns Promise<string[]> 모든 키 배열
- */
-export async function getAllKeys(): Promise<string[]> {
-  try {
-    return [...(await AsyncStorage.getAllKeys())];
-  } catch (e) {
-    return [];
-  }
-}
-
-const MAX_RECENT_SEARCH = 10;
-/**
- * 최근 검색어 불러오기
- */
-export async function loadRecentSearches(): Promise<string[]> {
-  return await loadStringArray(STORAGE_KEYS.RECENT_SEARCH);
-}
-
-/**
- * 최근 검색어 추가 (중복 제거 + 최신이 위로 + 최대 10개 유지)
- */
-export async function addRecentSearch(keyword: string): Promise<string[]> {
-  const term = keyword.trim();
-  if (!term) return [];
-
-  const list = await loadRecentSearches();
-  const filtered = list.filter((item) => item !== term);
-
-  const next = [term, ...filtered].slice(0, MAX_RECENT_SEARCH);
-  await saveStringArray(STORAGE_KEYS.RECENT_SEARCH, next);
-
-  return next;
-}
-
-/**
- * 특정 최근 검색어 삭제
- */
-export async function removeRecentSearch(term: string): Promise<string[]> {
-  const list = await loadRecentSearches();
-  const next = list.filter((item) => item !== term);
-  await saveStringArray(STORAGE_KEYS.RECENT_SEARCH, next);
-  return next;
-}
-
-/**
- * 최근 검색어 전체 삭제
- */
-export async function clearRecentSearches(): Promise<void> {
-  await removeItem(STORAGE_KEYS.RECENT_SEARCH);
-}
+    // 최근 검색 스타일
+    recentHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 8,
+    },
+    recentTitle: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#111827',
+    },
+    recentClearText: {
+        fontSize: 13,
+        color: '#9CA3AF',
+    },
+    recentItemRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 10,
+        paddingHorizontal: 4,
+        justifyContent: 'space-between',
+    },
+    recentKeywordBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    recentKeywordText: {
+        fontSize: 15,
+        color: '#111827',
+    },
+});
