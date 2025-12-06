@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "front_end",
+    "name": "아이뽀픽",
     "slug": "front_end",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/android-icon-aippopick.png",
     "scheme": "frontend",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -15,12 +15,17 @@
       "package": "com.frontend",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "foregroundImage": "./assets/images/android-icon-aippopick.png",
+        "backgroundImage": "./assets/images/android-icon-aippopick.png",
+        "monochromeImage": "./assets/images/android-icon-aippopick.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.itl.aippopick",
+      "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "POST_NOTIFICATIONS"
+      ]
     },
     "web": {
       "output": "static",
@@ -32,6 +37,7 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/android-icon-aippopick.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",
@@ -44,6 +50,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "cf310020-316f-4ac6-924d-f4272a955923"
+      }
     }
   }
 }

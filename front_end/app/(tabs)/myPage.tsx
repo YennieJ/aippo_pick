@@ -3,8 +3,10 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
+  Alert,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TouchableOpacity,
   View,
@@ -20,21 +22,73 @@ import {
   STORAGE_KEYS,
 } from '../../src/shared/utils/storage.utils';
 
-// 문자열("24,650", " 8,000원") → 숫자로 안전하게 변환
-const parseNumber = (value?: string | null): number | null => {
-  if (!value) return null;
-
-  // 숫자, -, . 만 남기고 다 제거
-  const cleaned = value.replace(/[^\d.-]/g, '').trim();
-  if (!cleaned) return null;
-
-  const num = Number(cleaned);
-  return Number.isNaN(num) ? null : num;
-};
+import axios from 'axios';
+import * as Device from 'expo-device';
+import * as Notifications from 'expo-notifications';
 
 export default function MyPageScreen() {
   const router = useRouter();
 
+  // 문자열("24,650", " 8,000원") → 숫자로 안전하게 변환
+  const parseNumber = (value?: string | null): number | null => {
+    if (!value) return null;
+
+    // 숫자, -, . 만 남기고 다 제거
+    const cleaned = value.replace(/[^\d.-]/g, '').trim();
+    if (!cleaned) return null;
+
+    const num = Number(cleaned);
+    return Number.isNaN(num) ? null : num;
+  };
+
+  // 🔔 전체 알림 스위치 상태
+  const [notifyAll, setNotifyAll] = useState(false);
+
+  // 🔔 권한 확인 및 요청
+  async function ensureNotificationPermission() {
+    const { status: existingStatus } =
+      await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+
+    if (finalStatus !== 'granted') {
+      Alert.alert(
+        '알림 권한 필요',
+        '알림을 받으려면 권한이 필요합니다.\n설정에서 알림을 켜주세요.'
+      );
+      return false;
+    }
+    return true;
+  }
+
+  // 🔔 서버에 알림 설정 저장
+  async function saveNotifyAll(newValue: boolean) {
+    try {
+      const deviceId =
+        Device.osInternalBuildId ??
+        Device.modelId ??
+        `${Device.osName}-unknown`;
+
+      await axios.put('http://122.42.248.81:4000/notification_setting', {
+        deviceId,
+        notifyAll: newValue,
+        broker: '', // 기본값
+        spac: true, // 기본값
+        reits: true, // 기본값
+        alarmTime: '08:00', // 기본값
+      });
+
+      console.log('⭐ notifyAll updated:', newValue);
+    } catch (e) {
+      console.log('notifyAll 업데이트 실패:', e);
+    }
+  }
+
+  // ⭐⭐⭐ 그 다음이 기존 Hook들 시작 영역
   const [favorites, setFavorites] = useState<string[]>([]);
   const [favoriteDetails, setFavoriteDetails] = useState<IpoDetailData[]>([]);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
@@ -287,9 +341,6 @@ export default function MyPageScreen() {
 
                 const priceLabel = hasPrice ? '현재가' : '공모가';
 
-                const institutionRate =
-                  item.institutional_competition_rate ?? null;
-
                 return (
                   <TouchableOpacity
                     key={id}
@@ -386,7 +437,6 @@ export default function MyPageScreen() {
                 </TouchableOpacity>
               </View>
             </View>
-
             {recentLoading && recentDetails.length === 0 ? (
               <View style={styles.emptyBox}>
                 <Text style={styles.emptySub}>
@@ -403,30 +453,50 @@ export default function MyPageScreen() {
                 </Text>
               </View>
             ) : (
-              recentDetails.map((item) => (
-                <TouchableOpacity
-                  key={item.code_id}
-                  style={styles.listRow}
-                  activeOpacity={0.8}
-                  onPress={() =>
-                    router.push({
-                      pathname: '/ipo/[codeId]',
-                      params: { codeId: item.code_id },
-                    })
-                  }
-                >
-                  <View style={styles.listRowLeft}>
-                    <Text style={styles.listTitle}>{item.company}</Text>
-                    <Text style={styles.listSub}>최근에 조회한 공모주</Text>
-                  </View>
+              recentDetails.map((item) => {
+                const priceNum = parseNumber(item.price ?? null);
+                const confirmedPriceNum = parseNumber(
+                  item.confirmedprice ?? null
+                );
+                const hasPrice = priceNum !== null;
+                const hasConfirmed = confirmedPriceNum !== null;
+
+                const displayPrice = hasPrice
+                  ? priceNum
+                  : hasConfirmed
+                    ? confirmedPriceNum
+                    : null;
+
+                const priceLabel = hasPrice ? '현재가' : '공모가';
+
+                const institutionRate =
+                  item.institutional_competition_rate ?? null;
+
+                return (
                   <TouchableOpacity
-                    onPress={() => onRemoveRecent(item.code_id)}
-                    hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                    key={item.code_id}
+                    style={styles.listRow}
+                    activeOpacity={0.8}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/ipo/[codeId]',
+                        params: { codeId: item.code_id },
+                      })
+                    }
                   >
-                    <Text style={styles.deleteText}>삭제</Text>
+                    <View style={styles.listRowLeft}>
+                      <Text style={styles.listTitle}>{item.company}</Text>
+                      <Text style={styles.listSub}>최근에 조회한 공모주</Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => onRemoveRecent(item.code_id)}
+                      hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                    >
+                      <Text style={styles.deleteText}>삭제</Text>
+                    </TouchableOpacity>
                   </TouchableOpacity>
-                </TouchableOpacity>
-              ))
+                );
+              })
             )}
           </View>
 
@@ -483,6 +553,24 @@ export default function MyPageScreen() {
               <Text style={styles.settingLabel}>알림 기록 보기</Text>
               <Text style={styles.settingValue}>최근 30일</Text>
             </TouchableOpacity>
+
+            {/* 전체 알림 */}
+            <View style={styles.settingRow}>
+              <Text style={styles.settingLabel}>전체 알림</Text>
+              <Switch
+                value={notifyAll}
+                onValueChange={async (newValue) => {
+                  // ON → 권한 요청
+                  if (newValue === true) {
+                    const ok = await ensureNotificationPermission();
+                    if (!ok) return;
+                  }
+
+                  setNotifyAll(newValue);
+                  await saveNotifyAll(newValue);
+                }}
+              />
+            </View>
           </View>
 
           {/* 앱 설정 */}

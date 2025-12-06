@@ -9,8 +9,9 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { useColorScheme } from '../src/shared/hooks/use-color-scheme';
 import '../global.css';
+import '../src/shared/api/client';
+import { useColorScheme } from '../src/shared/hooks/use-color-scheme';
 
 export const unstable_settings = {
   anchor: '(tabs)',

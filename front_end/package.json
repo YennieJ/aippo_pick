@@ -22,11 +22,15 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "expo": "~54.0.12",
+    "expo-build-properties": "~1.0.9",
     "expo-constants": "~18.0.9",
+    "expo-dev-client": "~6.0.18",
+    "expo-device": "~8.0.9",
     "expo-font": "~14.0.8",
     "expo-haptics": "~15.0.7",
     "expo-image": "~3.0.8",
     "expo-linking": "~8.0.8",
+    "expo-notifications": "~0.32.13",
     "expo-router": "~6.0.10",
     "expo-splash-screen": "~31.0.10",
     "expo-status-bar": "~3.0.8",
@@ -50,6 +54,7 @@
     "tailwindcss": "^3.4.0"
   },
   "devDependencies": {
+    "@expo/cli": "^54.0.16",
     "@types/react": "~19.1.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
