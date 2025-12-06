@@ -8,6 +8,8 @@ export const STORAGE_KEYS = {
   FAVORITES: 'favorites',
   /** 최근 본 공모주 ID 리스트 */
   RECENT_IPO: 'recent_ipo',
+  /** 최근 검색어 */
+  RECENT_SEARCH: 'recent_search_keywords',
   // 필요시 추가 키들을 여기에 정의
 } as const satisfies Record<string, string>;
 
@@ -132,4 +134,45 @@ export async function getAllKeys(): Promise<string[]> {
   } catch (e) {
     return [];
   }
+}
+
+const MAX_RECENT_SEARCH = 10;
+/**
+ * 최근 검색어 불러오기
+ */
+export async function loadRecentSearches(): Promise<string[]> {
+  return await loadStringArray(STORAGE_KEYS.RECENT_SEARCH);
+}
+
+/**
+ * 최근 검색어 추가 (중복 제거 + 최신이 위로 + 최대 10개 유지)
+ */
+export async function addRecentSearch(keyword: string): Promise<string[]> {
+  const term = keyword.trim();
+  if (!term) return [];
+
+  const list = await loadRecentSearches();
+  const filtered = list.filter((item) => item !== term);
+
+  const next = [term, ...filtered].slice(0, MAX_RECENT_SEARCH);
+  await saveStringArray(STORAGE_KEYS.RECENT_SEARCH, next);
+
+  return next;
+}
+
+/**
+ * 특정 최근 검색어 삭제
+ */
+export async function removeRecentSearch(term: string): Promise<string[]> {
+  const list = await loadRecentSearches();
+  const next = list.filter((item) => item !== term);
+  await saveStringArray(STORAGE_KEYS.RECENT_SEARCH, next);
+  return next;
+}
+
+/**
+ * 최근 검색어 전체 삭제
+ */
+export async function clearRecentSearches(): Promise<void> {
+  await removeItem(STORAGE_KEYS.RECENT_SEARCH);
 }
