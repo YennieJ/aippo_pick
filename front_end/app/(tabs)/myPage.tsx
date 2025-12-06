@@ -21,6 +21,13 @@ import {
 } from '../../src/features/storage/recentStorage';
 import { getIpoByCodeId } from '../../src/features/ipo/api/ipo';
 import { IpoDetailData } from '../../src/features/ipo/types/ipo.types';
+import {
+  loadStringArray,
+  removeItem,
+  saveStringArray,
+  STORAGE_KEYS,
+} from '../../src/shared/utils/storage.utils';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // 문자열("24,650", " 8,000원") → 숫자로 안전하게 변환
 const parseNumber = (value?: string | null): number | null => {
@@ -219,292 +226,301 @@ export default function MyPageScreen() {
   );
 
   return (
-    <View style={styles.container}>
-      {/* 헤더 */}
-      <View style={styles.header}>
-        <View style={styles.headerRow}>
-          <Text style={styles.headerTitle}>My 페이지</Text>
-        </View>
-        <Text style={styles.headerSubtitle}>
-          나의 공모주 정보와 즐겨찾기를 한 번에 확인해요.
-        </Text>
-      </View>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* 프로필 섹션 */}
-        <View style={styles.card}>
-          <View style={styles.profileRow}>
-            <View style={styles.profileAvatar}>
-              <Text style={styles.profileAvatarText}>JJ</Text>
-            </View>
-            <View style={styles.profileInfo}>
-              <Text style={styles.profileName}>전용준 님</Text>
-              <Text style={styles.profileEmail}>jj@example.com</Text>
-            </View>
-            <TouchableOpacity>
-              <Text style={styles.linkText}>프로필 수정</Text>
-            </TouchableOpacity>
+    <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+      <View style={styles.container}>
+        {/* 헤더 */}
+        <View style={styles.header}>
+          <View style={styles.headerRow}>
+            <Text style={styles.headerTitle}>My 페이지</Text>
           </View>
+          <Text style={styles.headerSubtitle}>
+            나의 공모주 정보와 즐겨찾기를 한 번에 확인해요.
+          </Text>
         </View>
-
-        {/* ⭐ 즐겨찾기 공모주 */}
-        <View style={styles.card}>
-          <View style={styles.cardHeaderRow}>
-            <Text style={styles.cardTitle}>⭐ 즐겨찾기 공모주</Text>
-            <TouchableOpacity>
-              <Text style={styles.linkText}>전체보기</Text>
-            </TouchableOpacity>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          {/* 프로필 섹션 */}
+          <View style={styles.card}>
+            <View style={styles.profileRow}>
+              <View style={styles.profileAvatar}>
+                <Text style={styles.profileAvatarText}>JJ</Text>
+              </View>
+              <View style={styles.profileInfo}>
+                <Text style={styles.profileName}>닉네임</Text>
+                <Text style={styles.profileEmail}>@google.com</Text>
+              </View>
+              <TouchableOpacity>
+                <Text style={styles.linkText}>프로필 수정</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
-          {favoriteLoading && favoriteDetails.length === 0 ? (
-            <View style={styles.emptyBox}>
-              <Text style={styles.emptySub}>
-                즐겨찾기 정보를 불러오는 중입니다...
-              </Text>
+          {/* ⭐ 즐겨찾기 공모주 */}
+          <View style={styles.card}>
+            <View style={styles.cardHeaderRow}>
+              <Text style={styles.cardTitle}>⭐ 즐겨찾기 공모주</Text>
+              <TouchableOpacity>
+                <Text style={styles.linkText}>전체보기</Text>
+              </TouchableOpacity>
             </View>
-          ) : favoriteDetails.length === 0 ? (
-            <View style={styles.emptyBox}>
-              <Text style={styles.emptyTitle}>즐겨찾기한 공모주가 없습니다.</Text>
-              <Text style={styles.emptySub}>
-                공모주 상세 화면에서 ⭐ 버튼을 눌러 즐겨찾기를 추가해보세요.
-              </Text>
+
+            {favoriteLoading && favoriteDetails.length === 0 ? (
+              <View style={styles.emptyBox}>
+                <Text style={styles.emptySub}>
+                  즐겨찾기 정보를 불러오는 중입니다...
+                </Text>
+              </View>
+            ) : favoriteDetails.length === 0 ? (
+              <View style={styles.emptyBox}>
+                <Text style={styles.emptyTitle}>
+                  즐겨찾기한 공모주가 없습니다.
+                </Text>
+                <Text style={styles.emptySub}>
+                  공모주 상세 화면에서 ⭐ 버튼을 눌러 즐겨찾기를 추가해보세요.
+                </Text>
+              </View>
+            ) : (
+              favoriteDetails.map((item) => {
+                const id = item.code_id;
+                const favorite = isFavorite(id);
+
+                const priceNum = parseNumber(item.price ?? null);
+                const confirmedPriceNum = parseNumber(
+                  item.confirmedprice ?? null
+                );
+                const hasPrice = priceNum !== null;
+                const hasConfirmed = confirmedPriceNum !== null;
+
+                const displayPrice = hasPrice
+                  ? priceNum
+                  : hasConfirmed
+                    ? confirmedPriceNum
+                    : null;
+
+                const priceLabel = hasPrice ? '현재가' : '공모가';
+
+                const institutionRate =
+                  item.institutional_competition_rate ?? null;
+
+                return (
+                  <TouchableOpacity
+                    key={id}
+                    style={styles.listRow}
+                    activeOpacity={0.8}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/ipo/[codeId]',
+                        params: { codeId: id },
+                      })
+                    }
+                  >
+                    <View style={styles.listRowLeft}>
+                      {/* 종목명 */}
+                      <Text style={styles.listTitle}>{item.company}</Text>
+
+                      {/* 상장일 */}
+                      {item.listingdate && (
+                        <>
+                          <Text style={styles.label}>상장일</Text>
+                          <Text style={styles.value}>{item.listingdate}</Text>
+                        </>
+                      )}
+
+                      {/* 청약 기간 */}
+                      {item.subscriptiondate && (
+                        <>
+                          <Text style={styles.label}>청약일</Text>
+                          <Text style={styles.value}>
+                            {item.subscriptiondate.replace('~', ' ~ ')}
+                          </Text>
+                        </>
+                      )}
+
+                      {/* 공모가 / 현재가 */}
+                      {displayPrice !== null && (
+                        <>
+                          <Text style={styles.label}>{priceLabel}</Text>
+                          <Text style={styles.value}>
+                            {displayPrice.toLocaleString()}원
+                          </Text>
+                        </>
+                      )}
+                      {/* 경쟁률 표시 우선순위: 청약 → 기관 */}
+                      {item.competitionrate ? (
+                        <>
+                          <Text style={styles.label}>청약 경쟁률</Text>
+                          <Text style={styles.valueHighlight}>
+                            {item.competitionrate}
+                          </Text>
+                        </>
+                      ) : item.institutional_competition_rate ? (
+                        <>
+                          <Text style={styles.label}>기관 경쟁률</Text>
+                          <Text style={styles.valueHighlight}>
+                            {item.institutional_competition_rate}
+                          </Text>
+                        </>
+                      ) : null}
+                    </View>
+
+                    {/* 즐겨찾기 토글 버튼 */}
+                    <TouchableOpacity
+                      style={styles.favoriteButton}
+                      onPress={() => onToggleFavorite(id)}
+                      hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                    >
+                      <Text
+                        style={
+                          favorite
+                            ? styles.favoriteIconOn
+                            : styles.favoriteIconOff
+                        }
+                      >
+                        {favorite ? '★' : '☆'}
+                      </Text>
+                    </TouchableOpacity>
+                  </TouchableOpacity>
+                );
+              })
+            )}
+          </View>
+
+          {/* 👀 최근 본 공모주 */}
+          <View style={styles.card}>
+            <View style={styles.cardHeaderRow}>
+              <Text style={styles.cardTitle}>👀 최근 본 공모주</Text>
+              <View style={styles.recentHeaderRight}>
+                <TouchableOpacity onPress={onClearRecent}>
+                  <Text style={styles.linkText}>전체삭제</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.recentHeaderRightItem}>
+                  <Text style={styles.linkText}>전체보기</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          ) : (
-            favoriteDetails.map(item => {
-              const id = item.code_id;
-              const favorite = isFavorite(id);
 
-              const priceNum = parseNumber(item.price ?? null);
-              const confirmedPriceNum = parseNumber(
-                item.confirmedprice ?? null,
-              );
-              const hasPrice = priceNum !== null;
-              const hasConfirmed = confirmedPriceNum !== null;
-
-              const displayPrice = hasPrice
-                ? priceNum
-                : hasConfirmed
-                  ? confirmedPriceNum
-                  : null;
-
-              const priceLabel = hasPrice ? '현재가' : '공모가';
-
-              const institutionRate = item.institutional_competition_rate ?? null;
-
-              return (
+            {recentLoading && recentDetails.length === 0 ? (
+              <View style={styles.emptyBox}>
+                <Text style={styles.emptySub}>
+                  최근 본 공모주를 불러오는 중입니다...
+                </Text>
+              </View>
+            ) : recentDetails.length === 0 ? (
+              <View style={styles.emptyBox}>
+                <Text style={styles.emptyTitle}>최근 본 공모주가 없습니다.</Text>
+                <Text style={styles.emptySub}>
+                  공모주 상세 화면에 들어가면 여기에서 바로 확인할 수 있어요.
+                </Text>
+              </View>
+            ) : (
+              recentDetails.map((item) => (
                 <TouchableOpacity
-                  key={id}
+                  key={item.code_id}
                   style={styles.listRow}
                   activeOpacity={0.8}
                   onPress={() =>
                     router.push({
                       pathname: '/ipo/[codeId]',
-                      params: { codeId: id },
+                      params: { codeId: item.code_id },
                     })
                   }
                 >
                   <View style={styles.listRowLeft}>
-                    {/* 종목명 */}
                     <Text style={styles.listTitle}>{item.company}</Text>
-
-                    {/* 상장일 */}
-                    {item.listingdate && (
-                      <>
-                        <Text style={styles.label}>상장일</Text>
-                        <Text style={styles.value}>{item.listingdate}</Text>
-                      </>
-                    )}
-
-                    {/* 청약 기간 */}
-                    {item.subscriptiondate && (
-                      <>
-                        <Text style={styles.label}>청약일</Text>
-                        <Text style={styles.value}>
-                          {item.subscriptiondate.replace('~', ' ~ ')}
-                        </Text>
-                      </>
-                    )}
-
-                    {/* 공모가 / 현재가 */}
-                    {displayPrice !== null && (
-                      <>
-                        <Text style={styles.label}>{priceLabel}</Text>
-                        <Text style={styles.value}>
-                          {displayPrice.toLocaleString()}원
-                        </Text>
-                      </>
-                    )}
-                    {/* 경쟁률 표시 우선순위: 청약 → 기관 */}
-                    {item.competitionrate ? (
-                      <>
-                        <Text style={styles.label}>청약 경쟁률</Text>
-                        <Text style={styles.valueHighlight}>{item.competitionrate}</Text>
-                      </>
-                    ) : item.institutional_competition_rate ? (
-                      <>
-                        <Text style={styles.label}>기관 경쟁률</Text>
-                        <Text style={styles.valueHighlight}>
-                          {item.institutional_competition_rate}
-                        </Text>
-                      </>
-                    ) : null}
+                    <Text style={styles.listSub}>최근에 조회한 공모주</Text>
                   </View>
-
-                  {/* 즐겨찾기 토글 버튼 */}
                   <TouchableOpacity
-                    style={styles.favoriteButton}
-                    onPress={() => onToggleFavorite(id)}
+                    onPress={() => onRemoveRecent(item.code_id)}
                     hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
                   >
-                    <Text
-                      style={
-                        favorite ? styles.favoriteIconOn : styles.favoriteIconOff
-                      }
-                    >
-                      {favorite ? '★' : '☆'}
-                    </Text>
+                    <Text style={styles.deleteText}>삭제</Text>
                   </TouchableOpacity>
                 </TouchableOpacity>
-              );
-            })
-          )}
-        </View>
+              ))
+            )}
+          </View>
 
-        {/* 👀 최근 본 공모주 */}
-        <View style={styles.card}>
-          <View style={styles.cardHeaderRow}>
-            <Text style={styles.cardTitle}>👀 최근 본 공모주</Text>
-            <View style={styles.recentHeaderRight}>
-              <TouchableOpacity onPress={onClearRecent}>
-                <Text style={styles.linkText}>전체삭제</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.recentHeaderRightItem}>
+          {/* 내가 참여한 공모주 (샘플 데이터) */}
+          <View style={styles.card}>
+            <View style={styles.cardHeaderRow}>
+              <Text style={styles.cardTitle}>📌 내가 참여한 공모주</Text>
+              <TouchableOpacity>
                 <Text style={styles.linkText}>전체보기</Text>
               </TouchableOpacity>
             </View>
-          </View>
 
-          {recentLoading && recentDetails.length === 0 ? (
-            <View style={styles.emptyBox}>
-              <Text style={styles.emptySub}>
-                최근 본 공모주를 불러오는 중입니다...
-              </Text>
-            </View>
-          ) : recentDetails.length === 0 ? (
-            <View style={styles.emptyBox}>
-              <Text style={styles.emptyTitle}>최근 본 공모주가 없습니다.</Text>
-              <Text style={styles.emptySub}>
-                공모주 상세 화면에 들어가면 여기에서 바로 확인할 수 있어요.
-              </Text>
-            </View>
-          ) : (
-            recentDetails.map(item => (
-              <TouchableOpacity
-                key={item.code_id}
-                style={styles.listRow}
-                activeOpacity={0.8}
-                onPress={() =>
-                  router.push({
-                    pathname: '/ipo/[codeId]',
-                    params: { codeId: item.code_id },
-                  })
-                }
-              >
-                <View style={styles.listRowLeft}>
-                  <Text style={styles.listTitle}>{item.company}</Text>
-                  <Text style={styles.listSub}>최근에 조회한 공모주</Text>
-                </View>
-                <TouchableOpacity
-                  onPress={() => onRemoveRecent(item.code_id)}
-                  hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-                >
-                  <Text style={styles.deleteText}>삭제</Text>
-                </TouchableOpacity>
-              </TouchableOpacity>
-            ))
-          )}
-        </View>
+            <TouchableOpacity style={styles.listRow}>
+              <View>
+                <Text style={styles.listTitle}>카카오모빌리티</Text>
+                <Text style={styles.listSub}>
+                  청약 완료 · 환불 예정 200,000원
+                </Text>
+              </View>
+            </TouchableOpacity>
 
-        {/* 내가 참여한 공모주 (샘플 데이터) */}
-        <View style={styles.card}>
-          <View style={styles.cardHeaderRow}>
-            <Text style={styles.cardTitle}>📌 내가 참여한 공모주</Text>
-            <TouchableOpacity>
-              <Text style={styles.linkText}>전체보기</Text>
+            <TouchableOpacity style={styles.listRow}>
+              <View>
+                <Text style={styles.listTitle}>삼성바이오로직스</Text>
+                <Text style={styles.listSub}>상장 완료 · 평가 수익률 +12.3%</Text>
+              </View>
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.listRow}>
-            <View>
-              <Text style={styles.listTitle}>카카오모빌리티</Text>
-              <Text style={styles.listSub}>청약 완료 · 환불 예정 200,000원</Text>
-            </View>
-          </TouchableOpacity>
+          {/* 알림 설정 */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>🔔 알림 설정</Text>
 
-          <TouchableOpacity style={styles.listRow}>
-            <View>
-              <Text style={styles.listTitle}>삼성바이오로직스</Text>
-              <Text style={styles.listSub}>상장 완료 · 평가 수익률 +12.3%</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity style={styles.settingRow}>
+              <Text style={styles.settingLabel}>위젯 사용</Text>
+              <Text style={styles.settingValue}>ON</Text>
+            </TouchableOpacity>
 
-        {/* 알림 설정 */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>🔔 알림 설정</Text>
+            <TouchableOpacity style={styles.settingRow}>
+              <Text style={styles.settingLabel}>알림 시간</Text>
+              <Text style={styles.settingValue}>오전 9:00</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingRow}>
-            <Text style={styles.settingLabel}>위젯 사용</Text>
-            <Text style={styles.settingValue}>ON</Text>
-          </TouchableOpacity>
+            <TouchableOpacity style={styles.settingRow}>
+              <Text style={styles.settingLabel}>
+                청약 / 환불 / 상장일 D-Day 알림
+              </Text>
+              <Text style={styles.settingValue}>사용 중</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingRow}>
-            <Text style={styles.settingLabel}>알림 시간</Text>
-            <Text style={styles.settingValue}>오전 9:00</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.settingRow}>
-            <Text style={styles.settingLabel}>
-              청약 / 환불 / 상장일 D-Day 알림
-            </Text>
-            <Text style={styles.settingValue}>사용 중</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.settingRow}>
-            <Text style={styles.settingLabel}>알림 기록 보기</Text>
-            <Text style={styles.settingValue}>최근 30일</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* 앱 설정 */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>⚙️ 앱 설정</Text>
-
-          <TouchableOpacity style={styles.settingRow}>
-            <Text style={styles.settingLabel}>다크모드</Text>
-            <Text style={styles.settingValue}>시스템 따라가기</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.settingRow}>
-            <Text style={styles.settingLabel}>데이터 백업 / 복원</Text>
-            <Text style={styles.settingValue}>클라우드 연동</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.settingRow}>
-            <Text style={styles.settingLabel}>
-              약관 및 개인정보 처리방침
-            </Text>
-            <Text style={styles.settingValue}>보기</Text>
-          </TouchableOpacity>
-
-          <View style={styles.settingRowLast}>
-            <Text style={styles.settingLabel}>앱 버전</Text>
-            <Text style={styles.settingValue}>v1.0.0</Text>
+            <TouchableOpacity style={styles.settingRow}>
+              <Text style={styles.settingLabel}>알림 기록 보기</Text>
+              <Text style={styles.settingValue}>최근 30일</Text>
+            </TouchableOpacity>
           </View>
-        </View>
 
-        <View style={styles.scrollBottomSpacer} />
-      </ScrollView>
-    </View>
+          {/* 앱 설정 */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>⚙️ 앱 설정</Text>
+
+            <TouchableOpacity style={styles.settingRow}>
+              <Text style={styles.settingLabel}>다크모드</Text>
+              <Text style={styles.settingValue}>시스템 따라가기</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.settingRow}>
+              <Text style={styles.settingLabel}>데이터 백업 / 복원</Text>
+              <Text style={styles.settingValue}>클라우드 연동</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.settingRow}>
+              <Text style={styles.settingLabel}>약관 및 개인정보 처리방침</Text>
+              <Text style={styles.settingValue}>보기</Text>
+            </TouchableOpacity>
+
+            <View style={styles.settingRowLast}>
+              <Text style={styles.settingLabel}>앱 버전</Text>
+              <Text style={styles.settingValue}>v1.0.0</Text>
+            </View>
+          </View>
+
+          <View style={styles.scrollBottomSpacer} />
+        </ScrollView>
+      </View>
+    </SafeAreaView>
   );
 }
 
