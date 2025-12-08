@@ -1,4 +1,5 @@
 // Components
+export { default as CalendarFilterModal } from './components/CalendarFilterModal';
 export { default as CalendarHeader } from './components/CalendarHeader';
 export { default as CalendarWeek } from './components/CalendarWeek';
 export { default as EventTypeFilter } from './components/EventTypeFilter';
