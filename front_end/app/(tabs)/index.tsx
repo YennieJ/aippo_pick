@@ -509,31 +509,6 @@ export default function HomeScreen() {
             )}
           </View>
         </View>
-
-        {/* 전체 증권사 테스트 */}
-        <View>
-          <View className="pb-4 px-4">
-            {renderHeader('전체 증권사 테스트')}
-          </View>
-          <View className="mx-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-            {allBrokers?.map((broker: any) => (
-              <View
-                key={broker.broker_id}
-                className="flex-row justify-between items-center px-4 py-3.5 border-b border-gray-100 dark:border-gray-700"
-              >
-                <Text className="text-[15px] font-medium text-gray-900 dark:text-white flex-1">
-                  {broker.broker_name}
-                </Text>
-                <DeepLinkButton
-                  brokerName={broker.broker_name}
-                  buttonText="바로가기"
-                  style={{ paddingHorizontal: 16, paddingVertical: 8 }}
-                  textStyle={{ fontSize: 14 }}
-                />
-              </View>
-            ))}
-          </View>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );
