@@ -18,6 +18,7 @@ interface CalendarWeekProps {
   todayYear: number;
   todayMonth: number;
   todayDay: number;
+  todayDayOfWeek: number;
   currentYear: number;
   currentMonth: number;
 }
@@ -28,6 +29,7 @@ export default function CalendarWeek({
   todayYear,
   todayMonth,
   todayDay,
+  todayDayOfWeek,
   currentYear,
   currentMonth,
 }: CalendarWeekProps) {
@@ -47,59 +49,118 @@ export default function CalendarWeek({
     );
   };
 
+  // 이 주에 토요일/일요일에 해당하는 선을 표시할지 확인
+  const shouldShowWeekendLine = () => {
+    if (todayDayOfWeek === 6) {
+      // 토요일: 금요일(어제)이 이 주의 마지막 날인지 확인
+      const yesterday = new Date(todayYear, todayMonth - 1, todayDay - 1);
+      const fridayInWeek = week[4]; // 금요일
+      return (
+        fridayInWeek &&
+        fridayInWeek.day === yesterday.getDate() &&
+        yesterday.getMonth() === currentMonth - 1 &&
+        yesterday.getFullYear() === currentYear
+      );
+    } else if (todayDayOfWeek === 0) {
+      // 일요일: 월요일(내일)이 이 주의 첫 날인지 확인
+      const tomorrow = new Date(todayYear, todayMonth - 1, todayDay + 1);
+      const mondayInWeek = week[0]; // 월요일
+      return (
+        mondayInWeek &&
+        mondayInWeek.day === tomorrow.getDate() &&
+        tomorrow.getMonth() === currentMonth - 1 &&
+        tomorrow.getFullYear() === currentYear
+      );
+    }
+    return false;
+  };
+
+  const showLine = shouldShowWeekendLine();
+
   return (
     <View
       style={[
         styles.weekRow,
         {
           minHeight: weekHeight,
+          borderBottomWidth: 1,
+          borderBottomColor: isDark ? '#333' : '#f0f0f0',
         },
       ]}
     >
       {/* 날짜 셀 */}
-      <View style={styles.daysRow}>
+      <View className="flex-row">
         {week.map((dayObj, dayIndex) => (
           <View
             key={dayIndex}
+            className="p-2 justify-start items-center relative"
             style={[
-              styles.dayCell,
               {
                 width: `${getDayWidth(dayIndex)}%`,
                 minHeight: weekHeight,
               },
+              dayObj &&
+                dayObj.isCurrentMonth &&
+                isToday(dayObj.day) && {
+                  borderWidth: 2,
+                  borderColor: '#FF9500',
+                  borderRadius: 8,
+                },
             ]}
           >
+            {/* 일요일일 때 월요일(dayIndex 0) 왼쪽에 선 */}
+            {showLine && todayDayOfWeek === 0 && dayIndex === 0 && (
+              <View
+                style={{
+                  position: 'absolute',
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: 2,
+                  backgroundColor: '#FF9500',
+                }}
+              />
+            )}
+            {/* 토요일일 때 금요일(dayIndex 4) 오른쪽에 선 */}
+            {showLine && todayDayOfWeek === 6 && dayIndex === 4 && (
+              <View
+                style={{
+                  position: 'absolute',
+                  right: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: 2,
+                  backgroundColor: '#FF9500',
+                }}
+              />
+            )}
             {dayObj && (
-              <>
-                {/* 원형 배경 (오늘 날짜만) */}
-                {dayObj.isCurrentMonth && isToday(dayObj.day) && (
-                  <View style={styles.todayContainer} />
-                )}
-                <View style={styles.dayNumberContainer}>
-                  <Text
-                    style={[
-                      styles.dayNumber,
-                      !dayObj.isCurrentMonth && {
-                        ...styles.otherMonthNumber,
+              <View className="self-center items-center justify-center w-full pt-0.5 min-h-[20px] relative">
+                <Text
+                  className="text-sm font-medium"
+                  style={[
+                    !dayObj.isCurrentMonth && {
+                      color: isDark ? '#666' : '#ccc',
+                      fontWeight: '400',
+                    },
+                    !dayObj.isCurrentMonth &&
+                      !isToday(dayObj.day) && {
                         color: isDark ? '#666' : '#ccc',
                       },
-                      !dayObj.isCurrentMonth &&
-                        !isToday(dayObj.day) && {
-                          color: isDark ? '#666' : '#ccc',
-                        },
-                      dayObj.isCurrentMonth &&
-                        !isToday(dayObj.day) && {
-                          color: isDark ? '#fff' : '#000',
-                        },
-                      dayObj.isCurrentMonth &&
-                        isToday(dayObj.day) &&
-                        styles.todayNumber,
-                    ]}
-                  >
-                    {dayObj.day}
-                  </Text>
-                </View>
-              </>
+                    dayObj.isCurrentMonth &&
+                      !isToday(dayObj.day) && {
+                        color: isDark ? '#fff' : '#000',
+                      },
+                    dayObj.isCurrentMonth &&
+                      isToday(dayObj.day) && {
+                        color: '#FF9500',
+                        fontWeight: 'bold',
+                      },
+                  ]}
+                >
+                  {dayObj.day}
+                </Text>
+              </View>
             )}
           </View>
         ))}
@@ -155,30 +216,33 @@ export default function CalendarWeek({
               onPress={handleEventPress}
               activeOpacity={0.7}
             >
-              <View style={styles.eventContent}>
+              <View
+                className="flex-row items-center h-full"
+                style={{ gap: 2, paddingLeft: 4 }}
+              >
                 {badgeText && (
                   <View
-                    style={[
-                      styles.badge,
-                      {
-                        backgroundColor: '#fff',
-                        borderColor: badgeColor,
-                      },
-                    ]}
+                    className="w-[18px] h-[18px] rounded-full border-[1.5px] justify-center items-center"
+                    style={{
+                      backgroundColor: isDark ? '#1a1a1a' : '#fff',
+                      borderColor: badgeColor,
+                    }}
                   >
-                    <Text style={[styles.badgeText, { color: badgeColor }]}>
+                    <Text
+                      className="text-[9px] font-bold"
+                      style={{ color: badgeColor }}
+                    >
                       {badgeText}
                     </Text>
                   </View>
                 )}
                 <View
-                  style={[
-                    styles.companyNameContainer,
-                    { backgroundColor: segment.color },
-                  ]}
+                  className="flex-1 h-full rounded-sm px-1 py-0.5 justify-center"
+                  style={{ backgroundColor: segment.color }}
                 >
                   <Text
-                    style={[styles.eventText, { color: textColor }]}
+                    className="text-[10px] font-medium"
+                    style={{ color: textColor }}
                     numberOfLines={1}
                   >
                     {companyName}
@@ -199,46 +263,6 @@ const styles = StyleSheet.create({
     position: 'relative',
     paddingHorizontal: 16,
   },
-  daysRow: {
-    flexDirection: 'row',
-  },
-  dayCell: {
-    padding: 8,
-    minHeight: 70,
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-  },
-  dayNumberContainer: {
-    alignSelf: 'center',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    paddingTop: 2,
-    minHeight: 20,
-    position: 'relative',
-  },
-  dayNumber: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  otherMonthNumber: {
-    color: '#ccc',
-    fontWeight: '400',
-  },
-  todayContainer: {
-    backgroundColor: '#666666',
-    borderRadius: 12,
-    width: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'absolute',
-    top: 10,
-  },
-  todayNumber: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
   eventsLayer: {
     position: 'absolute',
     top: 35,
@@ -250,35 +274,5 @@ const styles = StyleSheet.create({
     position: 'absolute',
     height: 24,
     marginBottom: 4,
-  },
-  eventContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    height: '100%',
-  },
-  badge: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 1.5,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  badgeText: {
-    fontSize: 9,
-    fontWeight: 'bold',
-  },
-  companyNameContainer: {
-    flex: 1,
-    height: '100%',
-    borderRadius: 3,
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-    justifyContent: 'center',
-  },
-  eventText: {
-    fontSize: 10,
-    fontWeight: '500',
   },
 });

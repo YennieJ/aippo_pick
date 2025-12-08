@@ -34,6 +34,7 @@ export default function CalendarScreen() {
   const todayYear = today.getFullYear();
   const todayMonth = today.getMonth() + 1;
   const todayDay = today.getDate();
+  const todayDayOfWeek = today.getDay(); // 0: 일요일, 6: 토요일
 
   const [currentYear, setCurrentYear] = useState(todayYear);
   const [currentMonth, setCurrentMonth] = useState(todayMonth);
@@ -298,7 +299,13 @@ export default function CalendarScreen() {
         />
 
         {/* 요일 헤더 */}
-        <View className="flex-row px-4">
+        <View
+          className="flex-row px-4"
+          style={{
+            borderBottomWidth: 1,
+            borderBottomColor: isDark ? '#333' : '#f0f0f0',
+          }}
+        >
           {weekDays.map((day, index) => (
             <View
               key={index}
@@ -359,6 +366,7 @@ export default function CalendarScreen() {
               todayYear={todayYear}
               todayMonth={todayMonth}
               todayDay={todayDay}
+              todayDayOfWeek={todayDayOfWeek}
               currentYear={currentYear}
               currentMonth={currentMonth}
             />
