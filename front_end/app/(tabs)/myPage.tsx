@@ -1,5 +1,3 @@
-// app/(tabs)/myPage.tsx  같은 위치라고 가정
-
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
@@ -11,20 +9,43 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getIpoByCodeId } from '../../src/features/ipo/api/ipo';
-import { IpoDetailData } from '../../src/features/ipo/types/ipo.types';
+
+import axios from 'axios';
+import * as Notifications from 'expo-notifications';
+
 import {
   loadStringArray,
   removeItem,
   saveStringArray,
   STORAGE_KEYS,
 } from '../../src/shared/utils/storage.utils';
+import { getIpoByCodeId } from '../../src/features/ipo/api/ipo';
+import { IpoDetailData } from '../../src/features/ipo/types/ipo.types';
 
-import axios from 'axios';
-import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
+import * as Application from "expo-application";
+
+/* =========================================================
+   🔐 1) 앱 전용 고정 Device ID 생성/로드
+========================================================= */
+let cachedDeviceId: string | null = null;
+
+async function getStableDeviceId() {
+  console.log("getStableDeviceId 진입", cachedDeviceId);
+  if (cachedDeviceId) return cachedDeviceId;
+
+  let id = Application.getAndroidId();
+
+  // iOS fallback
+  if (!id) {
+    // iOS는 안드로이드ID가 없으니 앱+버전 조합으로 안정적 fallback 생성
+    id = `${Application.applicationId}-${Application.nativeApplicationVersion}`;
+  }
+
+  cachedDeviceId = id;
+  console.log("cachedDeviceId = id", cachedDeviceId);
+  return id;
+}
 
 export default function MyPageScreen() {
   const router = useRouter();
@@ -68,10 +89,7 @@ export default function MyPageScreen() {
   // 🔔 서버에 알림 설정 저장
   async function saveNotifyAll(newValue: boolean) {
     try {
-      const deviceId =
-        Device.osInternalBuildId ??
-        Device.modelId ??
-        `${Device.osName}-unknown`;
+      const deviceId = await getStableDeviceId();
 
       await axios.put('http://122.42.248.81:4000/notification_setting', {
         deviceId,
@@ -85,6 +103,17 @@ export default function MyPageScreen() {
       console.log('⭐ notifyAll updated:', newValue);
     } catch (e) {
       console.log('notifyAll 업데이트 실패:', e);
+    }
+  }
+
+  async function loadNotifySetting() {
+    try {
+      const deviceId = await getStableDeviceId();
+      const res = await axios.get(`http://122.42.248.81:4000/notification_setting/${deviceId}`);
+      return res.data;
+    } catch (e) {
+      console.log("알림 설정 로딩 실패:", e);
+      return null;
     }
   }
 
@@ -196,6 +225,12 @@ export default function MyPageScreen() {
             loadFavoriteDetails(favoriteList),
             loadRecentDetails(recentList),
           ]);
+
+          const notify = await loadNotifySetting();
+          if (!cancelled && notify) {
+            setNotifyAll(notify.notifyAll === true);
+          }
+
         } catch (e) {
           console.log('MyPage load error', e);
         }
@@ -532,45 +567,45 @@ export default function MyPageScreen() {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>🔔 알림 설정</Text>
 
-            <TouchableOpacity style={styles.settingRow}>
-              <Text style={styles.settingLabel}>위젯 사용</Text>
-              <Text style={styles.settingValue}>ON</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.settingRow}>
-              <Text style={styles.settingLabel}>알림 시간</Text>
-              <Text style={styles.settingValue}>오전 9:00</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.settingRow}>
-              <Text style={styles.settingLabel}>
-                청약 / 환불 / 상장일 D-Day 알림
-              </Text>
-              <Text style={styles.settingValue}>사용 중</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.settingRow}>
-              <Text style={styles.settingLabel}>알림 기록 보기</Text>
-              <Text style={styles.settingValue}>최근 30일</Text>
-            </TouchableOpacity>
-
             {/* 전체 알림 */}
             <View style={styles.settingRow}>
               <Text style={styles.settingLabel}>전체 알림</Text>
               <Switch
                 value={notifyAll}
                 onValueChange={async (newValue) => {
-                  // ON → 권한 요청
                   if (newValue === true) {
                     const ok = await ensureNotificationPermission();
                     if (!ok) return;
                   }
-
                   setNotifyAll(newValue);
                   await saveNotifyAll(newValue);
                 }}
               />
             </View>
+
+            {/* SPAC 알림 */}
+            <View style={styles.settingRow}>
+              <Text style={styles.settingLabel}>SPAC 알림</Text>
+              <Switch value={true} onValueChange={() => { }} />
+            </View>
+
+            {/* REITS 알림 */}
+            <View style={styles.settingRow}>
+              <Text style={styles.settingLabel}>REITS 알림</Text>
+              <Switch value={true} onValueChange={() => { }} />
+            </View>
+
+            {/* 알림 시간 */}
+            <TouchableOpacity style={styles.settingRow}>
+              <Text style={styles.settingLabel}>알림 시간</Text>
+              <Text style={styles.settingValue}>08:00</Text>
+            </TouchableOpacity>
+
+            {/* 증권사 알림 */}
+            <TouchableOpacity style={styles.settingRow}>
+              <Text style={styles.settingLabel}>증권사 알림</Text>
+              <Text style={styles.settingValue}>전체</Text>
+            </TouchableOpacity>
           </View>
 
           {/* 앱 설정 */}
