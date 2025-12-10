@@ -9,6 +9,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -399,6 +400,16 @@ export default function HomeScreen() {
       </View>
     );
   };
+
+  const isLoading = !todayIpo || !brokerRanking || !allBrokers;
+
+  if (isLoading) {
+  return (
+    <SafeAreaView className="flex-1 items-center justify-center bg-white dark:bg-black">
+      <ActivityIndicator size="large" color="#666" />
+    </SafeAreaView>
+  );
+}
 
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-black" edges={['top']}>
