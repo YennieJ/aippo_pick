@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1088941510792",
+    "project_id": "aippopick",
+    "storage_bucket": "aippopick.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1088941510792:android:7ee10c1e6a5d558a4a0f3d",
+        "android_client_info": {
+          "package_name": "com.itl.aippopick"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDOS8Z7Ehyd_-5oKkgxqjKBY9dERdkZUdY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

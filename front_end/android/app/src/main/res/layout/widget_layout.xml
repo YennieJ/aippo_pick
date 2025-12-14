@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="#FFFFFF">
+
+    <!-- 로딩 / 데이터 없음 이미지 -->
+    <ImageView
+        android:id="@+id/widget_loading_image"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="center"
+        android:src="@drawable/widget_loading_icon"
+        android:visibility="gone" />
+
+    <!-- 실제 컨텐츠 영역 -->
+    <LinearLayout
+        android:id="@+id/widget_content_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- 제목 -->
+        <TextView
+            android:id="@+id/widget_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="오늘의 공모주"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#000000"
+            android:layout_marginBottom="8dp" />
+
+        <!-- 테이블 헤더 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="#EEEEEE"
+            android:paddingVertical="10dp"
+            android:paddingHorizontal="6dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="2"
+                android:text="종목명"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:textColor="#333333"
+                android:paddingStart="6dp" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="start"
+                android:text="D-Day"
+                android:textColor="#333333"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:paddingStart="6dp" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="start"
+                android:text="공모가"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:textColor="#333333"
+                android:paddingStart="6dp" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1.5"
+                android:gravity="start"
+                android:text="증권사"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:textColor="#333333"
+                android:paddingStart="6dp" />
+        </LinearLayout>
+
+        <!-- 공통 행 스타일 예시 : ROW 1 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="32dp"
+            android:orientation="horizontal"
+            android:paddingVertical="6dp"
+            android:paddingHorizontal="4dp">
+
+            <TextView
+                android:id="@+id/row1_name"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="2"
+                android:text="데이터 없음"
+                android:textSize="12sp"
+                android:textColor="#999999"
+                android:maxLines="1"
+                android:ellipsize="start"
+                android:paddingStart="6dp" />
+
+            <TextView
+                android:id="@+id/row1_dday"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="start"
+                android:text="-"
+                android:textSize="12sp"
+                android:textColor="#999999"
+                android:paddingStart="6dp" />
+
+            <TextView
+                android:id="@+id/row1_price"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="start"
+                android:text="-"
+                android:textSize="12sp"
+                android:textColor="#999999"
+                android:paddingStart="6dp" />
+
+            <TextView
+                android:id="@+id/row1_securities"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1.5"
+                android:gravity="start"
+                android:text="-"
+                android:textSize="12sp"
+                android:textColor="#999999"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:paddingStart="6dp" />
+        </LinearLayout>
+
+        <!-- ROW 2 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="32dp"
+            android:orientation="horizontal"
+            android:paddingVertical="6dp"
+            android:paddingHorizontal="4dp">
+
+            <TextView
+                android:id="@+id/row2_name"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="2"
+                android:text="데이터 없음"
+                android:textSize="12sp"
+                android:textColor="#999999"
+                android:maxLines="1"
+                android:ellipsize="start"
+                android:paddingStart="6dp" />
+
+            <TextView
+                android:id="@+id/row2_dday"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="start"
+                android:text="-"
+                android:textSize="12sp"
+                android:textColor="#999999"
+                android:paddingStart="6dp" />
+
+            <TextView
+                android:id="@+id/row2_price"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="start"
+                android:text="-"
+                android:textSize="12sp"
+                android:textColor="#999999"
+                android:paddingStart="6dp" />
+
+            <TextView
+                android:id="@+id/row2_securities"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1.5"
+                android:gravity="start"
+                android:text="-"
+                android:textSize="12sp"
+                android:textColor="#999999"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:paddingStart="6dp" />
+        </LinearLayout>
+
+        <!-- ROW 3 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="32dp"
+            android:orientation="horizontal"
+            android:paddingVertical="6dp"
+            android:paddingHorizontal="4dp">
+
+            <TextView
+                android:id="@+id/row3_name"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="2"
+                android:text="데이터 없음"
+                android:textSize="12sp"
+                android:textColor="#999999"
+                android:maxLines="1"
+                android:ellipsize="start"
+                android:paddingStart="6dp" />
+
+            <TextView
+                android:id="@+id/row3_dday"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="start"
+                android:text="-"
+                android:textSize="12sp"
+                android:textColor="#999999"
+                android:paddingStart="6dp" />
+
+            <TextView
+                android:id="@+id/row3_price"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="start"
+                android:text="-"
+                android:textSize="12sp"
+                android:textColor="#999999"
+                android:paddingStart="6dp" />
+
+            <TextView
+                android:id="@+id/row3_securities"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1.5"
+                android:gravity="start"
+                android:text="-"
+                android:textSize="12sp"
+                android:textColor="#999999"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:paddingStart="6dp" />
+        </LinearLayout>
+
+
+    </LinearLayout>
+
+</LinearLayout>
