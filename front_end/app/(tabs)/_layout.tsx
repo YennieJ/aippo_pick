@@ -149,6 +149,12 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="termAndConditions"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

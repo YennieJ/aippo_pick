@@ -8,6 +8,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -23,7 +24,8 @@ import {
 import { getIpoByCodeId } from '../../src/features/ipo/api/ipo';
 import { IpoDetailData } from '../../src/features/ipo/types/ipo.types';
 
-import * as Application from "expo-application";
+import * as Application from 'expo-application';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 /* =========================================================
    🔐 1) 앱 전용 고정 Device ID 생성/로드
@@ -31,7 +33,7 @@ import * as Application from "expo-application";
 let cachedDeviceId: string | null = null;
 
 async function getStableDeviceId() {
-  console.log("getStableDeviceId 진입", cachedDeviceId);
+  console.log('getStableDeviceId 진입', cachedDeviceId);
   if (cachedDeviceId) return cachedDeviceId;
 
   let id = Application.getAndroidId();
@@ -43,8 +45,56 @@ async function getStableDeviceId() {
   }
 
   cachedDeviceId = id;
-  console.log("cachedDeviceId = id", cachedDeviceId);
+  console.log('cachedDeviceId = id', cachedDeviceId);
   return id;
+}
+
+/** =========================================================
+ *  날짜 유틸: listingdate(YYYY.MM.DD | YYYY-MM-DD) → Date
+ * ======================================================= */
+function parseYmdToDate(value?: string | null): Date | null {
+  if (!value) return null;
+
+  const raw = value.trim();
+  if (!raw) return null;
+
+  const normalized = raw.replace(/\./g, '-');
+  const match = normalized.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return null;
+
+  const y = Number(match[1]);
+  const m = Number(match[2]);
+  const d = Number(match[3]);
+
+  if (!y || !m || !d) return null;
+
+  // 날짜 비교 안정성 위해 정오로 생성
+  return new Date(y, m - 1, d, 12, 0, 0, 0);
+}
+
+/** =========================================================
+ * 오늘 기준 D-day 계산
+ * ======================================================= */
+function calcDDay(target: Date): number {
+  const now = new Date();
+  const today = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    12,
+    0,
+    0,
+    0
+  );
+
+  const diffMs = target.getTime() - today.getTime();
+  return Math.round(diffMs / (1000 * 60 * 60 * 24));
+}
+
+function formatDDayLabel(diff: number): string {
+  if (diff === 0) return 'D-DAY';
+  if (diff > 0) return `D-${diff}`;
+  return `D+${Math.abs(diff)}`;
 }
 
 export default function MyPageScreen() {
@@ -64,6 +114,8 @@ export default function MyPageScreen() {
 
   // 🔔 전체 알림 스위치 상태
   const [notifyAll, setNotifyAll] = useState(false);
+  const [notifySpac, setNotifySpac] = useState(true);
+  const [notifyReits, setNotifyReits] = useState(true);
 
   // 🔔 권한 확인 및 요청
   async function ensureNotificationPermission() {
@@ -94,10 +146,10 @@ export default function MyPageScreen() {
       await axios.put('http://122.42.248.81:4000/notification_setting', {
         deviceId,
         notifyAll: newValue,
-        broker: '', // 기본값
-        spac: true, // 기본값
-        reits: true, // 기본값
-        alarmTime: '08:00', // 기본값
+        broker: '',
+        spac: true,
+        reits: true,
+        alarmTime: '08:00',
       });
 
       console.log('⭐ notifyAll updated:', newValue);
@@ -109,10 +161,12 @@ export default function MyPageScreen() {
   async function loadNotifySetting() {
     try {
       const deviceId = await getStableDeviceId();
-      const res = await axios.get(`http://122.42.248.81:4000/notification_setting/${deviceId}`);
+      const res = await axios.get(
+        `http://122.42.248.81:4000/notification_setting/${deviceId}`
+      );
       return res.data;
     } catch (e) {
-      console.log("알림 설정 로딩 실패:", e);
+      console.log('알림 설정 로딩 실패:', e);
       return null;
     }
   }
@@ -125,7 +179,6 @@ export default function MyPageScreen() {
   const [recentDetails, setRecentDetails] = useState<IpoDetailData[]>([]);
   const [recentLoading, setRecentLoading] = useState(false);
 
-  // 공통: codeId 배열 → 상세 데이터 로딩
   const fetchIpoDetailsByIds = useCallback(
     async (ids: string[]): Promise<IpoDetailData[]> => {
       if (!ids.length) return [];
@@ -229,8 +282,9 @@ export default function MyPageScreen() {
           const notify = await loadNotifySetting();
           if (!cancelled && notify) {
             setNotifyAll(notify.notifyAll === true);
+            if (typeof notify.spac === 'boolean') setNotifySpac(notify.spac);
+            if (typeof notify.reits === 'boolean') setNotifyReits(notify.reits);
           }
-
         } catch (e) {
           console.log('MyPage load error', e);
         }
@@ -254,6 +308,17 @@ export default function MyPageScreen() {
     }
   }, []);
 
+  // 즐겨찾기 전체 삭제
+  const onClearFavorites = useCallback(async () => {
+    try {
+      await removeItem(STORAGE_KEYS.FAVORITES);
+      setFavorites([]);
+      setFavoriteDetails([]);
+    } catch (e) {
+      console.log('onClearFavorites error', e);
+    }
+  }, []);
+
   // 최근 본 한 줄 삭제
   const onRemoveRecent = useCallback(async (ipoId: string) => {
     try {
@@ -266,7 +331,7 @@ export default function MyPageScreen() {
     }
   }, []);
 
-  // 즐겨찾기 토글 (MyPage에서 바로 반영)
+  // 즐겨찾기 토글
   const onToggleFavorite = useCallback(
     async (ipoId: string) => {
       const existsNow = favorites.includes(ipoId);
@@ -279,10 +344,8 @@ export default function MyPageScreen() {
       setFavorites(nextIds);
 
       if (existsNow) {
-        // 즐겨찾기 해제 → 상세 리스트에서도 제거
         setFavoriteDetails((prev) => prev.filter((x) => x.code_id !== ipoId));
       } else {
-        // 즐겨찾기 추가 → 해당 공모주만 개별 호출해서 append
         try {
           const data = await getIpoByCodeId(ipoId);
           const detail: IpoDetailData | undefined = Array.isArray(data)
@@ -303,215 +366,278 @@ export default function MyPageScreen() {
     [favorites]
   );
 
+  // 홈 카드처럼 가격(현재가/공모가) 결정
+  const getDisplayPrice = useCallback(
+    (item: IpoDetailData) => {
+      const priceNum = parseNumber(item.price ?? null);
+      const confirmedPriceNum = parseNumber(item.confirmedprice ?? null);
+
+      const displayPrice =
+        priceNum !== null
+          ? priceNum
+          : confirmedPriceNum !== null
+          ? confirmedPriceNum
+          : null;
+
+      const priceLabel = priceNum !== null ? '현재가' : '공모가';
+
+      return { displayPrice, priceLabel };
+    },
+    [parseNumber]
+  );
+
   return (
-    <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: BG }} edges={['top']}>
       <View style={styles.container}>
         {/* 헤더 */}
         <View style={styles.header}>
           <View style={styles.headerRow}>
-            <Text style={styles.headerTitle}>My 페이지</Text>
-          </View>
-          <Text style={styles.headerSubtitle}>
-            나의 공모주 정보와 즐겨찾기를 한 번에 확인해요.
-          </Text>
-        </View>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          {/* 프로필 섹션 */}
-          <View style={styles.card}>
-            <View style={styles.profileRow}>
-              <View style={styles.profileAvatar}>
-                <Text style={styles.profileAvatarText}>JJ</Text>
-              </View>
-              <View style={styles.profileInfo}>
-                <Text style={styles.profileName}>닉네임</Text>
-                <Text style={styles.profileEmail}>@google.com</Text>
-              </View>
-              <TouchableOpacity>
-                <Text style={styles.linkText}>프로필 수정</Text>
-              </TouchableOpacity>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.headerTitle}>My 페이지</Text>
             </View>
           </View>
+        </View>
 
-          {/* ⭐ 즐겨찾기 공모주 */}
+        <ScrollView
+          style={{ backgroundColor: BG }}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {/* ✅ 알림 설정 (이모티콘/아이콘 삭제 + 스위치 색 제거) */}
+          <View style={styles.card}>
+            <View style={styles.cardTitleRow}>
+              <Text style={styles.cardTitle}>알림 설정</Text>
+            </View>
+
+            {/* 전체 알림 */}
+            <View style={styles.settingRow}>
+              <View style={styles.settingLeftNoIcon}>
+                <Text style={styles.settingLabel}>전체 알림</Text>
+              </View>
+
+              {/* ✅ 체크 색 제거: trackColor/thumbColor 지정 안함 */}
+              <Switch
+                value={notifyAll}
+                onValueChange={async (newValue) => {
+                  if (newValue === true) {
+                    const ok = await ensureNotificationPermission();
+                    if (!ok) return;
+                  }
+
+                  setNotifyAll(newValue);
+                  await saveNotifyAll(newValue);
+                }}
+              />
+            </View>
+
+            {/* SPAC 알림 (✅ 토글 동작하도록 state 연결) */}
+            <View style={styles.settingRow}>
+              <View style={styles.settingLeftNoIcon}>
+                <Text style={styles.settingLabel}>SPAC 알림</Text>
+              </View>
+              <Switch
+                value={notifySpac}
+                onValueChange={async (newValue) => {
+                  if (newValue === true) {
+                    const ok = await ensureNotificationPermission();
+                    if (!ok) return;
+                  }
+                  setNotifySpac(newValue);
+                }}
+              />
+            </View>
+
+            {/* REITS 알림 (✅ 토글 동작하도록 state 연결) */}
+            <View style={styles.settingRow}>
+              <View style={styles.settingLeftNoIcon}>
+                <Text style={styles.settingLabel}>REITS 알림</Text>
+              </View>
+              <Switch
+                value={notifyReits}
+                onValueChange={async (newValue) => {
+                  if (newValue === true) {
+                    const ok = await ensureNotificationPermission();
+                    if (!ok) return;
+                  }
+                  setNotifyReits(newValue);
+                }}
+              />
+            </View>
+
+            {/* 알림 시간 */}
+            <TouchableOpacity style={styles.settingRow} activeOpacity={0.8}>
+              <View style={styles.settingLeftNoIcon}>
+                <Text style={styles.settingLabel}>알림 시간</Text>
+              </View>
+
+              <View style={styles.settingRight}>
+                <Text style={styles.settingValueStrong}>08:00</Text>
+                <MaterialIcons name="chevron-right" size={22} color="#9CA3AF" />
+              </View>
+            </TouchableOpacity>
+
+            {/* 증권사 알림 */}
+            <TouchableOpacity style={styles.settingRowLast} activeOpacity={0.8}>
+              <View style={styles.settingLeftNoIcon}>
+                <Text style={styles.settingLabel}>증권사 알림</Text>
+              </View>
+
+              <View style={styles.settingRight}>
+                <Text style={styles.settingValue}>전체</Text>
+                <MaterialIcons name="chevron-right" size={22} color="#9CA3AF" />
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {/* ⭐ 즐겨찾기 공모주 (전체보기 제거 → 전체삭제로 변경) */}
           <View style={styles.card}>
             <View style={styles.cardHeaderRow}>
-              <Text style={styles.cardTitle}>⭐ 즐겨찾기 공모주</Text>
-              <TouchableOpacity>
-                <Text style={styles.linkText}>전체보기</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cardTitleNoMb}>⭐ 즐겨찾기 공모주</Text>
+              </View>
+
+              <TouchableOpacity onPress={onClearFavorites} activeOpacity={0.8}>
+                <View style={styles.dangerPill}>
+                  <MaterialIcons name="delete-outline" size={18} color="#DC2626" />
+                  <Text style={styles.dangerPillText}>전체삭제</Text>
+                </View>
               </TouchableOpacity>
             </View>
 
             {favoriteLoading && favoriteDetails.length === 0 ? (
               <View style={styles.emptyBox}>
-                <Text style={styles.emptySub}>
-                  즐겨찾기 정보를 불러오는 중입니다...
-                </Text>
+                <Text style={styles.emptySub}>즐겨찾기 정보를 불러오는 중입니다.</Text>
               </View>
             ) : favoriteDetails.length === 0 ? (
               <View style={styles.emptyBox}>
-                <Text style={styles.emptyTitle}>
-                  즐겨찾기한 공모주가 없습니다.
-                </Text>
+                <Text style={styles.emptyTitle}>즐겨찾기한 공모주가 없습니다.</Text>
                 <Text style={styles.emptySub}>
                   공모주 상세 화면에서 ⭐ 버튼을 눌러 즐겨찾기를 추가해보세요.
                 </Text>
               </View>
             ) : (
-              favoriteDetails.map((item) => {
-                const id = item.code_id;
-                const favorite = isFavorite(id);
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.horizontalList}
+              >
+                {favoriteDetails.map((item) => {
+                  const id = item.code_id;
+                  const favorite = isFavorite(id);
+                  const { displayPrice, priceLabel } = getDisplayPrice(item);
 
-                const priceNum = parseNumber(item.price ?? null);
-                const confirmedPriceNum = parseNumber(
-                  item.confirmedprice ?? null
-                );
-                const hasPrice = priceNum !== null;
-                const hasConfirmed = confirmedPriceNum !== null;
-
-                const displayPrice = hasPrice
-                  ? priceNum
-                  : hasConfirmed
-                    ? confirmedPriceNum
+                  const listingDate = parseYmdToDate(item.listingdate ?? null);
+                  const dText = listingDate
+                    ? formatDDayLabel(calcDDay(listingDate))
                     : null;
 
-                const priceLabel = hasPrice ? '현재가' : '공모가';
+                  const rate =
+                    item.competitionrate ??
+                    item.institutional_competition_rate ??
+                    null;
 
-                return (
-                  <TouchableOpacity
-                    key={id}
-                    style={styles.listRow}
-                    activeOpacity={0.8}
-                    onPress={() =>
-                      router.push({
-                        pathname: '/ipo/[codeId]',
-                        params: { codeId: id },
-                      })
-                    }
-                  >
-                    <View style={styles.listRowLeft}>
-                      {/* 종목명 */}
-                      <Text style={styles.listTitle}>{item.company}</Text>
-
-                      {/* 상장일 */}
-                      {item.listingdate && (
-                        <>
-                          <Text style={styles.label}>상장일</Text>
-                          <Text style={styles.value}>{item.listingdate}</Text>
-                        </>
-                      )}
-
-                      {/* 청약 기간 */}
-                      {item.subscriptiondate && (
-                        <>
-                          <Text style={styles.label}>청약일</Text>
-                          <Text style={styles.value}>
-                            {item.subscriptiondate.replace('~', ' ~ ')}
+                  return (
+                    <TouchableOpacity
+                      key={id}
+                      style={styles.homeCard}
+                      activeOpacity={0.88}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/ipo/[codeId]',
+                          params: { codeId: id },
+                        })
+                      }
+                    >
+                      <View style={styles.homeCardTopRow}>
+                        <View style={styles.badge}>
+                          <Text style={styles.badgeText}>
+                            상장{dText ? ` ${dText}` : ''}
                           </Text>
-                        </>
-                      )}
+                        </View>
 
-                      {/* 공모가 / 현재가 */}
+                        <TouchableOpacity
+                          onPress={() => onToggleFavorite(id)}
+                          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                        >
+                          <Text
+                            style={
+                              favorite
+                                ? styles.favoriteIconOn
+                                : styles.favoriteIconOff
+                            }
+                          >
+                            {favorite ? '★' : '☆'}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      <Text style={styles.homeCardTitle} numberOfLines={1}>
+                        {item.company}
+                      </Text>
+
                       {displayPrice !== null && (
-                        <>
-                          <Text style={styles.label}>{priceLabel}</Text>
-                          <Text style={styles.value}>
+                        <View style={styles.homeCardInfoRow}>
+                          <Text style={styles.homeCardInfoLabel}>{priceLabel}</Text>
+                          <Text style={styles.homeCardInfoValue}>
                             {displayPrice.toLocaleString()}원
                           </Text>
-                        </>
+                        </View>
                       )}
-                      {/* 경쟁률 표시 우선순위: 청약 → 기관 */}
-                      {item.competitionrate ? (
-                        <>
-                          <Text style={styles.label}>청약 경쟁률</Text>
-                          <Text style={styles.valueHighlight}>
-                            {item.competitionrate}
-                          </Text>
-                        </>
-                      ) : item.institutional_competition_rate ? (
-                        <>
-                          <Text style={styles.label}>기관 경쟁률</Text>
-                          <Text style={styles.valueHighlight}>
-                            {item.institutional_competition_rate}
-                          </Text>
-                        </>
-                      ) : null}
-                    </View>
 
-                    {/* 즐겨찾기 토글 버튼 */}
-                    <TouchableOpacity
-                      style={styles.favoriteButton}
-                      onPress={() => onToggleFavorite(id)}
-                      hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-                    >
-                      <Text
-                        style={
-                          favorite
-                            ? styles.favoriteIconOn
-                            : styles.favoriteIconOff
-                        }
-                      >
-                        {favorite ? '★' : '☆'}
-                      </Text>
+                      {rate && (
+                        <View style={styles.homeCardInfoRow}>
+                          <Text style={styles.homeCardInfoLabel}>경쟁률</Text>
+                          <Text style={styles.homeCardRateStrong} numberOfLines={1}>
+                            {rate}
+                          </Text>
+                        </View>
+                      )}
+
+                      <View style={styles.homeCardFooter}>
+                        <Text style={styles.homeCardFooterText}>자세히 보기</Text>
+                        <MaterialIcons name="chevron-right" size={18} color="#9CA3AF" />
+                      </View>
                     </TouchableOpacity>
-                  </TouchableOpacity>
-                );
-              })
+                  );
+                })}
+              </ScrollView>
             )}
           </View>
 
           {/* 👀 최근 본 공모주 */}
           <View style={styles.card}>
             <View style={styles.cardHeaderRow}>
-              <Text style={styles.cardTitle}>👀 최근 본 공모주</Text>
-              <View style={styles.recentHeaderRight}>
-                <TouchableOpacity onPress={onClearRecent}>
-                  <Text style={styles.linkText}>전체삭제</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.recentHeaderRightItem}>
-                  <Text style={styles.linkText}>전체보기</Text>
-                </TouchableOpacity>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cardTitleNoMb}>👀 최근 본 공모주</Text>
               </View>
+
+              <TouchableOpacity onPress={onClearRecent} activeOpacity={0.8}>
+                <View style={styles.dangerPill}>
+                  <MaterialIcons name="delete-outline" size={18} color="#DC2626" />
+                  <Text style={styles.dangerPillText}>전체삭제</Text>
+                </View>
+              </TouchableOpacity>
             </View>
+
             {recentLoading && recentDetails.length === 0 ? (
               <View style={styles.emptyBox}>
-                <Text style={styles.emptySub}>
-                  최근 본 공모주를 불러오는 중입니다...
-                </Text>
+                <Text style={styles.emptySub}>최근 본 공모주를 불러오는 중입니다.</Text>
               </View>
             ) : recentDetails.length === 0 ? (
               <View style={styles.emptyBox}>
-                <Text style={styles.emptyTitle}>
-                  최근 본 공모주가 없습니다.
-                </Text>
+                <Text style={styles.emptyTitle}>최근 본 공모주가 없습니다.</Text>
                 <Text style={styles.emptySub}>
                   공모주 상세 화면에 들어가면 여기에서 바로 확인할 수 있어요.
                 </Text>
               </View>
             ) : (
-              recentDetails.map((item) => {
-                const priceNum = parseNumber(item.price ?? null);
-                const confirmedPriceNum = parseNumber(
-                  item.confirmedprice ?? null
-                );
-                const hasPrice = priceNum !== null;
-                const hasConfirmed = confirmedPriceNum !== null;
-
-                const displayPrice = hasPrice
-                  ? priceNum
-                  : hasConfirmed
-                    ? confirmedPriceNum
-                    : null;
-
-                const priceLabel = hasPrice ? '현재가' : '공모가';
-
-                const institutionRate =
-                  item.institutional_competition_rate ?? null;
+              recentDetails.map((item, idx) => {
+                const isLast = idx === recentDetails.length - 1;
 
                 return (
                   <TouchableOpacity
                     key={item.code_id}
-                    style={styles.listRow}
-                    activeOpacity={0.8}
+                    style={isLast ? styles.listRowLast : styles.listRow}
+                    activeOpacity={0.85}
                     onPress={() =>
                       router.push({
                         pathname: '/ipo/[codeId]',
@@ -523,112 +649,53 @@ export default function MyPageScreen() {
                       <Text style={styles.listTitle}>{item.company}</Text>
                       <Text style={styles.listSub}>최근에 조회한 공모주</Text>
                     </View>
-                    <TouchableOpacity
-                      onPress={() => onRemoveRecent(item.code_id)}
-                      hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-                    >
-                      <Text style={styles.deleteText}>삭제</Text>
-                    </TouchableOpacity>
+
+                    <View style={styles.listRowRight}>
+                      <TouchableOpacity
+                        onPress={() => onRemoveRecent(item.code_id)}
+                        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.deleteText}>삭제</Text>
+                      </TouchableOpacity>
+                      <MaterialIcons name="chevron-right" size={22} color="#D1D5DB" />
+                    </View>
                   </TouchableOpacity>
                 );
               })
             )}
           </View>
 
-          {/* 내가 참여한 공모주 (샘플 데이터) */}
+          {/* ⚙️ 앱 설정 */}
           <View style={styles.card}>
-            <View style={styles.cardHeaderRow}>
-              <Text style={styles.cardTitle}>📌 내가 참여한 공모주</Text>
-              <TouchableOpacity>
-                <Text style={styles.linkText}>전체보기</Text>
-              </TouchableOpacity>
-            </View>
+            <Text style={styles.cardTitlePlain}>⚙️ 앱 설정</Text>
 
-            <TouchableOpacity style={styles.listRow}>
-              <View>
-                <Text style={styles.listTitle}>카카오모빌리티</Text>
-                <Text style={styles.listSub}>
-                  청약 완료 · 환불 예정 200,000원
-                </Text>
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={() => router.push('/termAndConditions')}
+              activeOpacity={0.8}
+            >
+              <View style={styles.settingLeft}>
+                <View style={[styles.iconChip, { backgroundColor: '#F3F4F6' }]}>
+                  <MaterialIcons name="policy" size={18} color="#111827" />
+                </View>
+                <Text style={styles.settingLabel}>약관 및 개인정보 처리방침</Text>
               </View>
-            </TouchableOpacity>
 
-            <TouchableOpacity style={styles.listRow}>
-              <View>
-                <Text style={styles.listTitle}>삼성바이오로직스</Text>
-                <Text style={styles.listSub}>
-                  상장 완료 · 평가 수익률 +12.3%
-                </Text>
+              <View style={styles.settingRight}>
+                <Text style={styles.settingValue}>보기</Text>
+                <MaterialIcons name="chevron-right" size={22} color="#9CA3AF" />
               </View>
-            </TouchableOpacity>
-          </View>
-
-          {/* 알림 설정 */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>🔔 알림 설정</Text>
-
-            {/* 전체 알림 */}
-            <View style={styles.settingRow}>
-              <Text style={styles.settingLabel}>전체 알림</Text>
-              <Switch
-                value={notifyAll}
-                onValueChange={async (newValue) => {
-                  if (newValue === true) {
-                    const ok = await ensureNotificationPermission();
-                    if (!ok) return;
-                  }
-                  setNotifyAll(newValue);
-                  await saveNotifyAll(newValue);
-                }}
-              />
-            </View>
-
-            {/* SPAC 알림 */}
-            <View style={styles.settingRow}>
-              <Text style={styles.settingLabel}>SPAC 알림</Text>
-              <Switch value={true} onValueChange={() => { }} />
-            </View>
-
-            {/* REITS 알림 */}
-            <View style={styles.settingRow}>
-              <Text style={styles.settingLabel}>REITS 알림</Text>
-              <Switch value={true} onValueChange={() => { }} />
-            </View>
-
-            {/* 알림 시간 */}
-            <TouchableOpacity style={styles.settingRow}>
-              <Text style={styles.settingLabel}>알림 시간</Text>
-              <Text style={styles.settingValue}>08:00</Text>
-            </TouchableOpacity>
-
-            {/* 증권사 알림 */}
-            <TouchableOpacity style={styles.settingRow}>
-              <Text style={styles.settingLabel}>증권사 알림</Text>
-              <Text style={styles.settingValue}>전체</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* 앱 설정 */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>⚙️ 앱 설정</Text>
-
-            <TouchableOpacity style={styles.settingRow}>
-              <Text style={styles.settingLabel}>다크모드</Text>
-              <Text style={styles.settingValue}>시스템 따라가기</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.settingRow}>
-              <Text style={styles.settingLabel}>데이터 백업 / 복원</Text>
-              <Text style={styles.settingValue}>클라우드 연동</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.settingRow}>
-              <Text style={styles.settingLabel}>약관 및 개인정보 처리방침</Text>
-              <Text style={styles.settingValue}>보기</Text>
             </TouchableOpacity>
 
             <View style={styles.settingRowLast}>
-              <Text style={styles.settingLabel}>앱 버전</Text>
+              <View style={styles.settingLeft}>
+                <View style={[styles.iconChip, { backgroundColor: '#F3F4F6' }]}>
+                  <MaterialIcons name="info-outline" size={18} color="#111827" />
+                </View>
+                <Text style={styles.settingLabel}>앱 버전</Text>
+              </View>
+
               <Text style={styles.settingValue}>v1.0.0</Text>
             </View>
           </View>
@@ -640,203 +707,300 @@ export default function MyPageScreen() {
   );
 }
 
+/* =========================================================
+   ✅ 디자인 리워크(요청 반영)
+   - "내 설정" / "알림 설정" 이모티콘/아이콘 제거
+   - 알림 Switch 색 지정 제거(기본색)
+   - SPAC/REITS 스위치 state 연결해서 토글되게 수정
+   - 즐겨찾기: "전체보기" 제거 → "전체삭제" 추가
+========================================================= */
+
+const BG = '#F6F7FB';
+const CARD = '#FFFFFF';
+const BORDER = '#E5E7EB';
+const BORDER_STRONG = '#D1D5DB';
+
+const ROW_H = 54;
+const PAD_X = 16;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F4F5F7',
+    backgroundColor: BG,
   },
+
   header: {
-    paddingTop: 16,
-    paddingHorizontal: 20,
-    paddingBottom: 10,
-    backgroundColor: '#F9FAFB', // 살짝 밝은 회색 톤
-    borderBottomWidth: StyleSheet.hairlineWidth, // 얇은 구분선
-    borderBottomColor: '#E5E7EB',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  headerSubtitle: {
-    marginTop: 4,
-    fontSize: 12,
-    color: '#6B7280',
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 32,
-  },
-  scrollBottomSpacer: {
-    height: 24,
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  cardHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  cardTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 6,
-  },
-  linkText: {
-    fontSize: 12,
-    color: '#2563EB',
-    fontWeight: '500',
-  },
-  profileRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  profileAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#2563EB11',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  profileAvatarText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#2563EB',
-  },
-  profileInfo: {
-    flex: 1,
-  },
-  profileName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  profileEmail: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 2,
-  },
-  listRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: 8,
-    justifyContent: 'space-between',
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E5E7EB',
-    gap: 8,
-  },
-  listRowLeft: {
-    flex: 1,
-  },
-  listTitle: {
-    fontSize: 14,
-    color: '#111827',
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  listSub: {
-    marginTop: 2,
-    fontSize: 12,
-    color: '#6B7280',
-  },
-  label: {
-    fontSize: 11,
-    color: '#6B7280',
-    marginTop: 6,
-  },
-  value: {
-    fontSize: 14,
-    color: '#111827',
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  valueHighlight: {
-    fontSize: 14,
-    color: '#059669',
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  settingRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E5E7EB',
-  },
-  settingRowLast: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E5E7EB',
-  },
-  settingLabel: {
-    fontSize: 13,
-    color: '#111827',
-  },
-  settingValue: {
-    fontSize: 12,
-    color: '#6B7280',
-  },
-  favoriteButton: {
-    marginLeft: 8,
-  },
-  favoriteIconOn: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#F59E0B',
-  },
-  favoriteIconOff: {
-    fontSize: 20,
-    color: '#D1D5DB',
-  },
-  emptyBox: {
-    paddingVertical: 16,
-  },
-  emptyTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#4B5563',
-    marginBottom: 4,
-  },
-  emptySub: {
-    fontSize: 12,
-    color: '#9CA3AF',
-  },
-  deleteText: {
-    fontSize: 12,
-    color: '#9CA3AF',
-  },
-  recentHeaderRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  recentHeaderRightItem: {
-    marginLeft: 8,
-  },
-  headerIcon: {
-    fontSize: 22,
-    marginBottom: 6,
+    paddingTop: 14,
+    paddingHorizontal: 18,
+    paddingBottom: 12,
+    backgroundColor: BG,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-start',
+    gap: 12,
   },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#111827',
+    letterSpacing: -0.2,
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 32,
+    backgroundColor: BG,
+  },
+  scrollBottomSpacer: { height: 28 },
+
+  card: {
+    backgroundColor: CARD,
+    borderRadius: 18,
+    marginBottom: 14,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: BORDER,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 6px 18px rgba(17,24,39,0.06)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOpacity: 0.08,
+        shadowRadius: 14,
+        shadowOffset: { width: 0, height: 6 },
+        elevation: 3,
+      },
+    }),
+  },
+
+  cardTitleRow: {
+    paddingHorizontal: PAD_X,
+    paddingTop: 14,
+    paddingBottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+  },
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  cardTitlePlain: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#111827',
+    paddingHorizontal: PAD_X,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+  },
+
+  cardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: PAD_X,
+    paddingTop: 14,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+  },
+  cardTitleNoMb: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  dangerPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  dangerPillText: {
+    fontSize: 12,
+    color: '#DC2626',
+    fontWeight: '800',
+  },
+
+  settingLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+
+  settingLeftNoIcon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+
+  settingRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  iconChip: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+
+  settingRow: {
+    minHeight: ROW_H,
+    paddingHorizontal: PAD_X,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER_STRONG,
+  },
+  settingRowLast: {
+    minHeight: ROW_H,
+    paddingHorizontal: PAD_X,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  settingLabel: { fontSize: 13, color: '#111827', fontWeight: '700' },
+  settingValue: { fontSize: 12, color: '#6B7280', fontWeight: '700' },
+  settingValueStrong: { fontSize: 12, color: '#111827', fontWeight: '900' },
+
+  horizontalList: {
+    paddingVertical: 14,
+    paddingHorizontal: PAD_X,
+    gap: 12,
+  },
+  homeCard: {
+    width: 228,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+  },
+  homeCardTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  badge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#DC2626',
+  },
+
+  homeCardTitle: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#111827',
+    marginBottom: 10,
+  },
+
+  homeCardInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  homeCardInfoLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '700',
+  },
+  homeCardInfoValue: {
+    fontSize: 12,
+    color: '#111827',
+    fontWeight: '900',
+  },
+  homeCardRateStrong: {
+    fontSize: 12,
+    color: '#059669',
+    fontWeight: '900',
+  },
+
+  homeCardFooter: {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  homeCardFooterText: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '800',
+  },
+
+  listRow: {
+    minHeight: ROW_H,
+    paddingHorizontal: PAD_X,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER_STRONG,
+  },
+  listRowLast: {
+    minHeight: ROW_H,
+    paddingHorizontal: PAD_X,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  listRowLeft: { flex: 1 },
+  listRowRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  listTitle: {
+    fontSize: 14,
+    color: '#111827',
+    fontWeight: '900',
+    marginBottom: 2,
+  },
+  listSub: { marginTop: 2, fontSize: 12, color: '#6B7280', fontWeight: '600' },
+  deleteText: { fontSize: 12, color: '#9CA3AF', fontWeight: '800' },
+
+  favoriteIconOn: { fontSize: 18, fontWeight: 'bold', color: '#F59E0B' },
+  favoriteIconOff: { fontSize: 18, color: '#D1D5DB' },
+
+  emptyBox: { paddingVertical: 18, paddingHorizontal: PAD_X },
+  emptyTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#374151',
+    marginBottom: 4,
+  },
+  emptySub: { fontSize: 12, color: '#9CA3AF', fontWeight: '600' },
 });

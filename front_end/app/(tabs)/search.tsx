@@ -24,6 +24,9 @@ import {
     clearRecentSearches,
 } from '../../src/shared/utils/storage.utils';
 
+// ✅ 프로젝트 공통 다크모드 훅
+import { useColorScheme } from '../../src/shared/hooks/use-color-scheme';
+
 const SEARCH_DEBOUNCE_MS = 300;
 
 // company: 실제로는 "증권사 명 / 종목명"을 의미
@@ -44,6 +47,21 @@ export default function SearchScreen() {
 
     // 입력 포커스용 ref
     const inputRef = useRef<TextInput>(null);
+
+    /* =========================================================
+       🌗 다크모드 감지 (추가)
+    ========================================================= */
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === 'dark';
+
+    // ✅ 색상만 최소로 덮어쓰기 (추가)
+    const BG = isDark ? '#0B1220' : '#F3F4F6';
+    const CARD = isDark ? '#111827' : '#FFFFFF';
+    const BORDER = isDark ? '#243244' : '#E5E7EB';
+    const TEXT = isDark ? '#E5E7EB' : '#111827';
+    const SUB_TEXT = isDark ? '#9CA3AF' : '#6B7280';
+    const MUTED = '#9CA3AF';
+    const DANGER = '#DC2626';
 
     // 즐겨찾기 & 최근 검색 초기 로딩
     useFocusEffect(
@@ -196,29 +214,31 @@ export default function SearchScreen() {
     const showRecent = trimmedQuery.length === 0; // 검색어 없으면 최근 검색어 화면
 
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <View style={styles.container}>
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: BG }]}>
+            <View style={[styles.container, { backgroundColor: BG }]}>
                 {/* 헤더 */}
                 <View style={styles.header}>
-                    <Text style={styles.headerTitle}>공모주 검색</Text>
-                    <Text style={styles.headerSubtitle}>
-                        공모주 명 또는 종목코드를 입력해서 빠르게 찾아보세요.
-                    </Text>
+                    <Text style={[styles.headerTitle, { color: TEXT }]}>공모주 검색</Text>
 
                     {/* 검색창 */}
-                    <View style={styles.searchBar}>
+                    <View
+                        style={[
+                            styles.searchBar,
+                            { backgroundColor: CARD, borderColor: BORDER },
+                        ]}
+                    >
                         <MaterialIcons
                             name="search"
                             size={24}
-                            color="#9CA3AF"
+                            color={MUTED}
                             style={{ marginRight: 8 }}
                         />
 
                         <TextInput
                             ref={inputRef}
-                            style={styles.searchInput}
+                            style={[styles.searchInput, { color: TEXT }]}
                             placeholder="예) 삼성, 207940"
-                            placeholderTextColor="#9CA3AF"
+                            placeholderTextColor={MUTED}
                             value={searchQuery}
                             onChangeText={handleChangeSearchText}
                             onSubmitEditing={handleSubmitSearch}
@@ -236,10 +256,14 @@ export default function SearchScreen() {
                         recentKeywords.length > 0 ? (
                             <View>
                                 <View style={styles.recentHeader}>
-                                    <Text style={styles.recentTitle}>최근 검색한 증권사</Text>
+                                    <Text style={[styles.recentTitle, { color: TEXT }]}>
+                                        최근 검색한 증권사
+                                    </Text>
 
                                     <TouchableOpacity onPress={handleClearRecentKeywords}>
-                                        <Text style={styles.recentClearText}>전체 삭제</Text>
+                                        <Text style={[styles.recentClearText, { color: MUTED }]}>
+                                            전체 삭제
+                                        </Text>
                                     </TouchableOpacity>
                                 </View>
 
@@ -254,26 +278,33 @@ export default function SearchScreen() {
                                                 <MaterialIcons
                                                     name="history"
                                                     size={18}
-                                                    color="#9CA3AF"
+                                                    color={MUTED}
                                                     style={{ marginRight: 6 }}
                                                 />
-                                                <Text style={styles.recentKeywordText}>{item}</Text>
+                                                <Text
+                                                    style={[
+                                                        styles.recentKeywordText,
+                                                        { color: TEXT },
+                                                    ]}
+                                                >
+                                                    {item}
+                                                </Text>
                                             </TouchableOpacity>
 
                                             <TouchableOpacity
                                                 onPress={() => handleRemoveRecentKeyword(item)}
                                                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                                             >
-                                                <MaterialIcons name="close" size={18} color="#9CA3AF" />
+                                                <MaterialIcons name="close" size={18} color={MUTED} />
                                             </TouchableOpacity>
                                         </View>
-                                        <View style={styles.separator} />
+                                        <View style={[styles.separator, { backgroundColor: BORDER }]} />
                                     </View>
                                 ))}
                             </View>
                         ) : (
                             <View style={styles.centerBox}>
-                                <Text style={styles.emptyText}>
+                                <Text style={[styles.emptyText, { color: SUB_TEXT }]}>
                                     최근 검색어가 없습니다. 공모주를 검색해 보세요.
                                 </Text>
                             </View>
@@ -289,7 +320,9 @@ export default function SearchScreen() {
 
                             {!searchLoading && searchError && (
                                 <View style={styles.centerBox}>
-                                    <Text style={styles.errorText}>{searchError}</Text>
+                                    <Text style={[styles.errorText, { color: DANGER }]}>
+                                        {searchError}
+                                    </Text>
                                 </View>
                             )}
 
@@ -298,7 +331,9 @@ export default function SearchScreen() {
                                 searchResults.length === 0 &&
                                 trimmedQuery.length > 0 && (
                                     <View style={styles.centerBox}>
-                                        <Text style={styles.emptyText}>검색 결과가 없어요.</Text>
+                                        <Text style={[styles.emptyText, { color: SUB_TEXT }]}>
+                                            검색 결과가 없어요.
+                                        </Text>
                                     </View>
                                 )}
 
@@ -307,7 +342,9 @@ export default function SearchScreen() {
                                     data={searchResults}
                                     keyExtractor={(item) => item.code_id + item.company}
                                     keyboardShouldPersistTaps="always"
-                                    ItemSeparatorComponent={() => <View style={styles.separator} />}
+                                    ItemSeparatorComponent={() => (
+                                        <View style={[styles.separator, { backgroundColor: BORDER }]} />
+                                    )}
                                     renderItem={({ item }) => {
                                         const isFavorite = favorites.includes(item.code_id);
 
@@ -320,10 +357,22 @@ export default function SearchScreen() {
                                                     onPress={() => handlePressResultItem(item)}
                                                 >
                                                     <View style={styles.resultTextBox}>
-                                                        <Text style={styles.resultCompany}>
+                                                        <Text
+                                                            style={[
+                                                                styles.resultCompany,
+                                                                { color: TEXT },
+                                                            ]}
+                                                        >
                                                             {item.company}
                                                         </Text>
-                                                        <Text style={styles.resultCode}>{item.code_id}</Text>
+                                                        <Text
+                                                            style={[
+                                                                styles.resultCode,
+                                                                { color: SUB_TEXT },
+                                                            ]}
+                                                        >
+                                                            {item.code_id}
+                                                        </Text>
                                                     </View>
                                                 </TouchableOpacity>
 
@@ -335,7 +384,7 @@ export default function SearchScreen() {
                                                     <MaterialIcons
                                                         name={isFavorite ? 'star' : 'star-border'}
                                                         size={22}
-                                                        color={isFavorite ? '#FACC15' : '#9CA3AF'}
+                                                        color={isFavorite ? '#FACC15' : MUTED}
                                                     />
                                                 </TouchableOpacity>
                                             </View>
@@ -369,10 +418,6 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: '#111827',
         marginBottom: 4,
-    },
-    headerSubtitle: {
-        fontSize: 14,
-        color: '#6B7280',
     },
     searchBar: {
         marginTop: 16,
