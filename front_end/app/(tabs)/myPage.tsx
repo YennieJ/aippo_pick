@@ -229,7 +229,14 @@ export default function MyPageScreen() {
       setFavoriteLoading(true);
       try {
         const details = await fetchIpoDetailsByIds(ids);
-        setFavoriteDetails(details);
+
+        const map = new Map(details.map((d) => [d.code_id, d]));
+        const ordered = [...ids]
+          .reverse()
+          .map((id) => map.get(id))
+          .filter(Boolean) as IpoDetailData[];
+
+        setFavoriteDetails(ordered);
       } finally {
         setFavoriteLoading(false);
       }
@@ -376,8 +383,8 @@ export default function MyPageScreen() {
         priceNum !== null
           ? priceNum
           : confirmedPriceNum !== null
-          ? confirmedPriceNum
-          : null;
+            ? confirmedPriceNum
+            : null;
 
       const priceLabel = priceNum !== null ? '현재가' : '공모가';
 
