@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   ScrollView,
@@ -10,10 +10,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import axios from 'axios';
 import * as Notifications from 'expo-notifications';
 
-import { useIpoDetailsByIds } from '../../src/features/ipo/hooks/useIpoQueries';
+import {
+  useAllBrokers,
+  useIpoDetailsByIds,
+} from '../../src/features/ipo/hooks/useIpoQueries';
 import { IpoDetailData } from '../../src/features/ipo/types/ipo.types';
 import {
   loadStringArray,
@@ -23,33 +25,17 @@ import {
 } from '../../src/shared/utils/storage.utils';
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import * as Application from 'expo-application';
 
+import {
+  convert24To12,
+  getStableDeviceId,
+  NotificationSettingModal,
+  useNotificationSetting,
+  useUpdateNotificationSetting,
+} from '../../src/features/myPage';
 import { cn } from '../../src/lib/cn';
 import { IconSymbol, IpoStatusBadge, SectionHeader } from '../../src/shared';
 import { useColorScheme } from '../../src/shared/hooks/use-color-scheme';
-
-/* =========================================================
-   🔐 1) 앱 전용 고정 Device ID 생성/로드
-========================================================= */
-let cachedDeviceId: string | null = null;
-
-async function getStableDeviceId() {
-  console.log('getStableDeviceId 진입', cachedDeviceId);
-  if (cachedDeviceId) return cachedDeviceId;
-
-  let id = Application.getAndroidId();
-
-  // iOS fallback
-  if (!id) {
-    // iOS는 안드로이드ID가 없으니 앱+버전 조합으로 안정적 fallback 생성
-    id = `${Application.applicationId}-${Application.nativeApplicationVersion}`;
-  }
-
-  cachedDeviceId = id;
-  console.log('cachedDeviceId = id', cachedDeviceId);
-  return id;
-}
 
 export default function MyPageScreen() {
   const router = useRouter();
@@ -68,10 +54,29 @@ export default function MyPageScreen() {
     return Number.isNaN(num) ? null : num;
   };
 
-  // 🔔 전체 알림 스위치 상태
+  // 🔔 알림 설정 리액트 쿼리
+  const { data: notificationSetting, isLoading: notificationLoading } =
+    useNotificationSetting();
+  const updateNotificationMutation = useUpdateNotificationSetting();
+
+  // 🔔 전체 알림 스위치 상태 (서버 데이터로 초기화)
   const [notifyAll, setNotifyAll] = useState(false);
   const [notifySpac, setNotifySpac] = useState(true);
   const [notifyReits, setNotifyReits] = useState(true);
+  const [alarmTime, setAlarmTime] = useState('08:00');
+  const [selectedBrokers, setSelectedBrokers] = useState<string[]>([]);
+
+  // 🔔 알림 설정 모달 상태
+  const [isNotificationModalVisible, setIsNotificationModalVisible] =
+    useState(false);
+  // 모달 내 임시 상태
+  const [tempNotifySpac, setTempNotifySpac] = useState(true);
+  const [tempNotifyReits, setTempNotifyReits] = useState(true);
+  const [tempAlarmTime, setTempAlarmTime] = useState('08:00');
+  const [tempSelectedBrokers, setTempSelectedBrokers] = useState<string[]>([]);
+
+  // 증권사 목록
+  const { data: allBrokers = [] } = useAllBrokers();
 
   // 🔔 권한 확인 및 요청
   async function ensureNotificationPermission() {
@@ -94,38 +99,88 @@ export default function MyPageScreen() {
     return true;
   }
 
-  // 🔔 서버에 알림 설정 저장
-  async function saveNotifyAll(newValue: boolean) {
-    try {
+  // 🔔 알림 설정 업데이트 함수
+  const handleUpdateNotification = useCallback(
+    async (updates: {
+      notifyAll?: boolean;
+      spac?: boolean;
+      reits?: boolean;
+      alarmTime?: string;
+      broker?: string;
+    }) => {
       const deviceId = await getStableDeviceId();
+      const currentSetting = notificationSetting;
 
-      await axios.put('http://122.42.248.81:4000/notification_setting', {
+      await updateNotificationMutation.mutateAsync({
         deviceId,
-        notifyAll: newValue,
-        broker: '',
-        spac: true,
-        reits: true,
-        alarmTime: '08:00',
+        notifyAll: updates.notifyAll ?? currentSetting?.notifyAll ?? false,
+        broker: updates.broker ?? currentSetting?.broker ?? '',
+        spac: updates.spac ?? currentSetting?.spac ?? true,
+        reits: updates.reits ?? currentSetting?.reits ?? true,
+        alarmTime: updates.alarmTime ?? currentSetting?.alarmTime ?? '08:00',
       });
+    },
+    [notificationSetting, updateNotificationMutation]
+  );
 
-      console.log('⭐ notifyAll updated:', newValue);
-    } catch (e) {
-      console.log('notifyAll 업데이트 실패:', e);
-    }
-  }
+  // 🔔 모달 열기 (모달이 열릴 때마다 현재 시간을 12시간 형식으로 변환하여 초기화)
+  const openNotificationModal = useCallback(() => {
+    setTempNotifySpac(notifySpac);
+    setTempNotifyReits(notifyReits);
+    setTempAlarmTime(alarmTime);
+    setTempSelectedBrokers([...selectedBrokers]);
+    setIsNotificationModalVisible(true);
+  }, [notifySpac, notifyReits, alarmTime, selectedBrokers]);
 
-  async function loadNotifySetting() {
-    try {
-      const deviceId = await getStableDeviceId();
-      const res = await axios.get(
-        `http://122.42.248.81:4000/notification_setting/${deviceId}`
-      );
-      return res.data;
-    } catch (e) {
-      console.log('알림 설정 로딩 실패:', e);
-      return null;
-    }
-  }
+  // 🔔 모달 닫기
+  const closeNotificationModal = useCallback(() => {
+    setIsNotificationModalVisible(false);
+  }, []);
+
+  // 🔔 모달 내 증권사 토글
+  const toggleBroker = useCallback((brokerName: string) => {
+    setTempSelectedBrokers((prev) => {
+      if (prev.includes(brokerName)) {
+        return prev.filter((name) => name !== brokerName);
+      } else {
+        return [...prev, brokerName];
+      }
+    });
+  }, []);
+
+  // 🔔 모달 내 전체 선택 리셋
+  const resetToAll = useCallback(() => {
+    setTempSelectedBrokers([]);
+  }, []);
+
+  // 🔔 모달 적용
+  const applyNotificationSettings = useCallback(async () => {
+    const deviceId = await getStableDeviceId();
+    const brokerString =
+      tempSelectedBrokers.length === 0 ? '' : tempSelectedBrokers.join(',');
+    setNotifySpac(tempNotifySpac);
+    setNotifyReits(tempNotifyReits);
+    setAlarmTime(tempAlarmTime);
+    setSelectedBrokers([...tempSelectedBrokers]);
+
+    await updateNotificationMutation.mutateAsync({
+      deviceId,
+      notifyAll: notifyAll,
+      broker: brokerString,
+      spac: tempNotifySpac,
+      reits: tempNotifyReits,
+      alarmTime: tempAlarmTime,
+    });
+
+    setIsNotificationModalVisible(false);
+  }, [
+    tempNotifySpac,
+    tempNotifyReits,
+    tempAlarmTime,
+    tempSelectedBrokers,
+    notifyAll,
+    updateNotificationMutation,
+  ]);
 
   // ⭐⭐⭐ 그 다음이 기존 Hook들 시작 영역
   const [favorites, setFavorites] = useState<string[]>([]);
@@ -198,20 +253,17 @@ export default function MyPageScreen() {
           ]);
           if (cancelled) return;
 
-          console.log('⭐ MyPage favorites:', favoriteList);
-          console.log('👀 MyPage recent:', recentList);
+          if (__DEV__) {
+            console.log('⭐ MyPage favorites:', favoriteList);
+            console.log('👀 MyPage recent:', recentList);
+          }
 
           setFavorites(favoriteList);
           setRecentIds(recentList);
-
-          const notify = await loadNotifySetting();
-          if (!cancelled && notify) {
-            setNotifyAll(notify.notifyAll === true);
-            if (typeof notify.spac === 'boolean') setNotifySpac(notify.spac);
-            if (typeof notify.reits === 'boolean') setNotifyReits(notify.reits);
-          }
         } catch (e) {
-          console.log('MyPage load error', e);
+          if (__DEV__) {
+            console.log('MyPage load error', e);
+          }
         }
       };
 
@@ -223,13 +275,38 @@ export default function MyPageScreen() {
     }, [])
   );
 
+  // 알림 설정 데이터가 로드되면 상태 업데이트
+  useEffect(() => {
+    if (notificationSetting) {
+      setNotifyAll(notificationSetting.notifyAll === true);
+      if (typeof notificationSetting.spac === 'boolean') {
+        setNotifySpac(notificationSetting.spac);
+      }
+      if (typeof notificationSetting.reits === 'boolean') {
+        setNotifyReits(notificationSetting.reits);
+      }
+      if (notificationSetting.alarmTime) {
+        setAlarmTime(notificationSetting.alarmTime);
+      }
+      if (notificationSetting.broker) {
+        setSelectedBrokers(
+          notificationSetting.broker
+            .split(',')
+            .filter((b) => b.trim().length > 0)
+        );
+      }
+    }
+  }, [notificationSetting]);
+
   // 최근 본 전체 삭제
   const onClearRecent = useCallback(async () => {
     try {
       await removeItem(STORAGE_KEYS.RECENT_IPO);
       setRecentIds([]);
     } catch (e) {
-      console.log('onClearRecent error', e);
+      if (__DEV__) {
+        console.log('onClearRecent error', e);
+      }
     }
   }, []);
 
@@ -239,7 +316,9 @@ export default function MyPageScreen() {
       await removeItem(STORAGE_KEYS.FAVORITES);
       setFavorites([]);
     } catch (e) {
-      console.log('onClearFavorites error', e);
+      if (__DEV__) {
+        console.log('onClearFavorites error', e);
+      }
     }
   }, []);
 
@@ -251,7 +330,9 @@ export default function MyPageScreen() {
       await saveStringArray(STORAGE_KEYS.RECENT_IPO, next);
       setRecentIds((prev) => prev.filter((id) => id !== ipoId));
     } catch (e) {
-      console.log('onRemoveRecent error', e);
+      if (__DEV__) {
+        console.log('onRemoveRecent error', e);
+      }
     }
   }, []);
 
@@ -328,93 +409,64 @@ export default function MyPageScreen() {
                     }
 
                     setNotifyAll(newValue);
-                    await saveNotifyAll(newValue);
+                    await handleUpdateNotification({ notifyAll: newValue });
                   }}
+                  trackColor={{ false: '#E5E7EB', true: '#5B9FFF' }}
+                  thumbColor="#FFFFFF"
                 />
               </View>
 
-              {/* SPAC 알림 */}
-              <View className="min-h-[54px] px-4 py-3 flex-row justify-between items-center border-b border-gray-200 dark:border-gray-700">
-                <View className="flex-row items-center flex-1">
-                  <Text className="text-sm text-gray-900 dark:text-white font-medium">
-                    SPAC 알림
-                  </Text>
-                </View>
-                <Switch
-                  value={notifySpac}
-                  onValueChange={async (newValue) => {
-                    if (newValue === true) {
-                      const ok = await ensureNotificationPermission();
-                      if (!ok) return;
-                    }
-                    setNotifySpac(newValue);
-                  }}
-                />
-              </View>
-
-              {/* REITS 알림 */}
-              <View className="min-h-[54px] px-4 py-3 flex-row justify-between items-center border-b border-gray-200 dark:border-gray-700">
-                <View className="flex-row items-center flex-1">
-                  <Text className="text-sm text-gray-900 dark:text-white font-medium">
-                    REITS 알림
-                  </Text>
-                </View>
-                <Switch
-                  value={notifyReits}
-                  onValueChange={async (newValue) => {
-                    if (newValue === true) {
-                      const ok = await ensureNotificationPermission();
-                      if (!ok) return;
-                    }
-                    setNotifyReits(newValue);
-                  }}
-                />
-              </View>
-
-              {/* 알림 시간 */}
+              {/* 상세 설정 */}
               <TouchableOpacity
-                className="min-h-[54px] px-4 py-3 flex-row justify-between items-center border-b border-gray-200 dark:border-gray-700"
-                activeOpacity={0.8}
+                className={`min-h-[54px] px-4 py-3 flex-row justify-between items-center ${
+                  !notifyAll ? 'opacity-50' : ''
+                }`}
+                activeOpacity={notifyAll ? 0.8 : 1}
+                onPress={notifyAll ? openNotificationModal : undefined}
+                disabled={!notifyAll}
               >
-                <View className="flex-row items-center flex-1">
-                  <Text className="text-sm text-gray-900 dark:text-white font-medium">
-                    알림 시간
+                <View className="flex-1">
+                  <Text
+                    className={`text-sm font-medium mb-1 ${
+                      notifyAll
+                        ? 'text-gray-900 dark:text-white'
+                        : 'text-gray-400 dark:text-gray-600'
+                    }`}
+                  >
+                    상세 설정
                   </Text>
+                  {notifyAll ? (
+                    <View className="flex-row items-center gap-2">
+                      <Text className="text-xs text-gray-600 dark:text-gray-400">
+                        시간:{' '}
+                        {(() => {
+                          const time12 = convert24To12(alarmTime);
+                          return `${time12.period === 'AM' ? '오전' : '오후'} ${time12.hour}:${time12.minute.toString().padStart(2, '0')}`;
+                        })()}
+                      </Text>
+                      <Text className="text-xs text-gray-600 dark:text-gray-400">
+                        •
+                      </Text>
+                      <Text className="text-xs text-gray-600 dark:text-gray-400">
+                        {selectedBrokers.length === 0
+                          ? '증권사: 전체'
+                          : `증권사: ${selectedBrokers.length}개`}
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text className="text-xs text-gray-400 dark:text-gray-600">
+                      전체 알림을 켜야 설정할 수 있습니다
+                    </Text>
+                  )}
                 </View>
 
-                <View className="flex-row items-center gap-1.5">
-                  <Text className="text-sm text-gray-900 dark:text-white font-semibold">
-                    08:00
-                  </Text>
+                {notifyAll && (
                   <MaterialIcons
                     name="chevron-right"
                     size={22}
                     color={iconColor}
                   />
-                </View>
-              </TouchableOpacity>
-
-              {/* 증권사 알림 */}
-              <TouchableOpacity
-                className="min-h-[54px] px-4 py-3 flex-row justify-between items-center"
-                activeOpacity={0.8}
-              >
-                <View className="flex-row items-center flex-1">
-                  <Text className="text-sm text-gray-900 dark:text-white font-medium">
-                    증권사 알림
-                  </Text>
-                </View>
-
-                <View className="flex-row items-center gap-1.5">
-                  <Text className="text-sm text-gray-600 dark:text-gray-400 font-medium">
-                    전체
-                  </Text>
-                  <MaterialIcons
-                    name="chevron-right"
-                    size={22}
-                    color={iconColor}
-                  />
-                </View>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -674,6 +726,23 @@ export default function MyPageScreen() {
           </View>
         </ScrollView>
       </View>
+
+      {/* 알림 설정 모달 */}
+      <NotificationSettingModal
+        visible={isNotificationModalVisible}
+        onClose={closeNotificationModal}
+        allBrokers={allBrokers}
+        tempNotifySpac={tempNotifySpac}
+        tempNotifyReits={tempNotifyReits}
+        tempAlarmTime={tempAlarmTime}
+        tempSelectedBrokers={tempSelectedBrokers}
+        onToggleSpac={() => setTempNotifySpac(!tempNotifySpac)}
+        onToggleReits={() => setTempNotifyReits(!tempNotifyReits)}
+        onAlarmTimeChange={setTempAlarmTime}
+        onToggleBroker={toggleBroker}
+        onResetToAll={resetToAll}
+        onApply={applyNotificationSettings}
+      />
     </SafeAreaView>
   );
 }

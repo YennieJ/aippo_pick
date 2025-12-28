@@ -14,11 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useIpoSearch } from '../../src/features/ipo/hooks/useIpoQueries';
 import {
   STORAGE_KEYS,
-  addRecentSearch,
-  clearRecentSearches,
-  loadRecentSearches,
   loadStringArray,
-  removeRecentSearch,
   saveStringArray,
 } from '../../src/shared/utils/storage.utils';
 
@@ -38,7 +34,7 @@ export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [favorites, setFavorites] = useState<string[]>([]);
-  const [recentKeywords, setRecentKeywords] = useState<string[]>([]);
+  const [recentViewedItems, setRecentViewedItems] = useState<SearchResult[]>([]);
 
   // 스크롤뷰 ref
   const scrollViewRef = useRef<ScrollView>(null);
@@ -55,23 +51,6 @@ export default function SearchScreen() {
     error: searchError,
   } = useIpoSearch(debouncedSearchQuery);
 
-  // 검색 완료 시 최근 검색어에 자동 저장 (결과 유무와 관계없이)
-  useEffect(() => {
-    const saveSearchQuery = async () => {
-      // 검색어가 없거나, 로딩 중이거나, 에러가 있으면 저장하지 않음
-      if (!debouncedSearchQuery || searchLoading || searchError) return;
-
-      try {
-        const next = await addRecentSearch(debouncedSearchQuery);
-        setRecentKeywords(next);
-      } catch (e) {
-        console.log('auto-save search error', e);
-      }
-    };
-
-    saveSearchQuery();
-  }, [searchLoading, searchError, debouncedSearchQuery]);
-
   // 화면 포커스 시: 스토리지 동기화 + 스크롤 최상단
   useFocusEffect(
     useCallback(() => {
@@ -80,11 +59,32 @@ export default function SearchScreen() {
       const syncFromStorage = async () => {
         try {
           const fav = await loadStringArray(STORAGE_KEYS.FAVORITES);
-          const recent = await loadRecentSearches();
+          // 최근 검색 결과 로드 (검색 페이지 전용)
+          const recentIpoJson = await loadStringArray(
+            STORAGE_KEYS.RECENT_SEARCH_RESULTS
+          );
+          const recentIpo: SearchResult[] = recentIpoJson
+            .map((json) => {
+              try {
+                return JSON.parse(json);
+              } catch {
+                return null;
+              }
+            })
+            .filter((item): item is SearchResult => {
+              // null이 아니고, company와 code_id가 모두 있는 유효한 항목만 필터링
+              return (
+                item !== null &&
+                typeof item.company === 'string' &&
+                typeof item.code_id === 'string' &&
+                item.company.trim() !== '' &&
+                item.code_id.trim() !== ''
+              );
+            });
 
           if (isActive) {
             setFavorites(fav);
-            setRecentKeywords(recent);
+            setRecentViewedItems(recentIpo);
           }
         } catch (e) {
           console.log('sync favorites/recent error', e);
@@ -100,7 +100,7 @@ export default function SearchScreen() {
     }, [])
   );
 
-  // 검색 버튼(엔터) → 검색 + 검색어 저장
+  // 검색 버튼(엔터) → 검색만 실행
   const handleSubmitSearch = async () => {
     const term = searchQuery.trim();
     if (!term) return;
@@ -114,15 +114,7 @@ export default function SearchScreen() {
       debounceTimerRef.current = null;
     }
 
-    // 엔터 키 = 명시적 검색 의도 → 검색어 저장 (검색 전에 저장)
-    try {
-      const next = await addRecentSearch(term);
-      setRecentKeywords(next);
-    } catch (e) {
-      console.log('handleSubmitSearch save error', e);
-    }
-
-    // 저장 후 검색 실행
+    // 검색 실행
     setDebouncedSearchQuery(term);
   };
 
@@ -143,11 +135,24 @@ export default function SearchScreen() {
     };
   }, [searchQuery]);
 
-  // 검색 결과 아이템 클릭 → 상세 이동 + 최근검색에 저장
+  // 검색 결과 아이템 클릭 → 최근 본 공모주에 저장 + 상세 이동
   const handlePressResultItem = async (item: SearchResult) => {
     try {
-      const next = await addRecentSearch(item.company);
-      setRecentKeywords(next);
+      // 유효성 검사: company와 code_id가 모두 있어야 저장
+      if (!item.company || !item.code_id) {
+        console.log('Invalid item data, skipping save:', item);
+        router.push(`/ipo/${item.code_id}`);
+        return;
+      }
+
+      // 최근 본 공모주에 추가 (중복 제거 후 맨 앞에 추가)
+      const filtered = recentViewedItems.filter((i) => i.code_id !== item.code_id);
+      const updated = [item, ...filtered].slice(0, 10); // 최대 10개 유지
+
+      // 스토리지에 저장 (JSON 문자열 배열로) - 검색 페이지 전용 스토리지
+      const jsonArray = updated.map((i) => JSON.stringify(i));
+      await saveStringArray(STORAGE_KEYS.RECENT_SEARCH_RESULTS, jsonArray);
+      setRecentViewedItems(updated);
     } catch (e) {
       console.log('handlePressResultItem error', e);
     } finally {
@@ -170,41 +175,34 @@ export default function SearchScreen() {
     }
   };
 
-  // 최근 검색어 클릭 → 검색창에 넣고 검색 + 사용 빈도 반영 (맨 위로 이동)
-  const handlePressRecentKeyword = async (keyword: string) => {
-    setSearchQuery(keyword);
-    setDebouncedSearchQuery(keyword);
+  // 최근 본 공모주 클릭 → 상세 페이지로 바로 이동
+  const handlePressRecentItem = async (item: SearchResult) => {
+    router.push(`/ipo/${item.code_id}`);
+  };
 
-    // 사용 빈도 반영: 클릭 시마다 맨 위로 이동 (중복 제거 후 맨 앞에 추가)
+  // 최근 검색 결과 개별 삭제
+  const handleRemoveRecentItem = async (codeId: string) => {
     try {
-      const next = await addRecentSearch(keyword);
-      setRecentKeywords(next);
+      const updated = recentViewedItems.filter((item) => item.code_id !== codeId);
+      const jsonArray = updated.map((i) => JSON.stringify(i));
+      await saveStringArray(STORAGE_KEYS.RECENT_SEARCH_RESULTS, jsonArray);
+      setRecentViewedItems(updated);
     } catch (e) {
-      console.log('handlePressRecentKeyword error', e);
+      console.log('removeRecentItem error', e);
     }
   };
 
-  // 최근 검색어 개별 삭제
-  const handleRemoveRecentKeyword = async (keyword: string) => {
+  // 최근 검색 결과 전체 삭제
+  const handleClearRecentItems = async () => {
     try {
-      const next = await removeRecentSearch(keyword);
-      setRecentKeywords(next);
+      await saveStringArray(STORAGE_KEYS.RECENT_SEARCH_RESULTS, []);
+      setRecentViewedItems([]);
     } catch (e) {
-      console.log('removeRecentSearch error', e);
+      console.log('clearRecentItems error', e);
     }
   };
 
-  // 최근 검색어 전체 삭제
-  const handleClearRecentKeywords = async () => {
-    try {
-      await clearRecentSearches();
-      setRecentKeywords([]);
-    } catch (e) {
-      console.log('clearRecentSearches error', e);
-    }
-  };
-
-  const showRecent = debouncedSearchQuery.length === 0; // 검색어 없으면 최근 검색어 화면
+  const showRecent = debouncedSearchQuery.length === 0; // 검색어 없으면 최근 검색 결과 화면
 
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-black" edges={['top']}>
@@ -244,17 +242,17 @@ export default function SearchScreen() {
 
         {/* 본문 영역 */}
         <View className="pb-6">
-          {/* 검색어가 없으면 → 최근 검색어 리스트 */}
+          {/* 검색어가 없으면 → 최근 검색 결과 리스트 */}
           {showRecent ? (
-            recentKeywords.length > 0 ? (
+            recentViewedItems.length > 0 ? (
               <View>
                 <View className="pb-4 px-4">
                   <View className="flex-row items-center justify-between">
                     <Text className="text-base font-semibold text-gray-900 dark:text-white">
-                      최근 검색한 증권사
+                      최근 검색 결과
                     </Text>
 
-                    <TouchableOpacity onPress={handleClearRecentKeywords}>
+                    <TouchableOpacity onPress={handleClearRecentItems}>
                       <Text className="text-sm text-gray-600 dark:text-gray-400">
                         전체 삭제
                       </Text>
@@ -263,27 +261,26 @@ export default function SearchScreen() {
                 </View>
 
                 <View className="mx-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-                  {recentKeywords.map((item) => (
-                    <View key={item}>
+                  {recentViewedItems.map((item, index) => (
+                    <View key={item.code_id}>
                       <View className="flex-row items-center py-3 px-4 justify-between">
                         <TouchableOpacity
-                          className="flex-row items-center flex-1"
+                          className="flex-1"
                           activeOpacity={0.7}
-                          onPress={() => handlePressRecentKeyword(item)}
+                          onPress={() => handlePressRecentItem(item)}
                         >
-                          <MaterialIcons
-                            name="history"
-                            size={18}
-                            color={iconColor}
-                            style={{ marginRight: 6 }}
-                          />
-                          <Text className="text-[15px] text-gray-900 dark:text-white">
-                            {item}
-                          </Text>
+                          <View className="gap-1">
+                            <Text className="text-base font-semibold text-gray-900 dark:text-white">
+                              {item.company}
+                            </Text>
+                            <Text className="text-sm text-gray-600 dark:text-gray-400">
+                              {item.code_id}
+                            </Text>
+                          </View>
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                          onPress={() => handleRemoveRecentKeyword(item)}
+                          onPress={() => handleRemoveRecentItem(item.code_id)}
                           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                         >
                           <MaterialIcons
@@ -293,7 +290,9 @@ export default function SearchScreen() {
                           />
                         </TouchableOpacity>
                       </View>
-                      <View className="h-px bg-gray-200 dark:border-gray-700 ml-4" />
+                      {index < recentViewedItems.length - 1 && (
+                        <View className="h-px bg-gray-200 dark:border-gray-700 ml-4" />
+                      )}
                     </View>
                   ))}
                 </View>
@@ -301,7 +300,7 @@ export default function SearchScreen() {
             ) : (
               <View className="flex-1 items-center justify-center px-4">
                 <Text className="text-sm text-gray-600 dark:text-gray-400 text-center">
-                  최근 검색어가 없습니다. 공모주를 검색해 보세요.
+                  최근 검색 결과가 없습니다. 공모주를 검색해보세요.
                 </Text>
               </View>
             )

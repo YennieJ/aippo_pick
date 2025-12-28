@@ -6,10 +6,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export const STORAGE_KEYS = {
   /** 즐겨찾기 공모주 ID 리스트 */
   FAVORITES: 'favorites',
-  /** 최근 본 공모주 ID 리스트 */
+  /** 최근 본 공모주 ID 리스트 (마이페이지용 - 상세 페이지에서 저장) */
   RECENT_IPO: 'recent_ipo',
   /** 최근 검색어 */
   RECENT_SEARCH: 'recent_search_keywords',
+  /** 검색 페이지에서 클릭한 검색 결과 (전체 객체 저장) */
+  RECENT_SEARCH_RESULTS: 'recent_search_results',
   // 필요시 추가 키들을 여기에 정의
 } as const satisfies Record<string, string>;
 

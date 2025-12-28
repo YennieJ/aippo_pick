@@ -1,90 +1,19 @@
-import { Tabs } from "expo-router";
-import React, { useEffect } from "react";
-import { Platform } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Tabs } from 'expo-router';
+import React, { useEffect } from 'react';
+import { Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { IconSymbol } from "../../src/shared/components/ui/icon-symbol";
-import { Colors } from "../../src/shared/constants/theme";
-import { useColorScheme } from "../../src/shared/hooks/use-color-scheme";
+import { IconSymbol } from '../../src/shared/components/ui/icon-symbol';
+import { Colors } from '../../src/shared/constants/theme';
+import { useColorScheme } from '../../src/shared/hooks/use-color-scheme';
 // --- Push & Device ---
-import axios from "axios";
-import * as Device from "expo-device";
-import * as Notifications from "expo-notifications";
-import Constants from "expo-constants";
-import * as Application from "expo-application";
-
-/* =========================================================
-   🔐 1) 앱 전용 고정 Device ID 생성/로드
-========================================================= */
-let cachedDeviceId: string | null = null;
-
-async function getStableDeviceId() {
-  console.log("getStableDeviceId 진입", cachedDeviceId);
-  if (cachedDeviceId) return cachedDeviceId;
-
-  let id = Application.getAndroidId();
-
-  // iOS fallback
-  if (!id) {
-    // iOS는 안드로이드ID가 없으니 앱+버전 조합으로 안정적 fallback 생성
-    id = `${Application.applicationId}-${Application.nativeApplicationVersion}`;
-  }
-
-  cachedDeviceId = id;
-  console.log("cachedDeviceId = id", cachedDeviceId);
-  return id;
-}
-
-/* =========================================================
-   📲 2) 앱 실행 시 디바이스 등록/업데이트
-========================================================= */
-async function registerDeviceOnLaunch() {
-  try {
-    // Expo Go에서는 서버 등록 불가 → 무시
-    if (Constants.appOwnership === "expo") {
-      console.log("Expo Go → device 등록 스킵");
-      return;
-    }
-
-    if (!Device.isDevice) {
-      console.log("에뮬레이터 미지원");
-      return;
-    }
-
-    // 🔔 알림 권한 확인
-    const { status } = await Notifications.getPermissionsAsync();
-    if (status !== "granted") {
-      const req = await Notifications.requestPermissionsAsync();
-      if (req.status !== "granted") {
-        console.log("알림 권한 거부됨");
-        return;
-      }
-    }
-
-    // 🔔 FCM Token 불러오기
-    const tokenInfo = await Notifications.getDevicePushTokenAsync();
-    const fcmToken = tokenInfo?.data ?? null;
-
-    // 🔐 고정 DeviceID 가져오기
-    const deviceId = await getStableDeviceId();
-    const osType = Platform.OS;
-
-    console.log("📱 DeviceID:", deviceId);
-    console.log("🔔 FCM Token:", fcmToken);
-
-    // ⭐ 서버로 등록/업데이트
-    await axios.post("http://122.42.248.81:4000/user_device", {
-      deviceId,
-      fcmToken,
-      osType,
-    });
-
-    console.log("🟢 디바이스 등록/업데이트 완료");
-
-  } catch (err) {
-    console.log("🔥 디바이스 등록 실패:", err);
-  }
-}
+import Constants from 'expo-constants';
+import * as Device from 'expo-device';
+import * as Notifications from 'expo-notifications';
+import {
+  getStableDeviceId,
+  useRegisterDevice,
+} from '../../src/features/myPage';
 
 /* =========================================================
    🌈 탭 레이아웃
@@ -92,8 +21,54 @@ async function registerDeviceOnLaunch() {
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const insets = useSafeAreaInsets();
+  const registerDeviceMutation = useRegisterDevice();
 
   useEffect(() => {
+    const registerDeviceOnLaunch = async () => {
+      try {
+        // Expo Go에서는 서버 등록 불가 → 무시
+        if (Constants.appOwnership === 'expo') {
+          console.log('Expo Go → device 등록 스킵');
+          return;
+        }
+
+        if (!Device.isDevice) {
+          console.log('에뮬레이터 미지원');
+          return;
+        }
+
+        // 🔔 알림 권한 확인
+        const { status } = await Notifications.getPermissionsAsync();
+        if (status !== 'granted') {
+          const req = await Notifications.requestPermissionsAsync();
+          if (req.status !== 'granted') {
+            console.log('알림 권한 거부됨');
+            return;
+          }
+        }
+
+        // 🔔 FCM Token 불러오기
+        const tokenInfo = await Notifications.getDevicePushTokenAsync();
+        const fcmToken = tokenInfo?.data ?? null;
+
+        // 🔐 고정 DeviceID 가져오기
+        const deviceId = await getStableDeviceId();
+        const osType = Platform.OS;
+
+        console.log('📱 DeviceID:', deviceId);
+        console.log('🔔 FCM Token:', fcmToken);
+
+        // ⭐ 서버로 등록/업데이트 (리액트 쿼리 사용)
+        await registerDeviceMutation.mutateAsync({
+          deviceId,
+          fcmToken,
+          osType,
+        });
+      } catch (err) {
+        console.log('🔥 디바이스 등록 실패:', err);
+      }
+    };
+
     registerDeviceOnLaunch();
   }, []);
 

@@ -216,7 +216,7 @@ export default function IpoDetailScreen() {
         contentContainerStyle={{ padding: 16, gap: 12 }}
       >
         {/* Level 1: 헤더 영역 */}
-        <View className="p-2 pt-6">
+        <View className="pt-4">
           {/* 회사명, 즐겨찾기, 상태 배지 */}
           <View className="flex-row items-start justify-between mb-2.5">
             <View className="flex-1 mr-3">
