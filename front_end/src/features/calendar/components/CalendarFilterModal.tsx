@@ -1,5 +1,7 @@
 import { Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { IconSymbol } from '../../../shared';
+import { useColorScheme } from '../../../shared/hooks/use-color-scheme';
 
 interface CalendarFilterModalProps {
   visible: boolean;
@@ -29,6 +31,8 @@ export default function CalendarFilterModal({
   onApply,
 }: CalendarFilterModalProps) {
   const insets = useSafeAreaInsets();
+  const colorScheme = useColorScheme();
+  const iconColor = colorScheme === 'dark' ? '#9CA3AF' : '#666';
 
   return (
     <Modal
@@ -44,12 +48,12 @@ export default function CalendarFilterModal({
           onPress={onClose}
         />
         <View className="bg-white dark:bg-gray-800 rounded-t-[20px] max-h-[85%] min-h-[500px] flex-col">
-          <View className="flex-row justify-between items-center p-5">
+          <View className="flex-row justify-between items-center p-4">
             <Text className="text-lg font-bold text-gray-900 dark:text-white">
               캘린더 필터
             </Text>
-            <TouchableOpacity onPress={onClose}>
-              <Text className="text-2xl text-[#666] dark:text-gray-400">✕</Text>
+            <TouchableOpacity onPress={onClose} className="p-1">
+              <IconSymbol name="xmark" size={24} color={iconColor} />
             </TouchableOpacity>
           </View>
 
@@ -58,7 +62,7 @@ export default function CalendarFilterModal({
             contentContainerStyle={{ paddingBottom: 20 }}
           >
             {/* 조회 종목 필터 */}
-            <View className="px-5 py-4 border-b border-b-[#f0f0f0] dark:border-b-gray-700">
+            <View className="px-5 pt-2 pb-4 border-b border-b-[#f0f0f0] dark:border-b-gray-700">
               <Text className="text-base font-semibold text-[#333] dark:text-white mb-3">
                 조회 종목
               </Text>
@@ -75,7 +79,7 @@ export default function CalendarFilterModal({
                     }`}
                   >
                     {tempExcludeSpec && (
-                      <Text className="text-white text-xs font-bold">✓</Text>
+                      <IconSymbol name="checkmark" size={14} color="#fff" />
                     )}
                   </View>
                   <Text className="text-sm text-[#333] dark:text-white font-medium">
@@ -94,7 +98,7 @@ export default function CalendarFilterModal({
                     }`}
                   >
                     {tempExcludeReits && (
-                      <Text className="text-white text-xs font-bold">✓</Text>
+                      <IconSymbol name="checkmark" size={14} color="#fff" />
                     )}
                   </View>
                   <Text className="text-sm text-[#333] dark:text-white font-medium">
@@ -105,8 +109,8 @@ export default function CalendarFilterModal({
             </View>
 
             {/* 증권사 필터 */}
-            <View className="px-5 py-4 border-b border-b-[#f0f0f0] dark:border-b-gray-700">
-              <View className="flex-row justify-between items-center mb-3">
+            <View className="px-5 pt-2">
+              <View className="flex-row justify-between items-center mb-1">
                 <Text className="text-base font-semibold text-[#333] dark:text-white">
                   증권사
                 </Text>
@@ -138,7 +142,7 @@ export default function CalendarFilterModal({
                   return (
                     <TouchableOpacity
                       key={broker.broker_id}
-                      className="flex-row justify-between items-center px-5 py-3"
+                      className="flex-row justify-between items-center px-2 py-3"
                       onPress={() => onToggleBroker(broker.broker_name)}
                     >
                       <View className="flex-row items-center gap-3">
@@ -154,9 +158,7 @@ export default function CalendarFilterModal({
                         }`}
                       >
                         {isSelected && (
-                          <Text className="text-white text-base font-bold">
-                            ✓
-                          </Text>
+                          <IconSymbol name="checkmark" size={18} color="#fff" />
                         )}
                       </View>
                     </TouchableOpacity>

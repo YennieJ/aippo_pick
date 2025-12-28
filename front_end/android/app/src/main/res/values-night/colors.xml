@@ -1,3 +1,11 @@
 <resources>
   <color name="splashscreen_background">#000000</color>
+
+  <!-- Widget colors (Dark Mode) -->
+  <color name="widget_background">#1F2937</color>
+  <color name="widget_title_text">#F9FAFB</color>
+  <color name="widget_header_background">#374151</color>
+  <color name="widget_header_text">#E5E7EB</color>
+  <color name="widget_content_text">#F9FAFB</color>
+  <color name="widget_empty_text">#6B7280</color>
 </resources>

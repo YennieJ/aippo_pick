@@ -4,6 +4,9 @@ export * from './api/client';
 // Components
 export { DeepLinkButton } from './components/ui/deep-link-button';
 export { IconSymbol } from './components/ui/icon-symbol';
+export { IpoStatusBadge } from './components/ui/ipo-status-badge';
+export type { IpoStatusType } from './components/ui/ipo-status-badge';
+export { SectionHeader } from './components/ui/section-header';
 
 // Hooks
 export * from './hooks/use-color-scheme';

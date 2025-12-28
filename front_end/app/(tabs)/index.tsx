@@ -1,15 +1,16 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import Constants from 'expo-constants';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback } from 'react';
 import {
+  ActivityIndicator,
   Dimensions,
   FlatList,
   ScrollView,
   Text,
   TouchableOpacity,
   View,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -18,7 +19,12 @@ import {
   useTodayIpo,
 } from '../../src/features/ipo/hooks/useIpoQueries';
 import { cn } from '../../src/lib/cn';
-import { DeepLinkButton, IconSymbol } from '../../src/shared';
+import {
+  DeepLinkButton,
+  IconSymbol,
+  IpoStatusBadge,
+  SectionHeader,
+} from '../../src/shared';
 import { useColorScheme } from '../../src/shared/hooks/use-color-scheme';
 
 const { width } = Dimensions.get('window'); // Get screen width
@@ -35,11 +41,21 @@ export default function HomeScreen() {
   const [selectedTab2, setSelectedTab2] = useState<RankingType>('topByAvg');
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
+  // 스크롤뷰 ref
+  const scrollViewRef = useRef<ScrollView>(null);
+
   // 탭 변경 시 아코디언 모두 닫기
   useEffect(() => {
     console.log('🔥 API_BASE_URL =', Constants.expoConfig?.extra?.apiBaseUrl);
     setExpandedItems(new Set());
   }, [selectedTab2]);
+
+  // 화면이 포커스될 때마다 스크롤 최상단으로
+  useFocusEffect(
+    useCallback(() => {
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+    }, [])
+  );
 
   // 아코디언 토글
   const toggleAccordion = (key: string) => {
@@ -65,33 +81,19 @@ export default function HomeScreen() {
     return brokerRanking[selectedTab2] || [];
   }, [brokerRanking, selectedTab2]);
 
-  // 디데이 계산 함수
-  const calculateDday = (dateString: string): number => {
-    // 날짜 형식: "2025.11.27" 또는 "2025-11-27"
-    const normalizedDate = dateString.replace(/\./g, '-');
-    const targetDate = new Date(normalizedDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    targetDate.setHours(0, 0, 0, 0);
-
-    const diffTime = targetDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
-  };
-
   // status에 따른 날짜 가져오기
-  const getDateByStatus = (item: any): string => {
+  const getDateByStatus = (item: any): string | null => {
     switch (item.status) {
       case '청약':
         // subscriptiondate가 범위 형식("2025.11.17~2025.11.18")일 경우 첫 번째 날짜 사용
         const subDate = item.subscriptiondate || item.date;
-        return subDate.split('~')[0].trim();
+        return subDate ? subDate.split('~')[0].trim() : null;
       case '상장':
-        return item.listingdate;
+        return item.listingdate || null;
       case '환불':
-        return item.refunddate;
+        return item.refunddate || null;
       default:
-        return item.date;
+        return item.date || null;
     }
   };
 
@@ -101,20 +103,6 @@ export default function HomeScreen() {
       return item.confirmedprice;
     }
     return item.desiredprice || '-';
-  };
-
-  // status에 따른 색상 가져오기 (필터 뱃지와 동일한 색상)
-  const getStatusColor = (status: string): string => {
-    switch (status) {
-      case '청약':
-        return '#5B9FFF'; // 부드러운 파랑
-      case '환불':
-        return '#34D399'; // 부드러운 초록
-      case '상장':
-        return '#F87171'; // 부드러운 빨강
-      default:
-        return '#666666';
-    }
   };
 
   const sliderItem = ({
@@ -135,11 +123,7 @@ export default function HomeScreen() {
     };
   }) => {
     const targetDate = getDateByStatus(item);
-    const dday = calculateDday(targetDate);
-    const ddayText =
-      dday > 0 ? `D-${dday}` : dday === 0 ? 'D-Day' : `D+${Math.abs(dday)}`;
     const price = getPrice(item);
-    const statusColor = getStatusColor(item.status);
 
     const handlePress = () => {
       if (item.code_id) {
@@ -155,21 +139,11 @@ export default function HomeScreen() {
         activeOpacity={0.7}
       >
         {/* 상단: status와 디데이 */}
-        <View className="flex-row items-center gap-2 mb-2">
-          <View
-            className="px-4 py-1 bg-white dark:bg-gray-800 rounded-2xl border-2 items-center justify-center"
-            style={{ borderColor: statusColor }}
-          >
-            <Text
-              className="text-sm font-semibold"
-              style={{ color: statusColor }}
-            >
-              {item.status}
-            </Text>
-          </View>
-          <Text className="text-sm font-bold text-gray-900 dark:text-white">
-            {ddayText}
-          </Text>
+        <View className="mb-2">
+          <IpoStatusBadge
+            dateString={targetDate}
+            status={item.status as '청약' | '상장' | '환불'}
+          />
         </View>
 
         {/* 타이틀 */}
@@ -203,27 +177,6 @@ export default function HomeScreen() {
           ))}
         </View>
       </TouchableOpacity>
-    );
-  };
-
-  const renderHeader = (title: string, onPress?: () => void) => {
-    return (
-      <View className="flex-row justify-between items-center">
-        <Text className="text-xl font-bold text-gray-900 dark:text-white">
-          {title}
-        </Text>
-        {onPress && (
-          <TouchableOpacity
-            className="flex-row items-center gap-1"
-            onPress={onPress}
-          >
-            <Text className="text-sm font-medium text-gray-900 dark:text-gray-300">
-              전체보기
-            </Text>
-            <IconSymbol size={16} name="chevron.right" color={iconColor} />
-          </TouchableOpacity>
-        )}
-      </View>
     );
   };
 
@@ -391,8 +344,8 @@ export default function HomeScreen() {
               <DeepLinkButton
                 brokerName={item.broker}
                 buttonText="바로가기"
-                style={{ paddingHorizontal: 12, paddingVertical: 6 }}
-                textStyle={{ fontSize: 13 }}
+                className="px-3 py-1.5"
+                textClassName="text-[13px]"
               />
             </View>
           </View>
@@ -404,24 +357,23 @@ export default function HomeScreen() {
   const isLoading = !todayIpo || !brokerRanking || !allBrokers;
 
   if (isLoading) {
-  return (
-    <SafeAreaView className="flex-1 items-center justify-center bg-white dark:bg-black">
-      <ActivityIndicator size="large" color="#666" />
-    </SafeAreaView>
-  );
-}
+    return (
+      <SafeAreaView className="flex-1 items-center justify-center bg-white dark:bg-black">
+        <ActivityIndicator size="large" color="#666" />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-black" edges={['top']}>
       <ScrollView
+        ref={scrollViewRef}
         className="flex-1 bg-white dark:bg-black"
-        contentContainerStyle={{ gap: 24 }}
+        contentContainerStyle={{ gap: 12 }}
       >
         {/* 슬라이더 */}
         <View className="py-5 justify-center">
-          <View className="pb-4 px-4">
-            {renderHeader('오늘의 공모주', handleShowAll)}
-          </View>
+          <SectionHeader title="오늘의 공모주" onPress={handleShowAll} />
           <FlatList
             data={todayIpo}
             renderItem={sliderItem}
@@ -437,9 +389,7 @@ export default function HomeScreen() {
 
         {/* 증권사별 수익률 (아코디언) */}
         <View className="pb-6">
-          <View className="pb-4 px-4">
-            {renderHeader('증권사별 수익률 순위')}
-          </View>
+          <SectionHeader title="증권사별 수익률 순위" />
 
           {/* 탭 */}
           <View className="flex-row px-4 gap-3 mb-4">

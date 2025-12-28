@@ -26,9 +26,14 @@ const MAPPING = {
   'chevron.down': 'keyboard-arrow-down',
   calendar: 'calendar-today',
   'checkmark.circle.fill': 'check-circle',
+  checkmark: 'check',
   circle: 'radio-button-unchecked',
   'person.fill': 'person',
-  'magnifyingglass': 'search',
+  magnifyingglass: 'search',
+  'star.fill': 'star',
+  star: 'star-border',
+  xmark: 'close',
+  'xmark.circle.fill': 'close',
 } as IconMapping;
 
 /**

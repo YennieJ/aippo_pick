@@ -1,15 +1,15 @@
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   BackHandler,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect, useRouter } from 'expo-router';
 
 type TabKey = 'terms' | 'privacy';
 
@@ -23,7 +23,19 @@ const BACK_TARGET = '/(tabs)/myPage';
 
 export default function TermAndConditionsScreen() {
   const router = useRouter();
-  const [tab, setTab] = useState<TabKey>('terms');
+  const params = useLocalSearchParams<{ tab?: string }>();
+  const [tab, setTab] = useState<TabKey>(
+    (params.tab === 'privacy' ? 'privacy' : 'terms') as TabKey
+  );
+
+  // 쿼리 파라미터 변경 시 탭 업데이트
+  useEffect(() => {
+    if (params.tab === 'privacy') {
+      setTab('privacy');
+    } else if (params.tab === 'terms') {
+      setTab('terms');
+    }
+  }, [params.tab]);
 
   const content = useMemo(() => {
     if (tab === 'terms') return TERMS_TEXT;
@@ -43,7 +55,11 @@ export default function TermAndConditionsScreen() {
     // termAndConditions 진입 시 히스토리 한 칸 “가짜로” 쌓아두고,
     // 브라우저 뒤로가기를 누르면 popstate가 발생 → 우리가 myPage로 보내버림
     try {
-      window.history.pushState({ __aippo_terms: true }, '', window.location.href);
+      window.history.pushState(
+        { __aippo_terms: true },
+        '',
+        window.location.href
+      );
     } catch {}
 
     const onPopState = () => {
@@ -64,7 +80,7 @@ export default function TermAndConditionsScreen() {
         return true; // 우리가 처리했음
       });
       return () => sub.remove();
-    }, [goMyPage]),
+    }, [goMyPage])
   );
 
   return (
@@ -73,7 +89,11 @@ export default function TermAndConditionsScreen() {
         {/* 헤더 */}
         <View style={styles.header}>
           {/* ✅ 여기 router.back() 쓰면 메인으로 튐 -> goMyPage로 고정 */}
-          <TouchableOpacity onPress={goMyPage} style={styles.backBtn} hitSlop={8}>
+          <TouchableOpacity
+            onPress={goMyPage}
+            style={styles.backBtn}
+            hitSlop={8}
+          >
             <Text style={styles.backText}>←</Text>
           </TouchableOpacity>
 
@@ -89,7 +109,9 @@ export default function TermAndConditionsScreen() {
             onPress={() => setTab('terms')}
             style={[styles.tabBtn, tab === 'terms' && styles.tabBtnActive]}
           >
-            <Text style={[styles.tabText, tab === 'terms' && styles.tabTextActive]}>
+            <Text
+              style={[styles.tabText, tab === 'terms' && styles.tabTextActive]}
+            >
               이용약관
             </Text>
           </TouchableOpacity>
@@ -98,7 +120,12 @@ export default function TermAndConditionsScreen() {
             onPress={() => setTab('privacy')}
             style={[styles.tabBtn, tab === 'privacy' && styles.tabBtnActive]}
           >
-            <Text style={[styles.tabText, tab === 'privacy' && styles.tabTextActive]}>
+            <Text
+              style={[
+                styles.tabText,
+                tab === 'privacy' && styles.tabTextActive,
+              ]}
+            >
               개인정보 처리방침
             </Text>
           </TouchableOpacity>
@@ -286,7 +313,12 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
-  cardTitle: { fontSize: 15, fontWeight: '700', color: '#111827', marginBottom: 6 },
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 6,
+  },
   metaText: { fontSize: 12, color: '#9CA3AF' },
 
   divider: {

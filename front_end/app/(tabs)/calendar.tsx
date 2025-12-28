@@ -4,9 +4,11 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { SectionHeader } from '../../src/shared';
 import { useColorScheme } from '../../src/shared/hooks/use-color-scheme';
 
 import {
+  CalendarDayEventsModal,
   CalendarFilterModal,
   CalendarHeader,
   CalendarWeek,
@@ -54,6 +56,11 @@ export default function CalendarScreen() {
   const [tempSelectedBrokers, setTempSelectedBrokers] = useState<string[]>([]); // 모달 내 임시 선택
   const [tempExcludeSpec, setTempExcludeSpec] = useState(false); // 모달 내 임시 스펙 제외
   const [tempExcludeReits, setTempExcludeReits] = useState(false); // 모달 내 임시 리츠 제외
+
+  // 날짜별 이벤트 모달
+  const [isDayEventsModalVisible, setIsDayEventsModalVisible] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [selectedDayEvents, setSelectedDayEvents] = useState<any[]>([]);
 
   // 스크롤뷰 ref
   const scrollViewRef = useRef<ScrollView>(null);
@@ -257,122 +264,131 @@ export default function CalendarScreen() {
     }
   };
 
+  // 날짜 클릭 핸들러
+  const handleDayPress = (date: string, dayEvents: any[]) => {
+    setSelectedDate(date);
+    setSelectedDayEvents(dayEvents);
+    setIsDayEventsModalVisible(true);
+  };
+
   return (
-    <SafeAreaView className="flex-1 bg-white dark:bg-black">
-      <ScrollView
-        ref={scrollViewRef}
-        className="flex-1"
-        contentContainerStyle={{ flexGrow: 1 }}
-      >
-        <Text className="py-4 px-4 text-xl font-bold text-[#1A1A1A] dark:text-white">
-          월별 달력
-        </Text>
+    <SafeAreaView className="flex-1 bg-white dark:bg-black" edges={['top']}>
+      <ScrollView ref={scrollViewRef} className="flex-1 bg-white dark:bg-black">
+        <View className="py-5 justify-center">
+          <SectionHeader title="월별 달력" />
 
-        {/* 필터 버튼들 */}
-        <View className="flex-row px-4 items-center justify-between gap-3 mb-2">
-          <EventTypeFilter
-            selectedTypes={selectedTypes}
-            onToggle={toggleType}
-          />
-          <TouchableOpacity
-            onPress={() => setIsFilterModalVisible(true)}
-            className="p-2 min-w-[36px] min-h-[36px] items-center justify-center"
-          >
-            <Feather
-              name="filter"
-              size={20}
-              color={
-                selectedBrokers.length > 0 || excludeSpec || excludeReits
-                  ? '#4A90E2'
-                  : isDark
-                    ? '#fff'
-                    : '#000'
-              }
-            />
-          </TouchableOpacity>
-        </View>
-
-        <CalendarHeader
-          year={currentYear}
-          month={currentMonth}
-          onPrevious={goToPreviousMonth}
-          onNext={goToNextMonth}
-        />
-
-        {/* 요일 헤더 */}
-        <View
-          className="flex-row px-4"
-          style={{
-            borderBottomWidth: 1,
-            borderBottomColor: isDark ? '#333' : '#f0f0f0',
-          }}
-        >
-          {weekDays.map((day, index) => (
-            <View
-              key={index}
-              className="p-2.5 items-center justify-center"
-              style={{ width: `${getDayWidth(index)}%` }}
-            >
-              <Text className="text-xs font-semibold text-[#666] dark:text-gray-400">
-                {day}
-              </Text>
+          <View>
+            <View className="px-4">
+              {/* 필터 버튼들 */}
+              <View className="flex-row items-center justify-between gap-3">
+                <EventTypeFilter
+                  selectedTypes={selectedTypes}
+                  onToggle={toggleType}
+                />
+                <TouchableOpacity
+                  onPress={() => setIsFilterModalVisible(true)}
+                  className="p-2 min-w-[36px] min-h-[36px] items-center justify-center"
+                >
+                  <Feather
+                    name="filter"
+                    size={20}
+                    color={
+                      selectedBrokers.length > 0 || excludeSpec || excludeReits
+                        ? '#4A90E2'
+                        : isDark
+                          ? '#fff'
+                          : '#000'
+                    }
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
-          ))}
-        </View>
 
-        {/* 주별로 렌더링 */}
-        {weeks.map((week, weekIndex) => {
-          // 필터링: 증권사 -> 스펙 제외 -> 리츠 제외
-          let filteredIpoData = ipoData;
-
-          // 증권사 필터링
-          if (selectedBrokers.length > 0) {
-            filteredIpoData = filteredIpoData.filter((ipo: any) => {
-              if (!ipo.underwriter) return false;
-              const underwriters = ipo.underwriter
-                .split(',')
-                .map((u: string) => u.trim());
-              return selectedBrokers.some((broker) =>
-                underwriters.includes(broker)
-              );
-            });
-          }
-
-          // 스펙 제외 필터링
-          if (excludeSpec) {
-            filteredIpoData = filteredIpoData.filter(
-              (ipo: any) => !ipo.company?.includes('스팩')
-            );
-          }
-
-          // 리츠 제외 필터링
-          if (excludeReits) {
-            filteredIpoData = filteredIpoData.filter(
-              (ipo: any) => !ipo.company?.includes('리츠')
-            );
-          }
-
-          const events = useCalendarEvents(
-            week,
-            currentYear,
-            currentMonth,
-            filteredIpoData,
-            selectedTypes
-          );
-          return (
-            <CalendarWeek
-              key={weekIndex}
-              week={week}
-              events={events}
-              todayYear={todayYear}
-              todayMonth={todayMonth}
-              todayDay={todayDay}
-              todayDayOfWeek={todayDayOfWeek}
-              currentYear={currentYear}
-              currentMonth={currentMonth}
+            <CalendarHeader
+              year={currentYear}
+              month={currentMonth}
+              onPrevious={goToPreviousMonth}
+              onNext={goToNextMonth}
             />
-          );
-        })}
+
+            {/* 요일 헤더 */}
+            <View
+              className="flex-row px-4"
+              style={{
+                borderBottomWidth: 1,
+                borderBottomColor: isDark ? '#333' : '#f0f0f0',
+              }}
+            >
+              {weekDays.map((day, index) => (
+                <View
+                  key={index}
+                  className="p-2.5 items-center justify-center"
+                  style={{ width: `${getDayWidth(index)}%` }}
+                >
+                  <Text className="text-xs font-semibold text-[#666] dark:text-gray-400">
+                    {day}
+                  </Text>
+                </View>
+              ))}
+            </View>
+
+            {/* 주별로 렌더링 */}
+            {weeks.map((week, weekIndex) => {
+              // 필터링: 증권사 -> 스펙 제외 -> 리츠 제외
+              let filteredIpoData = ipoData;
+
+              // 증권사 필터링
+              if (selectedBrokers.length > 0) {
+                filteredIpoData = filteredIpoData.filter((ipo: any) => {
+                  if (!ipo.underwriter) return false;
+                  const underwriters = ipo.underwriter
+                    .split(',')
+                    .map((u: string) => u.trim());
+                  return selectedBrokers.some((broker) =>
+                    underwriters.includes(broker)
+                  );
+                });
+              }
+
+              // 스펙 제외 필터링
+              if (excludeSpec) {
+                filteredIpoData = filteredIpoData.filter(
+                  (ipo: any) => !ipo.company?.includes('스팩')
+                );
+              }
+
+              // 리츠 제외 필터링
+              if (excludeReits) {
+                filteredIpoData = filteredIpoData.filter(
+                  (ipo: any) => !ipo.company?.includes('리츠')
+                );
+              }
+
+              const events = useCalendarEvents(
+                week,
+                currentYear,
+                currentMonth,
+                filteredIpoData,
+                selectedTypes
+              );
+              return (
+                <CalendarWeek
+                  key={weekIndex}
+                  week={week}
+                  events={events}
+                  todayYear={todayYear}
+                  todayMonth={todayMonth}
+                  todayDay={todayDay}
+                  todayDayOfWeek={todayDayOfWeek}
+                  currentYear={currentYear}
+                  currentMonth={currentMonth}
+                  isLastWeek={weekIndex === weeks.length - 1}
+                  onDayPress={handleDayPress}
+                />
+              );
+            })}
+          </View>
+        </View>
       </ScrollView>
 
       {/* 필터 바텀시트 모달 */}
@@ -388,6 +404,14 @@ export default function CalendarScreen() {
         onToggleExcludeSpec={() => setTempExcludeSpec(!tempExcludeSpec)}
         onToggleExcludeReits={() => setTempExcludeReits(!tempExcludeReits)}
         onApply={applyFilters}
+      />
+
+      {/* 날짜별 이벤트 모달 */}
+      <CalendarDayEventsModal
+        visible={isDayEventsModalVisible}
+        onClose={() => setIsDayEventsModalVisible(false)}
+        date={selectedDate}
+        events={selectedDayEvents}
       />
     </SafeAreaView>
   );

@@ -10,7 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useIpoByCodeId } from '../../src/features/ipo/hooks/useIpoQueries';
 import { IpoDetailData } from '../../src/features/ipo/types/ipo.types';
-import { DeepLinkButton, IconSymbol } from '../../src/shared';
+import { DeepLinkButton, IconSymbol, IpoStatusBadge } from '../../src/shared';
 import { useColorScheme } from '../../src/shared/hooks/use-color-scheme';
 import {
   loadStringArray,
@@ -124,52 +124,6 @@ export default function IpoDetailScreen() {
     );
   }
 
-  // D-day 계산
-  const calculateDday = (dateString: string): number | null => {
-    if (!dateString) return null;
-    const normalizedDate = dateString.split('~')[0].trim().replace(/\./g, '-');
-    const targetDate = new Date(normalizedDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    targetDate.setHours(0, 0, 0, 0);
-    const diffTime = targetDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
-  };
-
-  // 상태 및 D-day 결정
-  const getStatusInfo = () => {
-    if (ipoData.subscriptiondate) {
-      const dday = calculateDday(ipoData.subscriptiondate);
-      if (dday !== null && dday >= 0) {
-        return { status: '청약중', dday, color: '#F87171' };
-      }
-    }
-    if (ipoData.listingdate) {
-      const dday = calculateDday(ipoData.listingdate);
-      if (dday !== null && dday >= 0) {
-        return { status: '상장', dday, color: '#F87171' };
-      }
-    }
-    if (ipoData.refunddate) {
-      const dday = calculateDday(ipoData.refunddate);
-      if (dday !== null && dday >= 0) {
-        return { status: '환불', dday, color: '#34D399' };
-      }
-    }
-    return null;
-  };
-
-  const statusInfo = getStatusInfo();
-  const ddayText =
-    statusInfo?.dday !== undefined
-      ? statusInfo.dday > 0
-        ? `D-${statusInfo.dday}`
-        : statusInfo.dday === 0
-          ? 'D-Day'
-          : `D+${Math.abs(statusInfo.dday)}`
-      : '';
-
   // 현재가: price → confirmedprice → desiredprice
   const currentPrice =
     ipoData.price && ipoData.price !== '-'
@@ -262,34 +216,28 @@ export default function IpoDetailScreen() {
         contentContainerStyle={{ padding: 16, gap: 12 }}
       >
         {/* Level 1: 헤더 영역 */}
-        <View className="mb-2 py-3 border-b border-gray-200 dark:border-gray-700">
+        <View className="p-2 pt-6">
           {/* 회사명, 즐겨찾기, 상태 배지 */}
           <View className="flex-row items-start justify-between mb-2.5">
             <View className="flex-1 mr-3">
               <Text className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
                 {ipoData.company}
               </Text>
-              {statusInfo && (
-                <View
-                  className="self-start px-3.5 py-1.5 rounded-2xl border-2 bg-white dark:bg-gray-800"
-                  style={{ borderColor: statusInfo.color }}
-                >
-                  <Text
-                    className="text-sm font-semibold"
-                    style={{ color: statusInfo.color }}
-                  >
-                    {statusInfo.status} {ddayText}
-                  </Text>
-                </View>
-              )}
+              <IpoStatusBadge
+                subscriptiondate={ipoData.subscriptiondate}
+                listingdate={ipoData.listingdate}
+                refunddate={ipoData.refunddate}
+              />
             </View>
             <TouchableOpacity
               onPress={onToggleFavorite}
-              className="px-2 py-1 justify-center items-center"
+              className="px-2 pt-0.5 justify-center items-center"
             >
-              <Text className="text-[28px] font-black text-amber-500">
-                {isFavorite ? '★' : '☆'}
-              </Text>
+              <IconSymbol
+                name={isFavorite ? 'star.fill' : 'star'}
+                size={30}
+                color="#FACC15"
+              />
             </TouchableOpacity>
           </View>
         </View>
@@ -335,11 +283,11 @@ export default function IpoDetailScreen() {
               {competitionLabel}
             </Text>
             {competitionRate ? (
-              <Text className="text-[28px] font-bold text-emerald-500 dark:text-emerald-400 mb-1">
+              <Text className="text-[28px] font-bold text-[#FF6B35] dark:text-[#FF6B35] mb-1">
                 {competitionRate}
               </Text>
             ) : (
-              <Text className="text-[28px] font-bold text-emerald-500 dark:text-emerald-400 mb-1">
+              <Text className="text-[28px] font-bold text-[#FF6B35] dark:text-[#FF6B35] mb-1">
                 -
               </Text>
             )}
@@ -356,30 +304,12 @@ export default function IpoDetailScreen() {
             {underwriters.map((broker, index) => (
               <View
                 key={index}
-                className="flex-row justify-between items-center py-3 border-b border-gray-100 dark:border-gray-700"
+                className="flex-row justify-between items-center py-3"
               >
-                <View className="flex-1 mr-3">
-                  <Text className="text-[15px] font-semibold text-gray-900 dark:text-white mb-1">
-                    {broker}
-                  </Text>
-                  <Text className="text-[13px] text-gray-600 dark:text-gray-400">
-                    수수료: 1,500원
-                  </Text>
-                </View>
-                <DeepLinkButton
-                  brokerName={broker}
-                  style={{
-                    backgroundColor: '#4A90E2',
-                    paddingHorizontal: 16,
-                    paddingVertical: 8,
-                    borderRadius: 6,
-                  }}
-                  textStyle={{
-                    color: '#fff',
-                    fontSize: 14,
-                    fontWeight: '600',
-                  }}
-                />
+                <Text className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {broker}
+                </Text>
+                <DeepLinkButton brokerName={broker} />
               </View>
             ))}
           </View>
@@ -398,7 +328,7 @@ export default function IpoDetailScreen() {
                     <IconSymbol
                       name="checkmark.circle.fill"
                       size={24}
-                      color="#FF6B35"
+                      color="#059669"
                     />
                   ) : (
                     <IconSymbol
@@ -432,7 +362,7 @@ export default function IpoDetailScreen() {
                     <IconSymbol
                       name="checkmark.circle.fill"
                       size={24}
-                      color="#FF6B35"
+                      color="#059669"
                     />
                   ) : (
                     <IconSymbol
@@ -465,7 +395,7 @@ export default function IpoDetailScreen() {
                     <IconSymbol
                       name="checkmark.circle.fill"
                       size={24}
-                      color="#FF6B35"
+                      color="#059669"
                     />
                   ) : (
                     <IconSymbol
@@ -498,7 +428,7 @@ export default function IpoDetailScreen() {
                     <IconSymbol
                       name="checkmark.circle.fill"
                       size={24}
-                      color="#FF6B35"
+                      color="#059669"
                     />
                   ) : (
                     <IconSymbol

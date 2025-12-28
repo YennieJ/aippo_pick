@@ -62,34 +62,36 @@ class MyWidgetProvider : AppWidgetProvider() {
                 views.setViewVisibility(R.id.widget_content_layout, android.view.View.VISIBLE)
 
                 // 행 1 업데이트
+                val contentColor = context.getColor(R.color.widget_content_text)
                 views.setTextViewText(R.id.row1_name, row1Name)
                 views.setTextViewText(R.id.row1_dday, row1Dday)
                 views.setTextViewText(R.id.row1_price, row1Price)
                 views.setTextViewText(R.id.row1_securities, row1Securities)
-                views.setTextColor(R.id.row1_name, android.graphics.Color.parseColor("#000000"))
-                views.setTextColor(R.id.row1_dday, android.graphics.Color.parseColor("#000000"))
-                views.setTextColor(R.id.row1_price, android.graphics.Color.parseColor("#000000"))
-                views.setTextColor(R.id.row1_securities, android.graphics.Color.parseColor("#000000"))
+                views.setTextColor(R.id.row1_name, contentColor)
+                views.setTextColor(R.id.row1_dday, contentColor)
+                views.setTextColor(R.id.row1_price, contentColor)
+                views.setTextColor(R.id.row1_securities, contentColor)
 
                 // 행 2 업데이트
+                val emptyColor = context.getColor(R.color.widget_empty_text)
                 if (row2Name.isNotEmpty() && row2Name != "데이터 없음") {
                     views.setTextViewText(R.id.row2_name, row2Name)
                     views.setTextViewText(R.id.row2_dday, row2Dday)
                     views.setTextViewText(R.id.row2_price, row2Price)
                     views.setTextViewText(R.id.row2_securities, row2Securities)
-                    views.setTextColor(R.id.row2_name, android.graphics.Color.parseColor("#000000"))
-                    views.setTextColor(R.id.row2_dday, android.graphics.Color.parseColor("#000000"))
-                    views.setTextColor(R.id.row2_price, android.graphics.Color.parseColor("#000000"))
-                    views.setTextColor(R.id.row2_securities, android.graphics.Color.parseColor("#000000"))
+                    views.setTextColor(R.id.row2_name, contentColor)
+                    views.setTextColor(R.id.row2_dday, contentColor)
+                    views.setTextColor(R.id.row2_price, contentColor)
+                    views.setTextColor(R.id.row2_securities, contentColor)
                 } else {
                     views.setTextViewText(R.id.row2_name, "데이터 없음")
                     views.setTextViewText(R.id.row2_dday, "-")
                     views.setTextViewText(R.id.row2_price, "-")
                     views.setTextViewText(R.id.row2_securities, "-")
-                    views.setTextColor(R.id.row2_name, android.graphics.Color.parseColor("#999999"))
-                    views.setTextColor(R.id.row2_dday, android.graphics.Color.parseColor("#999999"))
-                    views.setTextColor(R.id.row2_price, android.graphics.Color.parseColor("#999999"))
-                    views.setTextColor(R.id.row2_securities, android.graphics.Color.parseColor("#999999"))
+                    views.setTextColor(R.id.row2_name, emptyColor)
+                    views.setTextColor(R.id.row2_dday, emptyColor)
+                    views.setTextColor(R.id.row2_price, emptyColor)
+                    views.setTextColor(R.id.row2_securities, emptyColor)
                 }
 
                 // 행 3 업데이트
@@ -98,19 +100,19 @@ class MyWidgetProvider : AppWidgetProvider() {
                     views.setTextViewText(R.id.row3_dday, row3Dday)
                     views.setTextViewText(R.id.row3_price, row3Price)
                     views.setTextViewText(R.id.row3_securities, row3Securities)
-                    views.setTextColor(R.id.row3_name, android.graphics.Color.parseColor("#000000"))
-                    views.setTextColor(R.id.row3_dday, android.graphics.Color.parseColor("#000000"))
-                    views.setTextColor(R.id.row3_price, android.graphics.Color.parseColor("#000000"))
-                    views.setTextColor(R.id.row3_securities, android.graphics.Color.parseColor("#000000"))
+                    views.setTextColor(R.id.row3_name, contentColor)
+                    views.setTextColor(R.id.row3_dday, contentColor)
+                    views.setTextColor(R.id.row3_price, contentColor)
+                    views.setTextColor(R.id.row3_securities, contentColor)
                 } else {
                     views.setTextViewText(R.id.row3_name, "데이터 없음")
                     views.setTextViewText(R.id.row3_dday, "-")
                     views.setTextViewText(R.id.row3_price, "-")
                     views.setTextViewText(R.id.row3_securities, "-")
-                    views.setTextColor(R.id.row3_name, android.graphics.Color.parseColor("#999999"))
-                    views.setTextColor(R.id.row3_dday, android.graphics.Color.parseColor("#999999"))
-                    views.setTextColor(R.id.row3_price, android.graphics.Color.parseColor("#999999"))
-                    views.setTextColor(R.id.row3_securities, android.graphics.Color.parseColor("#999999"))
+                    views.setTextColor(R.id.row3_name, emptyColor)
+                    views.setTextColor(R.id.row3_dday, emptyColor)
+                    views.setTextColor(R.id.row3_price, emptyColor)
+                    views.setTextColor(R.id.row3_securities, emptyColor)
                 }
             }
 

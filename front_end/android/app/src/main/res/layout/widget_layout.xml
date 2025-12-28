@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="12dp"
-    android:background="#FFFFFF">
+    android:background="@color/widget_background">
 
     <!-- 로딩 / 데이터 없음 이미지 -->
     <ImageView
@@ -31,7 +31,7 @@
             android:text="오늘의 공모주"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:textColor="#000000"
+            android:textColor="@color/widget_title_text"
             android:layout_marginBottom="8dp" />
 
         <!-- 테이블 헤더 -->
@@ -39,7 +39,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:background="#EEEEEE"
+            android:background="@color/widget_header_background"
             android:paddingVertical="10dp"
             android:paddingHorizontal="6dp">
 
@@ -50,7 +50,7 @@
                 android:text="종목명"
                 android:textSize="13sp"
                 android:textStyle="bold"
-                android:textColor="#333333"
+                android:textColor="@color/widget_header_text"
                 android:paddingStart="6dp" />
 
             <TextView
@@ -59,7 +59,7 @@
                 android:layout_weight="1"
                 android:gravity="start"
                 android:text="D-Day"
-                android:textColor="#333333"
+                android:textColor="@color/widget_header_text"
                 android:textSize="13sp"
                 android:textStyle="bold"
                 android:paddingStart="6dp" />
@@ -72,7 +72,7 @@
                 android:text="공모가"
                 android:textSize="13sp"
                 android:textStyle="bold"
-                android:textColor="#333333"
+                android:textColor="@color/widget_header_text"
                 android:paddingStart="6dp" />
 
             <TextView
@@ -83,7 +83,7 @@
                 android:text="증권사"
                 android:textSize="13sp"
                 android:textStyle="bold"
-                android:textColor="#333333"
+                android:textColor="@color/widget_header_text"
                 android:paddingStart="6dp" />
         </LinearLayout>
 
@@ -103,7 +103,7 @@
                 android:layout_weight="2"
                 android:text="데이터 없음"
                 android:textSize="12sp"
-                android:textColor="#999999"
+                android:textColor="@color/widget_empty_text"
                 android:maxLines="1"
                 android:ellipsize="start"
                 android:paddingStart="6dp" />
@@ -116,7 +116,7 @@
                 android:gravity="start"
                 android:text="-"
                 android:textSize="12sp"
-                android:textColor="#999999"
+                android:textColor="@color/widget_empty_text"
                 android:paddingStart="6dp" />
 
             <TextView
@@ -127,7 +127,7 @@
                 android:gravity="start"
                 android:text="-"
                 android:textSize="12sp"
-                android:textColor="#999999"
+                android:textColor="@color/widget_empty_text"
                 android:paddingStart="6dp" />
 
             <TextView
@@ -138,7 +138,7 @@
                 android:gravity="start"
                 android:text="-"
                 android:textSize="12sp"
-                android:textColor="#999999"
+                android:textColor="@color/widget_empty_text"
                 android:maxLines="1"
                 android:ellipsize="end"
                 android:paddingStart="6dp" />
@@ -160,7 +160,7 @@
                 android:layout_weight="2"
                 android:text="데이터 없음"
                 android:textSize="12sp"
-                android:textColor="#999999"
+                android:textColor="@color/widget_empty_text"
                 android:maxLines="1"
                 android:ellipsize="start"
                 android:paddingStart="6dp" />
@@ -173,7 +173,7 @@
                 android:gravity="start"
                 android:text="-"
                 android:textSize="12sp"
-                android:textColor="#999999"
+                android:textColor="@color/widget_empty_text"
                 android:paddingStart="6dp" />
 
             <TextView
@@ -184,7 +184,7 @@
                 android:gravity="start"
                 android:text="-"
                 android:textSize="12sp"
-                android:textColor="#999999"
+                android:textColor="@color/widget_empty_text"
                 android:paddingStart="6dp" />
 
             <TextView
@@ -195,7 +195,7 @@
                 android:gravity="start"
                 android:text="-"
                 android:textSize="12sp"
-                android:textColor="#999999"
+                android:textColor="@color/widget_empty_text"
                 android:maxLines="1"
                 android:ellipsize="end"
                 android:paddingStart="6dp" />
@@ -217,7 +217,7 @@
                 android:layout_weight="2"
                 android:text="데이터 없음"
                 android:textSize="12sp"
-                android:textColor="#999999"
+                android:textColor="@color/widget_empty_text"
                 android:maxLines="1"
                 android:ellipsize="start"
                 android:paddingStart="6dp" />
@@ -230,7 +230,7 @@
                 android:gravity="start"
                 android:text="-"
                 android:textSize="12sp"
-                android:textColor="#999999"
+                android:textColor="@color/widget_empty_text"
                 android:paddingStart="6dp" />
 
             <TextView
@@ -241,7 +241,7 @@
                 android:gravity="start"
                 android:text="-"
                 android:textSize="12sp"
-                android:textColor="#999999"
+                android:textColor="@color/widget_empty_text"
                 android:paddingStart="6dp" />
 
             <TextView
@@ -252,7 +252,7 @@
                 android:gravity="start"
                 android:text="-"
                 android:textSize="12sp"
-                android:textColor="#999999"
+                android:textColor="@color/widget_empty_text"
                 android:maxLines="1"
                 android:ellipsize="end"
                 android:paddingStart="6dp" />

@@ -86,4 +86,23 @@ class WidgetModule(reactContext: ReactApplicationContext) : ReactContextBaseJava
             promise.reject("GET_ERROR", e.message, e)
         }
     }
+
+    @ReactMethod
+    fun forceRefreshWidget(promise: Promise) {
+        try {
+            val context = reactApplicationContext
+            val appWidgetManager = AppWidgetManager.getInstance(context)
+            val widget = ComponentName(context, MyWidgetProvider::class.java)
+            val appWidgetIds = appWidgetManager.getAppWidgetIds(widget)
+
+            if (appWidgetIds.isNotEmpty()) {
+                MyWidgetProvider.updateAllWidgets(context, appWidgetManager, appWidgetIds)
+                promise.resolve("Widget refreshed: ${appWidgetIds.size} widget(s)")
+            } else {
+                promise.resolve("No widgets found on home screen")
+            }
+        } catch (e: Exception) {
+            promise.reject("REFRESH_ERROR", e.message, e)
+        }
+    }
 }

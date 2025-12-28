@@ -9,7 +9,9 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { TouchableOpacity } from 'react-native';
 import '../global.css';
+import { IconSymbol } from '../src/shared';
 import '../src/shared/api/client';
 import { useColorScheme } from '../src/shared/hooks/use-color-scheme';
 
@@ -30,12 +32,27 @@ export default function RootLayout() {
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen
-              name="modal"
-              options={{ presentation: 'modal', title: 'Modal' }}
-            />
-            <Stack.Screen
               name="ipo/[codeId]"
-              options={{ title: '공모주 상세' }}
+              options={({ navigation }) => ({
+                title: '공모주 상세',
+                headerLeft: () => {
+                  const isDark = colorScheme === 'dark';
+                  return (
+                    <TouchableOpacity
+                      onPress={() => navigation.goBack()}
+                      style={{
+                        paddingRight: 8,
+                      }}
+                    >
+                      <IconSymbol
+                        name="chevron.left"
+                        size={28}
+                        color={isDark ? '#fff' : '#000'}
+                      />
+                    </TouchableOpacity>
+                  );
+                },
+              })}
             />
           </Stack>
           <StatusBar style="auto" translucent={false} />

@@ -159,3 +159,23 @@ export const updateWidgetWithIpoData = async (
     return false;
   }
 };
+
+/**
+ * 위젯을 강제로 새로고침
+ * @returns 새로고침 성공 여부
+ */
+export const forceRefreshWidget = async (): Promise<boolean> => {
+  if (Platform.OS !== 'android') {
+    console.log('Widget is only supported on Android');
+    return false;
+  }
+
+  try {
+    const result = await WidgetModule.forceRefreshWidget();
+    console.log('Widget force refresh result:', result);
+    return true;
+  } catch (error) {
+    console.error('Widget force refresh error:', error);
+    return false;
+  }
+};
