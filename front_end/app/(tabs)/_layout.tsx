@@ -22,6 +22,7 @@ export default function TabLayout() {
   const colorScheme = useColorScheme();
   const insets = useSafeAreaInsets();
   const registerDeviceMutation = useRegisterDevice();
+  const isWeb = Platform.OS === 'web';
 
   useEffect(() => {
     const registerDeviceOnLaunch = async () => {
@@ -115,10 +116,12 @@ export default function TabLayout() {
           ),
         }}
       />
+
       <Tabs.Screen
         name="myPage"
         options={{
           title: 'MyPage',
+          href: isWeb ? null : undefined, // 웹에서 숨김
           tabBarIcon: ({ color }) => (
             <IconSymbol name="person.fill" size={24} color={color} />
           ),
