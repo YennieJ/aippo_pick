@@ -6,6 +6,7 @@ import { IconSymbol } from './icon-symbol';
 interface SectionHeaderProps {
   /** 섹션 제목 */
   title: string;
+  subTitle?: string;
   /** 전체보기 버튼 클릭 핸들러 (선택사항) */
   onPress?: () => void;
   /** 전체보기 버튼 텍스트 (기본값: '전체보기') */
@@ -18,6 +19,7 @@ interface SectionHeaderProps {
  */
 export function SectionHeader({
   title,
+  subTitle,
   onPress,
   actionText = '전체보기',
 }: SectionHeaderProps) {
@@ -27,9 +29,16 @@ export function SectionHeader({
   return (
     <View className="pb-4 px-4">
       <View className="flex-row justify-between items-center">
-        <Text className="text-xl font-bold text-gray-900 dark:text-white">
-          {title}
-        </Text>
+        <View className="flex-row items-end gap-2">
+          <Text className="text-xl font-bold text-gray-900 dark:text-white">
+            {title}
+          </Text>
+          {subTitle && (
+            <Text className="text-sm text-gray-500 dark:text-gray-400">
+              {subTitle}
+            </Text>
+          )}
+        </View>
         {onPress && (
           <TouchableOpacity
             className="flex-row items-center gap-1"

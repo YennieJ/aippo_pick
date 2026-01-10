@@ -68,10 +68,21 @@ export default function HomeScreen() {
     setExpandedItems(newExpanded);
   };
 
-  // 올해 1월 1일 ~ 12월 31일
-  const currentYear = new Date().getFullYear();
-  const startDate = `${currentYear}.01.01`;
-  const endDate = `${currentYear}.12.31`;
+  // 최근 1년 기간 설정
+  const today = new Date();
+  const oneYearAgo = new Date(today);
+  oneYearAgo.setFullYear(today.getFullYear() - 1);
+
+  const formatDate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}.${month}.${day}`;
+  };
+
+  const startDate = formatDate(oneYearAgo);
+  const endDate = formatDate(today);
+
   const { data: brokerRanking } = useBrokerRanking(startDate, endDate);
   const { data: allBrokers } = useAllBrokers();
 
@@ -389,7 +400,7 @@ export default function HomeScreen() {
 
         {/* 증권사별 수익률 (아코디언) */}
         <View className="pb-6">
-          <SectionHeader title="증권사별 수익률 순위" />
+          <SectionHeader title="증권사별 순위" subTitle="최근 1년" />
 
           {/* 탭 */}
           <View className="flex-row px-4 gap-3 mb-4">
