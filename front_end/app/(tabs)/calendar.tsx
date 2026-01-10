@@ -8,7 +8,6 @@ import { SectionHeader } from '../../src/shared';
 import { useColorScheme } from '../../src/shared/hooks/use-color-scheme';
 
 import {
-  CalendarDayEventsModal,
   CalendarFilterModal,
   CalendarHeader,
   CalendarWeek,
@@ -264,13 +263,6 @@ export default function CalendarScreen() {
     }
   };
 
-  // 날짜 클릭 핸들러
-  const handleDayPress = (date: string, dayEvents: any[]) => {
-    setSelectedDate(date);
-    setSelectedDayEvents(dayEvents);
-    setIsDayEventsModalVisible(true);
-  };
-
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-black" edges={['top']}>
       <ScrollView ref={scrollViewRef} className="flex-1 bg-white dark:bg-black">
@@ -383,7 +375,6 @@ export default function CalendarScreen() {
                   currentYear={currentYear}
                   currentMonth={currentMonth}
                   isLastWeek={weekIndex === weeks.length - 1}
-                  onDayPress={handleDayPress}
                 />
               );
             })}
@@ -404,14 +395,6 @@ export default function CalendarScreen() {
         onToggleExcludeSpec={() => setTempExcludeSpec(!tempExcludeSpec)}
         onToggleExcludeReits={() => setTempExcludeReits(!tempExcludeReits)}
         onApply={applyFilters}
-      />
-
-      {/* 날짜별 이벤트 모달 */}
-      <CalendarDayEventsModal
-        visible={isDayEventsModalVisible}
-        onClose={() => setIsDayEventsModalVisible(false)}
-        date={selectedDate}
-        events={selectedDayEvents}
       />
     </SafeAreaView>
   );

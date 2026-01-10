@@ -2,11 +2,7 @@ import { useRouter } from 'expo-router';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useColorScheme } from '../../../shared/hooks/use-color-scheme';
 import { EventType } from '../constants/event.constants';
-import {
-  formatDate,
-  getCumulativeWidth,
-  getDayWidth,
-} from '../utils/calendar.utils';
+import { getCumulativeWidth, getDayWidth } from '../utils/calendar.utils';
 import { getTextColorForBackground } from '../utils/color.utils';
 
 // 이벤트 타입별 뱃지 색상 (부드러운 톤)
@@ -26,7 +22,6 @@ interface CalendarWeekProps {
   currentYear: number;
   currentMonth: number;
   isLastWeek?: boolean;
-  onDayPress?: (date: string, dayEvents: any[]) => void;
 }
 
 export default function CalendarWeek({
@@ -39,7 +34,6 @@ export default function CalendarWeek({
   currentYear,
   currentMonth,
   isLastWeek = false,
-  onDayPress,
 }: CalendarWeekProps) {
   const router = useRouter();
   const colorScheme = useColorScheme();
@@ -84,55 +78,6 @@ export default function CalendarWeek({
   };
 
   const showLine = shouldShowWeekendLine();
-
-  // 특정 날짜의 이벤트 찾기
-  const getEventsForDay = (day: number | null, dayIndex: number) => {
-    if (!day) return [];
-    return events.filter((event) => {
-      // 이벤트가 해당 날짜를 포함하는지 확인
-      const eventStartCol = event.startCol;
-      const eventEndCol = event.startCol + event.span - 1;
-      return dayIndex >= eventStartCol && dayIndex <= eventEndCol;
-    });
-  };
-
-  // 날짜 클릭 핸들러 (날짜 컬럼 클릭 시)
-  const handleDayPress = (day: number | null, dayIndex: number) => {
-    if (!day || !onDayPress) return;
-    const dayEvents = getEventsForDay(day, dayIndex);
-    if (dayEvents.length > 0) {
-      const dateStr = formatDate(currentYear, currentMonth, day);
-      onDayPress(dateStr, dayEvents);
-    }
-  };
-
-  // 이벤트 클릭 핸들러 (이벤트 바 클릭 시)
-  const handleEventPress = (segment: any, dayIndex: number) => {
-    // 이벤트가 포함된 모든 컬럼의 이벤트 찾기
-    const eventStartCol = segment.startCol;
-    const eventEndCol = segment.startCol + segment.span - 1;
-
-    // 이벤트가 포함된 첫 번째 날짜 찾기
-    const firstDayIndex = eventStartCol;
-    const firstDayObj = week[firstDayIndex];
-
-    if (!firstDayObj || !firstDayObj.day) return;
-
-    // 첫 번째 날짜의 모든 이벤트 가져오기
-    const dayEvents = getEventsForDay(firstDayObj.day, firstDayIndex);
-
-    if (dayEvents.length > 1 && onDayPress) {
-      // 1개 이상이면 모달 표시
-      const dateStr = formatDate(currentYear, currentMonth, firstDayObj.day);
-      onDayPress(dateStr, dayEvents);
-    } else {
-      // 1개면 바로 상세 페이지로 이동
-      const codeId = segment.id.split('-')[0];
-      if (codeId) {
-        router.push(`/ipo/${codeId}`);
-      }
-    }
-  };
 
   return (
     <View
@@ -256,8 +201,14 @@ export default function CalendarWeek({
             BADGE_COLORS[segment.type as keyof typeof BADGE_COLORS] ||
             '#666666';
 
-          // 이벤트가 포함된 첫 번째 컬럼 인덱스
-          const firstDayIndex = segment.startCol;
+          // segment.id는 `${code_id}-${eventType}` 형식
+          const codeId = segment.id.split('-')[0];
+
+          const handleEventPress = () => {
+            if (codeId) {
+              router.push(`/ipo/${codeId}`);
+            }
+          };
 
           return (
             <TouchableOpacity
@@ -270,7 +221,7 @@ export default function CalendarWeek({
                   top: segment.row * 28,
                 },
               ]}
-              onPress={() => handleEventPress(segment, firstDayIndex)}
+              onPress={handleEventPress}
               activeOpacity={0.7}
             >
               <View
