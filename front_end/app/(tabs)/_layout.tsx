@@ -92,7 +92,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: '홈',
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="house.fill" color={color} />
           ),
@@ -101,7 +101,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="calendar"
         options={{
-          title: 'Calendar',
+          title: '캘린더',
           tabBarIcon: ({ color }) => (
             <IconSymbol name="calendar" size={24} color={color} />
           ),
@@ -110,7 +110,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="search"
         options={{
-          title: 'Search',
+          title: '검색',
           tabBarIcon: ({ color }) => (
             <IconSymbol name="magnifyingglass" size={24} color={color} />
           ),
@@ -120,7 +120,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="myPage"
         options={{
-          title: 'MyPage',
+          title: '마이',
           href: isWeb ? null : undefined, // 웹에서 숨김
           tabBarIcon: ({ color }) => (
             <IconSymbol name="person.fill" size={24} color={color} />
