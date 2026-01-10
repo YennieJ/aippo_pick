@@ -44,6 +44,7 @@
             android:paddingHorizontal="6dp">
 
             <TextView
+                android:id="@+id/header_name"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="2"
@@ -54,6 +55,18 @@
                 android:paddingStart="6dp" />
 
             <TextView
+                android:id="@+id/header_type"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.5"
+                android:gravity="center"
+                android:text="타입"
+                android:textColor="@color/widget_header_text"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/header_dday"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -103,10 +116,20 @@
                 android:layout_weight="2"
                 android:text="데이터 없음"
                 android:textSize="12sp"
-                android:textColor="@color/widget_empty_text"
+                android:textColor="@color/widget_header_text"
                 android:maxLines="1"
                 android:ellipsize="start"
                 android:paddingStart="6dp" />
+
+            <TextView
+                android:id="@+id/row1_type"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.5"
+                android:gravity="center"
+                android:text="-"
+                android:textSize="12sp"
+                android:textColor="@color/widget_header_text" />
 
             <TextView
                 android:id="@+id/row1_dday"
@@ -116,7 +139,7 @@
                 android:gravity="start"
                 android:text="-"
                 android:textSize="12sp"
-                android:textColor="@color/widget_empty_text"
+                android:textColor="@color/widget_header_text"
                 android:paddingStart="6dp" />
 
             <TextView
@@ -127,7 +150,7 @@
                 android:gravity="start"
                 android:text="-"
                 android:textSize="12sp"
-                android:textColor="@color/widget_empty_text"
+                android:textColor="@color/widget_header_text"
                 android:paddingStart="6dp" />
 
             <TextView
@@ -138,7 +161,7 @@
                 android:gravity="start"
                 android:text="-"
                 android:textSize="12sp"
-                android:textColor="@color/widget_empty_text"
+                android:textColor="@color/widget_header_text"
                 android:maxLines="1"
                 android:ellipsize="end"
                 android:paddingStart="6dp" />
@@ -160,10 +183,20 @@
                 android:layout_weight="2"
                 android:text="데이터 없음"
                 android:textSize="12sp"
-                android:textColor="@color/widget_empty_text"
+                android:textColor="@color/widget_header_text"
                 android:maxLines="1"
                 android:ellipsize="start"
                 android:paddingStart="6dp" />
+
+            <TextView
+                android:id="@+id/row2_type"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.5"
+                android:gravity="center"
+                android:text="-"
+                android:textSize="12sp"
+                android:textColor="@color/widget_header_text" />
 
             <TextView
                 android:id="@+id/row2_dday"
@@ -173,7 +206,7 @@
                 android:gravity="start"
                 android:text="-"
                 android:textSize="12sp"
-                android:textColor="@color/widget_empty_text"
+                android:textColor="@color/widget_header_text"
                 android:paddingStart="6dp" />
 
             <TextView
@@ -184,7 +217,7 @@
                 android:gravity="start"
                 android:text="-"
                 android:textSize="12sp"
-                android:textColor="@color/widget_empty_text"
+                android:textColor="@color/widget_header_text"
                 android:paddingStart="6dp" />
 
             <TextView
@@ -195,7 +228,7 @@
                 android:gravity="start"
                 android:text="-"
                 android:textSize="12sp"
-                android:textColor="@color/widget_empty_text"
+                android:textColor="@color/widget_header_text"
                 android:maxLines="1"
                 android:ellipsize="end"
                 android:paddingStart="6dp" />
@@ -217,10 +250,20 @@
                 android:layout_weight="2"
                 android:text="데이터 없음"
                 android:textSize="12sp"
-                android:textColor="@color/widget_empty_text"
+                android:textColor="@color/widget_header_text"
                 android:maxLines="1"
                 android:ellipsize="start"
                 android:paddingStart="6dp" />
+
+            <TextView
+                android:id="@+id/row3_type"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.5"
+                android:gravity="center"
+                android:text="-"
+                android:textSize="12sp"
+                android:textColor="@color/widget_header_text" />
 
             <TextView
                 android:id="@+id/row3_dday"
@@ -230,7 +273,7 @@
                 android:gravity="start"
                 android:text="-"
                 android:textSize="12sp"
-                android:textColor="@color/widget_empty_text"
+                android:textColor="@color/widget_header_text"
                 android:paddingStart="6dp" />
 
             <TextView
@@ -241,7 +284,7 @@
                 android:gravity="start"
                 android:text="-"
                 android:textSize="12sp"
-                android:textColor="@color/widget_empty_text"
+                android:textColor="@color/widget_header_text"
                 android:paddingStart="6dp" />
 
             <TextView
@@ -252,7 +295,7 @@
                 android:gravity="start"
                 android:text="-"
                 android:textSize="12sp"
-                android:textColor="@color/widget_empty_text"
+                android:textColor="@color/widget_header_text"
                 android:maxLines="1"
                 android:ellipsize="end"
                 android:paddingStart="6dp" />
