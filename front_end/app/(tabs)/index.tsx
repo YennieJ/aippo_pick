@@ -30,7 +30,8 @@ import {
 import { useColorScheme } from '../../src/shared/hooks/use-color-scheme';
 
 const { width } = Dimensions.get('window'); // Get screen width
-const ITEM_WIDTH = width * 0.8; // 화면의 90%
+const isWeb = Platform.OS === 'web';
+const ITEM_WIDTH = isWeb ? 400 : width * 0.8; // 웹: 400px, 앱: 화면의 80%
 const PADDING = 14; // 양옆 패딩
 
 type RankingType = 'topByCount' | 'topByAvg' | 'topByMax';
@@ -42,6 +43,7 @@ export default function HomeScreen() {
   const iconColor = colorScheme === 'dark' ? '#fff' : '#000';
   const [selectedTab2, setSelectedTab2] = useState<RankingType>('topByAvg');
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [webSliderIndex, setWebSliderIndex] = useState(0);
 
   // 스크롤뷰 ref
   const scrollViewRef = useRef<ScrollView>(null);
@@ -118,23 +120,22 @@ export default function HomeScreen() {
     return item.desiredprice || '-';
   };
 
-  const sliderItem = ({
-    item,
-  }: {
-    item: {
-      seq: string;
-      status: string;
-      title: string;
-      brokers: string[];
-      subscriptiondate?: string;
-      listingdate?: string;
-      refunddate?: string;
-      date: string;
-      confirmedprice?: string;
-      desiredprice?: string;
-      code_id: string;
-    };
-  }) => {
+  // 슬라이더 아이템 타입
+  type SliderItemType = {
+    seq: string;
+    status: string;
+    title: string;
+    brokers: string[];
+    subscriptiondate?: string;
+    listingdate?: string;
+    refunddate?: string;
+    date: string;
+    confirmedprice?: string;
+    desiredprice?: string;
+    code_id: string;
+  };
+
+  const sliderItem = ({ item }: { item: SliderItemType }) => {
     const targetDate = getDateByStatus(item);
     const price = getPrice(item);
 
@@ -191,6 +192,17 @@ export default function HomeScreen() {
         </View>
       </TouchableOpacity>
     );
+  };
+
+  // 웹용 슬라이더 네비게이션
+  const handleWebSliderPrev = () => {
+    setWebSliderIndex((prev) => Math.max(0, prev - 1));
+  };
+
+  const handleWebSliderNext = () => {
+    if (todayIpo) {
+      setWebSliderIndex((prev) => Math.min(todayIpo.length - 1, prev + 1));
+    }
   };
 
   const handleShowAll = () => {
@@ -391,17 +403,72 @@ export default function HomeScreen() {
         {/* 슬라이더 */}
         <View className="py-5 justify-center">
           <SectionHeader title="오늘의 공모주" onPress={handleShowAll} showPlayStoreOnWeb />
-          <FlatList
-            data={todayIpo}
-            renderItem={sliderItem}
-            keyExtractor={(item) => item.seq}
-            horizontal
-            pagingEnabled={false}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: PADDING }}
-            snapToAlignment="start"
-            snapToInterval={ITEM_WIDTH + 10}
-          />
+{isWeb ? (
+            // 웹: 버튼으로 좌우 이동 + 도트 인디케이터
+            <View className="px-4">
+              <View className="flex-row items-center justify-center">
+                <TouchableOpacity
+                  onPress={handleWebSliderPrev}
+                  disabled={webSliderIndex === 0}
+                  className="p-3"
+                  style={{ opacity: webSliderIndex === 0 ? 0.3 : 1 }}
+                >
+                  <IconSymbol name="chevron.left" size={24} color={iconColor} />
+                </TouchableOpacity>
+
+                <View className="flex-1 items-center">
+                  {todayIpo && todayIpo[webSliderIndex] && sliderItem({ item: todayIpo[webSliderIndex] })}
+                </View>
+
+                <TouchableOpacity
+                  onPress={handleWebSliderNext}
+                  disabled={!todayIpo || webSliderIndex >= todayIpo.length - 1}
+                  className="p-3"
+                  style={{ opacity: !todayIpo || webSliderIndex >= todayIpo.length - 1 ? 0.3 : 1 }}
+                >
+                  <IconSymbol name="chevron.right" size={24} color={iconColor} />
+                </TouchableOpacity>
+              </View>
+
+              {/* 도트 인디케이터 */}
+              {todayIpo && todayIpo.length > 1 && (
+                <View className="flex-row justify-center items-center gap-2 mt-4">
+                  {todayIpo.map((_: any, index: number) => (
+                    <TouchableOpacity
+                      key={index}
+                      onPress={() => setWebSliderIndex(index)}
+                    >
+                      <View
+                        className={cn(
+                          'rounded-full',
+                          index === webSliderIndex
+                            ? 'bg-gray-800 dark:bg-white'
+                            : 'bg-gray-300 dark:bg-gray-600'
+                        )}
+                        style={{
+                          width: index === webSliderIndex ? 8 : 6,
+                          height: index === webSliderIndex ? 8 : 6,
+                        }}
+                      />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+          ) : (
+            // 앱: 기존 FlatList 슬라이더
+            <FlatList
+              data={todayIpo}
+              renderItem={sliderItem}
+              keyExtractor={(item) => item.seq}
+              horizontal
+              pagingEnabled={false}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: PADDING }}
+              snapToAlignment="start"
+              snapToInterval={ITEM_WIDTH + 10}
+            />
+          )}
         </View>
 
         {/* 증권사별 수익률 (아코디언) */}
