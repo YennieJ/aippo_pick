@@ -6,7 +6,7 @@ import {
   Switch,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -383,347 +383,355 @@ export default function MyPageScreen() {
             <SectionHeader title="My 페이지" />
           </View>
 
-          {/* ✅ 알림 설정 */}
-          <View className="pb-6">
-            <View className="pb-4 px-4 flex-row items-center gap-2.5">
-              <MaterialIcons name="notifications" size={20} color={iconColor} />
-              <Text className="text-base font-semibold text-gray-900 dark:text-white">
-                알림 설정
-              </Text>
-            </View>
-            <View className="mx-4 bg-white dark:bg-gray-800 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
-              {/* 전체 알림 */}
-              <View className="min-h-[54px] px-4 py-3 flex-row justify-between items-center border-b border-gray-200 dark:border-gray-700">
-                <View className="flex-row items-center flex-1">
-                  <Text className="text-sm text-gray-900 dark:text-white font-medium">
-                    전체 알림
+              <View className="pb-6">
+                <View className="pb-4 px-4 flex-row items-center gap-2.5">
+                  <MaterialIcons
+                    name="notifications"
+                    size={20}
+                    color={iconColor}
+                  />
+                  <Text className="text-base font-semibold text-gray-900 dark:text-white">
+                    알림 설정
                   </Text>
                 </View>
+                <View className="mx-4 bg-white dark:bg-gray-800 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
+                  {/* 전체 알림 */}
+                  <View className="min-h-[54px] px-4 py-3 flex-row justify-between items-center border-b border-gray-200 dark:border-gray-700">
+                    <View className="flex-row items-center flex-1">
+                      <Text className="text-sm text-gray-900 dark:text-white font-medium">
+                        전체 알림
+                      </Text>
+                    </View>
 
-                <Switch
-                  value={notifyAll}
-                  onValueChange={async (newValue) => {
-                    if (newValue === true) {
-                      const ok = await ensureNotificationPermission();
-                      if (!ok) return;
-                    }
+                    <Switch
+                      value={notifyAll}
+                      onValueChange={async (newValue) => {
+                        if (newValue === true) {
+                          const ok = await ensureNotificationPermission();
+                          if (!ok) return;
+                        }
 
-                    setNotifyAll(newValue);
-                    await handleUpdateNotification({ notifyAll: newValue });
-                  }}
-                  trackColor={{ false: '#E5E7EB', true: '#5B9FFF' }}
-                  thumbColor="#FFFFFF"
-                />
+                        setNotifyAll(newValue);
+                        await handleUpdateNotification({ notifyAll: newValue });
+                      }}
+                      trackColor={{ false: '#E5E7EB', true: '#5B9FFF' }}
+                      thumbColor="#FFFFFF"
+                    />
+                  </View>
+
+                  {/* 상세 설정 */}
+                  <TouchableOpacity
+                    className={`min-h-[54px] px-4 py-3 flex-row justify-between items-center ${
+                      !notifyAll ? 'opacity-50' : ''
+                    }`}
+                    activeOpacity={notifyAll ? 0.8 : 1}
+                    onPress={notifyAll ? openNotificationModal : undefined}
+                    disabled={!notifyAll}
+                  >
+                    <View className="flex-1">
+                      <Text
+                        className={`text-sm font-medium mb-1 ${
+                          notifyAll
+                            ? 'text-gray-900 dark:text-white'
+                            : 'text-gray-500 dark:text-gray-300'
+                        }`}
+                      >
+                        상세 설정
+                      </Text>
+                      {notifyAll ? (
+                        <View className="flex-row items-center gap-2">
+                          <Text className="text-xs text-gray-600 dark:text-gray-400">
+                            시간:{' '}
+                            {(() => {
+                              const time12 = convert24To12(alarmTime);
+                              return `${time12.period === 'AM' ? '오전' : '오후'} ${time12.hour}:${time12.minute.toString().padStart(2, '0')}`;
+                            })()}
+                          </Text>
+                          <Text className="text-xs text-gray-600 dark:text-gray-400">
+                            •
+                          </Text>
+                          <Text className="text-xs text-gray-600 dark:text-gray-400">
+                            {selectedBrokers.length === 0
+                              ? '증권사: 전체'
+                              : `증권사: ${selectedBrokers.length}개`}
+                          </Text>
+                        </View>
+                      ) : (
+                        <Text className="text-xs text-gray-500 dark:text-gray-300">
+                          전체 알림을 켜야 설정할 수 있습니다
+                        </Text>
+                      )}
+                    </View>
+
+                    {notifyAll && (
+                      <MaterialIcons
+                        name="chevron-right"
+                        size={22}
+                        color={iconColor}
+                      />
+                    )}
+                  </TouchableOpacity>
+                </View>
               </View>
 
-              {/* 상세 설정 */}
-              <TouchableOpacity
-                className={`min-h-[54px] px-4 py-3 flex-row justify-between items-center ${
-                  !notifyAll ? 'opacity-50' : ''
-                }`}
-                activeOpacity={notifyAll ? 0.8 : 1}
-                onPress={notifyAll ? openNotificationModal : undefined}
-                disabled={!notifyAll}
-              >
-                <View className="flex-1">
-                  <Text
-                    className={`text-sm font-medium mb-1 ${
-                      notifyAll
-                        ? 'text-gray-900 dark:text-white'
-                        : 'text-gray-400 dark:text-gray-600'
-                    }`}
-                  >
-                    상세 설정
+              <View className="pb-6">
+                <View className="pb-4 px-4 flex-row justify-between items-center">
+                  <Text className="text-base font-semibold text-gray-900 dark:text-white">
+                    ⭐ 즐겨찾기 공모주
                   </Text>
-                  {notifyAll ? (
-                    <View className="flex-row items-center gap-2">
-                      <Text className="text-xs text-gray-600 dark:text-gray-400">
-                        시간:{' '}
-                        {(() => {
-                          const time12 = convert24To12(alarmTime);
-                          return `${time12.period === 'AM' ? '오전' : '오후'} ${time12.hour}:${time12.minute.toString().padStart(2, '0')}`;
-                        })()}
+                  <TouchableOpacity
+                    onPress={onClearFavorites}
+                    activeOpacity={0.7}
+                    className="flex-row items-center gap-1.5 px-3 py-1.5"
+                  >
+                    <MaterialIcons
+                      name="delete-outline"
+                      size={18}
+                      color={iconColor}
+                    />
+                    <Text className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                      전체삭제
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+                {favoriteLoading && favoriteDetails.length === 0 ? (
+                  <View className="py-4 px-4">
+                    <Text className="text-sm text-gray-600 dark:text-gray-400">
+                      즐겨찾기 정보를 불러오는 중입니다.
+                    </Text>
+                  </View>
+                ) : favoriteDetails.length === 0 ? (
+                  <View className="mx-4 bg-white dark:bg-gray-800 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
+                    <View className="py-4 px-4">
+                      <Text className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
+                        즐겨찾기한 공모주가 없습니다.
                       </Text>
                       <Text className="text-xs text-gray-600 dark:text-gray-400">
-                        •
+                        공모주 상세 화면에서 ⭐ 버튼을 눌러 즐겨찾기를
+                        추가해보세요.
+                      </Text>
+                    </View>
+                  </View>
+                ) : (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{
+                      paddingHorizontal: 16,
+                      gap: 12,
+                    }}
+                  >
+                    {favoriteDetails.map((item) => {
+                      const id = item.code_id;
+                      const favorite = isFavorite(id);
+                      const { displayPrice, priceLabel } =
+                        getDisplayPrice(item);
+
+                      const rate =
+                        item.competitionrate ??
+                        item.institutional_competition_rate ??
+                        null;
+
+                      return (
+                        <TouchableOpacity
+                          key={id}
+                          className="w-[228px] rounded-2xl px-3.5 py-3 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+                          style={{ height: 180 }}
+                          activeOpacity={0.88}
+                          onPress={() =>
+                            router.push({
+                              pathname: '/ipo/[codeId]',
+                              params: { codeId: id },
+                            })
+                          }
+                        >
+                          <View className="flex-1 justify-between">
+                            {/* 헤더 영역 (고정 높이) */}
+                            <View style={{ height: 70 }}>
+                              {/* 타이틀과 별표시 */}
+                              <View className="flex-row items-start justify-between mb-2.5">
+                                <Text
+                                  className="text-[15px] font-black text-gray-900 dark:text-gray-100 flex-1 mr-2"
+                                  numberOfLines={2}
+                                >
+                                  {item.company}
+                                </Text>
+                                <TouchableOpacity
+                                  onPress={(e) => {
+                                    e.stopPropagation();
+                                    onToggleFavorite(id);
+                                  }}
+                                  hitSlop={{
+                                    top: 6,
+                                    bottom: 6,
+                                    left: 6,
+                                    right: 6,
+                                  }}
+                                  className="px-1 pt-0.5 justify-center items-center"
+                                >
+                                  <IconSymbol
+                                    name={favorite ? 'star.fill' : 'star'}
+                                    size={22}
+                                    color="#FACC15"
+                                  />
+                                </TouchableOpacity>
+                              </View>
+
+                              {/* 뱃지 */}
+                              <View>
+                                <IpoStatusBadge
+                                  subscriptiondate={item.subscriptiondate}
+                                  listingdate={item.listingdate}
+                                  refunddate={item.refunddate}
+                                  size="small"
+                                />
+                              </View>
+                            </View>
+
+                            {/* 데이터 영역 */}
+                            <View className="flex-1 justify-center">
+                              {/* 가격 */}
+                              <View className="flex-row items-center justify-between py-1.5 border-t border-gray-100 dark:border-gray-700">
+                                <Text className="text-xs text-gray-600 dark:text-gray-400 font-bold">
+                                  {priceLabel}
+                                </Text>
+                                <Text className="text-xs text-gray-900 dark:text-gray-100 font-black">
+                                  {displayPrice !== null
+                                    ? `${displayPrice.toLocaleString()}원`
+                                    : '-'}
+                                </Text>
+                              </View>
+
+                              {/* 경쟁률 */}
+                              <View className="flex-row items-center justify-between py-1.5 border-t border-gray-100 dark:border-gray-700">
+                                <Text className="text-xs text-gray-600 dark:text-gray-400 font-bold">
+                                  경쟁률
+                                </Text>
+                                <Text
+                                  className="text-xs text-emerald-600 dark:text-emerald-400 font-black"
+                                  numberOfLines={1}
+                                >
+                                  {rate || '-'}
+                                </Text>
+                              </View>
+                            </View>
+
+                            {/* 자세히 보기 (항상 맨 아래 고정) */}
+                            <View className="pt-2.5 border-t border-gray-100 dark:border-gray-700 flex-row items-center justify-between">
+                              <Text className="text-xs text-gray-600 dark:text-gray-400 font-extrabold">
+                                자세히 보기
+                              </Text>
+                              <MaterialIcons
+                                name="chevron-right"
+                                size={18}
+                                color={iconColor}
+                              />
+                            </View>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                )}
+              </View>
+
+              <View className="pb-6">
+                <View className="pb-4 px-4 flex-row justify-between items-center">
+                  <Text className="text-base font-semibold text-gray-900 dark:text-white">
+                    👀 최근 본 공모주
+                  </Text>
+                  <TouchableOpacity
+                    onPress={onClearRecent}
+                    activeOpacity={0.7}
+                    className="flex-row items-center gap-1.5 px-3 py-1.5"
+                  >
+                    <MaterialIcons
+                      name="delete-outline"
+                      size={18}
+                      color={iconColor}
+                    />
+                    <Text className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                      전체삭제
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+                <View className="mx-4 bg-white dark:bg-gray-800 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
+                  {recentLoading && recentDetails.length === 0 ? (
+                    <View className="py-4 px-4">
+                      <Text className="text-sm text-gray-600 dark:text-gray-400">
+                        최근 본 공모주를 불러오는 중입니다.
+                      </Text>
+                    </View>
+                  ) : recentDetails.length === 0 ? (
+                    <View className="py-4 px-4">
+                      <Text className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
+                        최근 본 공모주가 없습니다.
                       </Text>
                       <Text className="text-xs text-gray-600 dark:text-gray-400">
-                        {selectedBrokers.length === 0
-                          ? '증권사: 전체'
-                          : `증권사: ${selectedBrokers.length}개`}
+                        공모주 상세 화면에 들어가면 여기에서 바로 확인할 수
+                        있어요.
                       </Text>
                     </View>
                   ) : (
-                    <Text className="text-xs text-gray-400 dark:text-gray-600">
-                      전체 알림을 켜야 설정할 수 있습니다
-                    </Text>
-                  )}
-                </View>
+                    recentDetails.map((item, idx) => {
+                      const isLast = idx === recentDetails.length - 1;
 
-                {notifyAll && (
-                  <MaterialIcons
-                    name="chevron-right"
-                    size={22}
-                    color={iconColor}
-                  />
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* ⭐ 즐겨찾기 공모주 */}
-          <View className="pb-6">
-            <View className="pb-4 px-4 flex-row justify-between items-center">
-              <Text className="text-base font-semibold text-gray-900 dark:text-white">
-                ⭐ 즐겨찾기 공모주
-              </Text>
-              <TouchableOpacity
-                onPress={onClearFavorites}
-                activeOpacity={0.7}
-                className="flex-row items-center gap-1.5 px-3 py-1.5"
-              >
-                <MaterialIcons
-                  name="delete-outline"
-                  size={18}
-                  color={iconColor}
-                />
-                <Text className="text-sm text-gray-600 dark:text-gray-400 font-medium">
-                  전체삭제
-                </Text>
-              </TouchableOpacity>
-            </View>
-            {favoriteLoading && favoriteDetails.length === 0 ? (
-              <View className="py-4 px-4">
-                <Text className="text-sm text-gray-600 dark:text-gray-400">
-                  즐겨찾기 정보를 불러오는 중입니다.
-                </Text>
-              </View>
-            ) : favoriteDetails.length === 0 ? (
-              <View className="mx-4 bg-white dark:bg-gray-800 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
-                <View className="py-4 px-4">
-                  <Text className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
-                    즐겨찾기한 공모주가 없습니다.
-                  </Text>
-                  <Text className="text-xs text-gray-600 dark:text-gray-400">
-                    공모주 상세 화면에서 ⭐ 버튼을 눌러 즐겨찾기를 추가해보세요.
-                  </Text>
-                </View>
-              </View>
-            ) : (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{
-                  paddingHorizontal: 16,
-                  gap: 12,
-                }}
-              >
-                {favoriteDetails.map((item) => {
-                  const id = item.code_id;
-                  const favorite = isFavorite(id);
-                  const { displayPrice, priceLabel } = getDisplayPrice(item);
-
-                  const rate =
-                    item.competitionrate ??
-                    item.institutional_competition_rate ??
-                    null;
-
-                  return (
-                    <TouchableOpacity
-                      key={id}
-                      className="w-[228px] rounded-2xl px-3.5 py-3 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
-                      style={{ height: 180 }}
-                      activeOpacity={0.88}
-                      onPress={() =>
-                        router.push({
-                          pathname: '/ipo/[codeId]',
-                          params: { codeId: id },
-                        })
-                      }
-                    >
-                      <View className="flex-1 justify-between">
-                        {/* 헤더 영역 (고정 높이) */}
-                        <View style={{ height: 70 }}>
-                          {/* 타이틀과 별표시 */}
-                          <View className="flex-row items-start justify-between mb-2.5">
-                            <Text
-                              className="text-[15px] font-black text-gray-900 dark:text-gray-100 flex-1 mr-2"
-                              numberOfLines={2}
-                            >
+                      return (
+                        <TouchableOpacity
+                          key={item.code_id}
+                          className={cn(
+                            'min-h-[54px] px-4 py-3 flex-row items-center justify-between gap-2',
+                            !isLast &&
+                              'border-b border-gray-200 dark:border-gray-700'
+                          )}
+                          activeOpacity={0.85}
+                          onPress={() =>
+                            router.push({
+                              pathname: '/ipo/[codeId]',
+                              params: { codeId: item.code_id },
+                            })
+                          }
+                        >
+                          <View className="flex-1">
+                            <Text className="text-sm font-semibold text-gray-900 dark:text-white">
                               {item.company}
                             </Text>
-                            <TouchableOpacity
-                              onPress={(e) => {
-                                e.stopPropagation();
-                                onToggleFavorite(id);
-                              }}
-                              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                              className="px-1 pt-0.5 justify-center items-center"
-                            >
-                              <IconSymbol
-                                name={favorite ? 'star.fill' : 'star'}
-                                size={22}
-                                color="#FACC15"
-                              />
-                            </TouchableOpacity>
                           </View>
 
-                          {/* 뱃지 */}
-                          <View>
-                            <IpoStatusBadge
-                              subscriptiondate={item.subscriptiondate}
-                              listingdate={item.listingdate}
-                              refunddate={item.refunddate}
-                              size="small"
+                          <View className="flex-row items-center gap-2.5">
+                            <TouchableOpacity
+                              onPress={() => onRemoveRecent(item.code_id)}
+                              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                              activeOpacity={0.8}
+                            >
+                              <Text className="text-xs text-gray-600 dark:text-gray-400 font-medium">
+                                삭제
+                              </Text>
+                            </TouchableOpacity>
+                            <MaterialIcons
+                              name="chevron-right"
+                              size={22}
+                              color={iconColor}
                             />
                           </View>
-                        </View>
-
-                        {/* 데이터 영역 */}
-                        <View className="flex-1 justify-center">
-                          {/* 가격 */}
-                          <View className="flex-row items-center justify-between py-1.5 border-t border-gray-100 dark:border-gray-700">
-                            <Text className="text-xs text-gray-600 dark:text-gray-400 font-bold">
-                              {priceLabel}
-                            </Text>
-                            <Text className="text-xs text-gray-900 dark:text-gray-100 font-black">
-                              {displayPrice !== null
-                                ? `${displayPrice.toLocaleString()}원`
-                                : '-'}
-                            </Text>
-                          </View>
-
-                          {/* 경쟁률 */}
-                          <View className="flex-row items-center justify-between py-1.5 border-t border-gray-100 dark:border-gray-700">
-                            <Text className="text-xs text-gray-600 dark:text-gray-400 font-bold">
-                              경쟁률
-                            </Text>
-                            <Text
-                              className="text-xs text-emerald-600 dark:text-emerald-400 font-black"
-                              numberOfLines={1}
-                            >
-                              {rate || '-'}
-                            </Text>
-                          </View>
-                        </View>
-
-                        {/* 자세히 보기 (항상 맨 아래 고정) */}
-                        <View className="pt-2.5 border-t border-gray-100 dark:border-gray-700 flex-row items-center justify-between">
-                          <Text className="text-xs text-gray-600 dark:text-gray-400 font-extrabold">
-                            자세히 보기
-                          </Text>
-                          <MaterialIcons
-                            name="chevron-right"
-                            size={18}
-                            color={iconColor}
-                          />
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-            )}
-          </View>
-
-          {/* 👀 최근 본 공모주 */}
-          <View className="pb-6">
-            <View className="pb-4 px-4 flex-row justify-between items-center">
-              <Text className="text-base font-semibold text-gray-900 dark:text-white">
-                👀 최근 본 공모주
-              </Text>
-              <TouchableOpacity
-                onPress={onClearRecent}
-                activeOpacity={0.7}
-                className="flex-row items-center gap-1.5 px-3 py-1.5"
-              >
-                <MaterialIcons
-                  name="delete-outline"
-                  size={18}
-                  color={iconColor}
-                />
-                <Text className="text-sm text-gray-600 dark:text-gray-400 font-medium">
-                  전체삭제
-                </Text>
-              </TouchableOpacity>
-            </View>
-            <View className="mx-4 bg-white dark:bg-gray-800 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
-              {recentLoading && recentDetails.length === 0 ? (
-                <View className="py-4 px-4">
-                  <Text className="text-sm text-gray-600 dark:text-gray-400">
-                    최근 본 공모주를 불러오는 중입니다.
-                  </Text>
-                </View>
-              ) : recentDetails.length === 0 ? (
-                <View className="py-4 px-4">
-                  <Text className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
-                    최근 본 공모주가 없습니다.
-                  </Text>
-                  <Text className="text-xs text-gray-600 dark:text-gray-400">
-                    공모주 상세 화면에 들어가면 여기에서 바로 확인할 수 있어요.
-                  </Text>
-                </View>
-              ) : (
-                recentDetails.map((item, idx) => {
-                  const isLast = idx === recentDetails.length - 1;
-
-                  return (
-                    <TouchableOpacity
-                      key={item.code_id}
-                      className={cn(
-                        'min-h-[54px] px-4 py-3 flex-row items-center justify-between gap-2',
-                        !isLast &&
-                          'border-b border-gray-200 dark:border-gray-700'
-                      )}
-                      activeOpacity={0.85}
-                      onPress={() =>
-                        router.push({
-                          pathname: '/ipo/[codeId]',
-                          params: { codeId: item.code_id },
-                        })
-                      }
-                    >
-                      <View className="flex-1">
-                        <Text className="text-sm font-semibold text-gray-900 dark:text-white">
-                          {item.company}
-                        </Text>
-                      </View>
-
-                      <View className="flex-row items-center gap-2.5">
-                        <TouchableOpacity
-                          onPress={() => onRemoveRecent(item.code_id)}
-                          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                          activeOpacity={0.8}
-                        >
-                          <Text className="text-xs text-gray-600 dark:text-gray-400 font-medium">
-                            삭제
-                          </Text>
                         </TouchableOpacity>
-                        <MaterialIcons
-                          name="chevron-right"
-                          size={22}
-                          color={iconColor}
-                        />
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })
-              )}
-            </View>
-          </View>
+                      );
+                    })
+                  )}
+                </View>
+              </View>
 
-          {/* ⚙️ 앱 설정 */}
-          <View className="pb-6 px-4">
-            <TouchableOpacity
-              onPress={() => router.push('/termAndConditions')}
-              activeOpacity={0.7}
-              className="items-center"
-            >
-              <Text className="text-xs text-gray-600 dark:text-gray-400 underline">
-                약관 및 개인정보 처리방침
-              </Text>
-            </TouchableOpacity>
-          </View>
+              <View className="pb-6 px-4">
+                <TouchableOpacity
+                  onPress={() => router.push('/termAndConditions')}
+                  activeOpacity={0.7}
+                  className="items-center"
+                >
+                  <Text className="text-xs text-gray-600 dark:text-gray-400 underline">
+                    약관 및 개인정보 처리방침
+                  </Text>
+                </TouchableOpacity>
+              </View>
         </ScrollView>
       </View>
 

@@ -267,7 +267,7 @@ export default function CalendarScreen() {
     <SafeAreaView className="flex-1 bg-white dark:bg-black" edges={['top']}>
       <ScrollView ref={scrollViewRef} className="flex-1 bg-white dark:bg-black">
         <View className="py-5 justify-center">
-          <SectionHeader title="월별 달력" />
+          <SectionHeader title="월별 달력" showPlayStoreOnWeb/>
 
           <View>
             <View className="px-4">

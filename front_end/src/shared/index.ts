@@ -7,6 +7,7 @@ export { IconSymbol } from './components/ui/icon-symbol';
 export { IpoStatusBadge } from './components/ui/ipo-status-badge';
 export type { IpoStatusType } from './components/ui/ipo-status-badge';
 export { SectionHeader } from './components/ui/section-header';
+export { WebContainer } from './components/ui/web-container';
 
 // Hooks
 export * from './hooks/use-color-scheme';

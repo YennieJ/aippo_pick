@@ -7,6 +7,8 @@ import {
   ActivityIndicator,
   Dimensions,
   FlatList,
+  Linking,
+  Platform,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -192,7 +194,11 @@ export default function HomeScreen() {
   };
 
   const handleShowAll = () => {
-    router.push('/calendar');
+    if (Platform.OS === 'web') {
+      Linking.openURL('https://play.google.com/store/apps/details?id=com.itl.aippopick');
+    } else {
+      router.push('/calendar');
+    }
   };
 
   // 수익률 포맷팅 (소수점 2자리, % 표시)
@@ -384,7 +390,7 @@ export default function HomeScreen() {
       >
         {/* 슬라이더 */}
         <View className="py-5 justify-center">
-          <SectionHeader title="오늘의 공모주" onPress={handleShowAll} />
+          <SectionHeader title="오늘의 공모주" onPress={handleShowAll} showPlayStoreOnWeb />
           <FlatList
             data={todayIpo}
             renderItem={sliderItem}

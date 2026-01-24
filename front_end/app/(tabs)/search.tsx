@@ -213,7 +213,7 @@ export default function SearchScreen() {
       >
         {/* 헤더 */}
         <View className="py-5">
-          <SectionHeader title="공모주 검색" />
+          <SectionHeader title="공모주 검색" showPlayStoreOnWeb/>
 
           {/* 검색창 */}
           <View className="flex-row items-center rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 mx-4">
