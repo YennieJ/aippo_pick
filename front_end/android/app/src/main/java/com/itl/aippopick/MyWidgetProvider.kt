@@ -25,21 +25,18 @@ class MyWidgetProvider : AppWidgetProvider() {
 
             // 행 1 데이터
             val row1Name = prefs.getString("row1_name", "") ?: ""
-            val row1Type = prefs.getString("row1_type", "") ?: ""
             val row1Dday = prefs.getString("row1_dday", "") ?: ""
             val row1Price = prefs.getString("row1_price", "") ?: ""
             val row1Securities = prefs.getString("row1_securities", "") ?: ""
 
             // 행 2 데이터
             val row2Name = prefs.getString("row2_name", "") ?: ""
-            val row2Type = prefs.getString("row2_type", "") ?: ""
             val row2Dday = prefs.getString("row2_dday", "") ?: ""
             val row2Price = prefs.getString("row2_price", "") ?: ""
             val row2Securities = prefs.getString("row2_securities", "") ?: ""
 
             // 행 3 데이터
             val row3Name = prefs.getString("row3_name", "") ?: ""
-            val row3Type = prefs.getString("row3_type", "") ?: ""
             val row3Dday = prefs.getString("row3_dday", "") ?: ""
             val row3Price = prefs.getString("row3_price", "") ?: ""
             val row3Securities = prefs.getString("row3_securities", "") ?: ""
@@ -66,7 +63,6 @@ class MyWidgetProvider : AppWidgetProvider() {
 
                 // 행 1 업데이트
                 views.setTextViewText(R.id.row1_name, row1Name)
-                views.setTextViewText(R.id.row1_type, row1Type)
                 views.setTextViewText(R.id.row1_dday, row1Dday)
                 views.setTextViewText(R.id.row1_price, row1Price)
                 views.setTextViewText(R.id.row1_securities, row1Securities)
@@ -74,13 +70,11 @@ class MyWidgetProvider : AppWidgetProvider() {
                 // 행 2 업데이트
                 if (row2Name.isNotEmpty() && row2Name != "데이터 없음") {
                     views.setTextViewText(R.id.row2_name, row2Name)
-                    views.setTextViewText(R.id.row2_type, row2Type)
                     views.setTextViewText(R.id.row2_dday, row2Dday)
                     views.setTextViewText(R.id.row2_price, row2Price)
                     views.setTextViewText(R.id.row2_securities, row2Securities)
                 } else {
                     views.setTextViewText(R.id.row2_name, "데이터 없음")
-                    views.setTextViewText(R.id.row2_type, "-")
                     views.setTextViewText(R.id.row2_dday, "-")
                     views.setTextViewText(R.id.row2_price, "-")
                     views.setTextViewText(R.id.row2_securities, "-")
@@ -89,13 +83,11 @@ class MyWidgetProvider : AppWidgetProvider() {
                 // 행 3 업데이트
                 if (row3Name.isNotEmpty() && row3Name != "데이터 없음") {
                     views.setTextViewText(R.id.row3_name, row3Name)
-                    views.setTextViewText(R.id.row3_type, row3Type)
                     views.setTextViewText(R.id.row3_dday, row3Dday)
                     views.setTextViewText(R.id.row3_price, row3Price)
                     views.setTextViewText(R.id.row3_securities, row3Securities)
                 } else {
                     views.setTextViewText(R.id.row3_name, "데이터 없음")
-                    views.setTextViewText(R.id.row3_type, "-")
                     views.setTextViewText(R.id.row3_dday, "-")
                     views.setTextViewText(R.id.row3_price, "-")
                     views.setTextViewText(R.id.row3_securities, "-")
@@ -132,17 +124,14 @@ class MyWidgetProvider : AppWidgetProvider() {
             // 테스트 데이터 설정
             val editor = prefs.edit()
             editor.putString("row1_name", "데이터 로딩 중...")
-            editor.putString("row1_type", "-")
-            editor.putString("row1_dday", "D-?")
+            editor.putString("row1_dday", "-")
             editor.putString("row1_price", "-")
             editor.putString("row1_securities", "-")
             editor.putString("row2_name", "잠시만 기다려주세요")
-            editor.putString("row2_type", "-")
             editor.putString("row2_dday", "-")
             editor.putString("row2_price", "-")
             editor.putString("row2_securities", "-")
             editor.putString("row3_name", "데이터 없음")
-            editor.putString("row3_type", "-")
             editor.putString("row3_dday", "-")
             editor.putString("row3_price", "-")
             editor.putString("row3_securities", "-")

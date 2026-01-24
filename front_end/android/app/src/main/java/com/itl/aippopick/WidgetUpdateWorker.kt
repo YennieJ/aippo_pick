@@ -41,9 +41,9 @@ class WidgetUpdateWorker(
                 Log.e(TAG, "공모주 데이터를 가져오지 못함")
                 // 데이터가 없어도 기본 메시지로 업데이트
                 updateWidgetData(
-                    "오늘 공모주가 없습니다", "-", "-", "-", "-",
-                    "데이터 없음", "-", "-", "-", "-",
-                    "데이터 없음", "-", "-", "-", "-"
+                    "오늘 공모주가 없습니다", "-", "-", "-",
+                    "데이터 없음", "-", "-", "-",
+                    "데이터 없음", "-", "-", "-"
                 )
                 return@withContext Result.success()
             }
@@ -60,20 +60,19 @@ class WidgetUpdateWorker(
                 Log.d(TAG, "Row1 - 종목: $row1Name")
                 Log.d(TAG, "Row1 - 청약일: $subscriptionDate1, 환불일: $refundDate1, 상장일: $listingDate1")
 
-                val (row1Dday, row1Type) = calculateNearestDday(
+                val row1Dday = calculateNearestDday(
                     subscriptionDate1,
                     refundDate1,
                     listingDate1
                 )
 
-                Log.d(TAG, "Row1 - D-day: $row1Dday, 타입: $row1Type")
+                Log.d(TAG, "Row1 - D-day: $row1Dday")
                 val confirmedPrice = firstItem.optString("confirmedprice", "")
                 val row1Price = if (confirmedPrice.isNotEmpty() && confirmedPrice != "-원") confirmedPrice else "-"
                 val row1Securities = formatSecurities(firstItem.optJSONArray("brokers"))
 
                 // 두 번째 행 데이터 (있는 경우)
                 val row2Name: String
-                val row2Type: String
                 val row2Dday: String
                 val row2Price: String
                 val row2Securities: String
@@ -81,19 +80,16 @@ class WidgetUpdateWorker(
                     val secondItem = ipoData.getJSONObject(1)
                     row2Name = secondItem.optString("title", "데이터 없음")
                     val subscriptionDate2 = extractStartDate(secondItem.optString("subscriptiondate", ""))
-                    val (dday, type) = calculateNearestDday(
+                    row2Dday = calculateNearestDday(
                         subscriptionDate2,
                         secondItem.optString("refunddate", ""),
                         secondItem.optString("listingdate", "")
                     )
-                    row2Dday = dday
-                    row2Type = type
                     val confirmedPrice2 = secondItem.optString("confirmedprice", "")
                     row2Price = if (confirmedPrice2.isNotEmpty() && confirmedPrice2 != "-원") confirmedPrice2 else "-"
                     row2Securities = formatSecurities(secondItem.optJSONArray("brokers"))
                 } else {
                     row2Name = "데이터 없음"
-                    row2Type = "-"
                     row2Dday = "-"
                     row2Price = "-"
                     row2Securities = "-"
@@ -101,7 +97,6 @@ class WidgetUpdateWorker(
 
                 // 세 번째 행 데이터 (있는 경우)
                 val row3Name: String
-                val row3Type: String
                 val row3Dday: String
                 val row3Price: String
                 val row3Securities: String
@@ -109,36 +104,33 @@ class WidgetUpdateWorker(
                     val thirdItem = ipoData.getJSONObject(2)
                     row3Name = thirdItem.optString("title", "데이터 없음")
                     val subscriptionDate3 = extractStartDate(thirdItem.optString("subscriptiondate", ""))
-                    val (dday, type) = calculateNearestDday(
+                    row3Dday = calculateNearestDday(
                         subscriptionDate3,
                         thirdItem.optString("refunddate", ""),
                         thirdItem.optString("listingdate", "")
                     )
-                    row3Dday = dday
-                    row3Type = type
                     val confirmedPrice3 = thirdItem.optString("confirmedprice", "")
                     row3Price = if (confirmedPrice3.isNotEmpty() && confirmedPrice3 != "-원") confirmedPrice3 else "-"
                     row3Securities = formatSecurities(thirdItem.optJSONArray("brokers"))
                 } else {
                     row3Name = "데이터 없음"
-                    row3Type = "-"
                     row3Dday = "-"
                     row3Price = "-"
                     row3Securities = "-"
                 }
 
                 updateWidgetData(
-                    row1Name, row1Type, row1Dday, row1Price, row1Securities,
-                    row2Name, row2Type, row2Dday, row2Price, row2Securities,
-                    row3Name, row3Type, row3Dday, row3Price, row3Securities
+                    row1Name, row1Dday, row1Price, row1Securities,
+                    row2Name, row2Dday, row2Price, row2Securities,
+                    row3Name, row3Dday, row3Price, row3Securities
                 )
                 Log.d(TAG, "위젯 업데이트 완료: $row1Name, $row2Name, $row3Name")
             } else {
                 // 데이터가 없는 경우
                 updateWidgetData(
-                    "오늘 공모주가 없습니다", "-", "-", "-", "-",
-                    "데이터 없음", "-", "-", "-", "-",
-                    "데이터 없음", "-", "-", "-", "-"
+                    "오늘 공모주가 없습니다", "-", "-", "-",
+                    "데이터 없음", "-", "-", "-",
+                    "데이터 없음", "-", "-", "-"
                 )
                 Log.d(TAG, "위젯 업데이트 완료: 데이터 없음")
             }
@@ -194,26 +186,23 @@ class WidgetUpdateWorker(
      * SharedPreferences에 데이터 저장 및 위젯 업데이트
      */
     private fun updateWidgetData(
-        row1Name: String, row1Type: String, row1Dday: String, row1Price: String, row1Securities: String,
-        row2Name: String, row2Type: String, row2Dday: String, row2Price: String, row2Securities: String,
-        row3Name: String, row3Type: String, row3Dday: String, row3Price: String, row3Securities: String
+        row1Name: String, row1Dday: String, row1Price: String, row1Securities: String,
+        row2Name: String, row2Dday: String, row2Price: String, row2Securities: String,
+        row3Name: String, row3Dday: String, row3Price: String, row3Securities: String
     ) {
         Log.d(TAG, "위젯 데이터 저장 시작: row1=$row1Name, row2=$row2Name, row3=$row3Name")
 
         val prefs = applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val editor = prefs.edit()
         editor.putString("row1_name", row1Name)
-        editor.putString("row1_type", row1Type)
         editor.putString("row1_dday", row1Dday)
         editor.putString("row1_price", row1Price)
         editor.putString("row1_securities", row1Securities)
         editor.putString("row2_name", row2Name)
-        editor.putString("row2_type", row2Type)
         editor.putString("row2_dday", row2Dday)
         editor.putString("row2_price", row2Price)
         editor.putString("row2_securities", row2Securities)
         editor.putString("row3_name", row3Name)
-        editor.putString("row3_type", row3Type)
         editor.putString("row3_dday", row3Dday)
         editor.putString("row3_price", row3Price)
         editor.putString("row3_securities", row3Securities)
@@ -255,13 +244,14 @@ class WidgetUpdateWorker(
     }
 
     /**
-     * 청약일, 환불일, 상장일 중 가장 가까운 날짜의 D-day와 타입 계산
+     * 청약일, 환불일, 상장일 중 가장 가까운 날짜의 D-day 계산
+     * 반환 형식: "청약 D-3", "환불 D-Day", "상장 D+1" 등
      */
     private fun calculateNearestDday(
         subscriptionStart: String,
         refundDate: String,
         listingDate: String
-    ): Pair<String, String> {
+    ): String {
         data class DateInfo(val date: java.util.Date, val dday: String, val type: String)
 
         val dateInfos = mutableListOf<DateInfo>()
@@ -288,7 +278,7 @@ class WidgetUpdateWorker(
                     diffDays == 0 -> "D-Day"
                     else -> "D+${-diffDays}"
                 }
-                dateInfos.add(DateInfo(subDate, dday, "청"))
+                dateInfos.add(DateInfo(subDate, dday, "청약"))
             }
         }
 
@@ -308,7 +298,7 @@ class WidgetUpdateWorker(
                     diffDays == 0 -> "D-Day"
                     else -> "D+${-diffDays}"
                 }
-                dateInfos.add(DateInfo(refDate, dday, "환"))
+                dateInfos.add(DateInfo(refDate, dday, "환불"))
             }
         }
 
@@ -328,12 +318,12 @@ class WidgetUpdateWorker(
                     diffDays == 0 -> "D-Day"
                     else -> "D+${-diffDays}"
                 }
-                dateInfos.add(DateInfo(listDate, dday, "상"))
+                dateInfos.add(DateInfo(listDate, dday, "상장"))
             }
         }
 
-        // 가장 가까운 날짜 찾기
-        return dateInfos.minByOrNull { it.date }?.let { Pair(it.dday, it.type) } ?: Pair("-", "-")
+        // 가장 가까운 날짜 찾기 - "타입 D-day" 형식으로 반환
+        return dateInfos.minByOrNull { it.date }?.let { "${it.type} ${it.dday}" } ?: "-"
     }
 
     /**

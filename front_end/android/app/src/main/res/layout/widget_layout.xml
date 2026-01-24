@@ -55,21 +55,10 @@
                 android:paddingStart="6dp" />
 
             <TextView
-                android:id="@+id/header_type"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="0.5"
-                android:gravity="center"
-                android:text="타입"
-                android:textColor="@color/widget_header_text"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-
-            <TextView
                 android:id="@+id/header_dday"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:layout_weight="1.5"
                 android:gravity="start"
                 android:text="D-Day"
                 android:textColor="@color/widget_header_text"
@@ -80,7 +69,7 @@
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:layout_weight="1.5"
                 android:gravity="start"
                 android:text="공모가"
                 android:textSize="13sp"
@@ -122,20 +111,10 @@
                 android:paddingStart="6dp" />
 
             <TextView
-                android:id="@+id/row1_type"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="0.5"
-                android:gravity="center"
-                android:text="-"
-                android:textSize="12sp"
-                android:textColor="@color/widget_header_text" />
-
-            <TextView
                 android:id="@+id/row1_dday"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:layout_weight="1.5"
                 android:gravity="start"
                 android:text="-"
                 android:textSize="12sp"
@@ -146,7 +125,7 @@
                 android:id="@+id/row1_price"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:layout_weight="1.5"
                 android:gravity="start"
                 android:text="-"
                 android:textSize="12sp"
@@ -189,20 +168,10 @@
                 android:paddingStart="6dp" />
 
             <TextView
-                android:id="@+id/row2_type"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="0.5"
-                android:gravity="center"
-                android:text="-"
-                android:textSize="12sp"
-                android:textColor="@color/widget_header_text" />
-
-            <TextView
                 android:id="@+id/row2_dday"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:layout_weight="1.5"
                 android:gravity="start"
                 android:text="-"
                 android:textSize="12sp"
@@ -213,7 +182,7 @@
                 android:id="@+id/row2_price"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:layout_weight="1.5"
                 android:gravity="start"
                 android:text="-"
                 android:textSize="12sp"
@@ -256,20 +225,10 @@
                 android:paddingStart="6dp" />
 
             <TextView
-                android:id="@+id/row3_type"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="0.5"
-                android:gravity="center"
-                android:text="-"
-                android:textSize="12sp"
-                android:textColor="@color/widget_header_text" />
-
-            <TextView
                 android:id="@+id/row3_dday"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:layout_weight="1.5"
                 android:gravity="start"
                 android:text="-"
                 android:textSize="12sp"
@@ -280,7 +239,7 @@
                 android:id="@+id/row3_price"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:layout_weight="1.5"
                 android:gravity="start"
                 android:text="-"
                 android:textSize="12sp"
@@ -300,8 +259,5 @@
                 android:ellipsize="end"
                 android:paddingStart="6dp" />
         </LinearLayout>
-
-
     </LinearLayout>
-
 </LinearLayout>
