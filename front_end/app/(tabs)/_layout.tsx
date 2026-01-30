@@ -29,12 +29,10 @@ export default function TabLayout() {
       try {
         // Expo Go에서는 서버 등록 불가 → 무시
         if (Constants.appOwnership === 'expo') {
-          console.log('Expo Go → device 등록 스킵');
           return;
         }
 
         if (!Device.isDevice) {
-          console.log('에뮬레이터 미지원');
           return;
         }
 
@@ -43,7 +41,6 @@ export default function TabLayout() {
         if (status !== 'granted') {
           const req = await Notifications.requestPermissionsAsync();
           if (req.status !== 'granted') {
-            console.log('알림 권한 거부됨');
             return;
           }
         }
@@ -56,9 +53,6 @@ export default function TabLayout() {
         const deviceId = await getStableDeviceId();
         const osType = Platform.OS;
 
-        console.log('📱 DeviceID:', deviceId);
-        console.log('🔔 FCM Token:', fcmToken);
-
         // ⭐ 서버로 등록/업데이트 (리액트 쿼리 사용)
         await registerDeviceMutation.mutateAsync({
           deviceId,
@@ -66,7 +60,7 @@ export default function TabLayout() {
           osType,
         });
       } catch (err) {
-        console.log('🔥 디바이스 등록 실패:', err);
+        // 디바이스 등록 실패
       }
     };
 

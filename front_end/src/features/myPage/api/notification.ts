@@ -28,7 +28,6 @@ export const getNotificationSetting = async (
     );
     return response.data;
   } catch (error) {
-    console.log('알림 설정 로딩 실패:', error);
     return null;
   }
 };

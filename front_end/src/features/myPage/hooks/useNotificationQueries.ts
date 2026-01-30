@@ -37,12 +37,6 @@ export function useRegisterDevice() {
     mutationFn: async (data: RegisterDeviceRequest) => {
       return registerDevice(data);
     },
-    onSuccess: () => {
-      console.log('🟢 디바이스 등록/업데이트 완료');
-    },
-    onError: (error) => {
-      console.log('🔥 디바이스 등록 실패:', error);
-    },
   });
 }
 
@@ -73,9 +67,6 @@ export function useUpdateNotificationSetting() {
     onSuccess: () => {
       // 성공 시 쿼리 캐시 무효화하여 최신 데이터 다시 가져오기
       queryClient.invalidateQueries({ queryKey: ['notification', 'setting'] });
-    },
-    onError: (error) => {
-      console.log('알림 설정 업데이트 실패:', error);
     },
   });
 }

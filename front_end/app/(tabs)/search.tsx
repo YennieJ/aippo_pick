@@ -87,7 +87,7 @@ export default function SearchScreen() {
             setRecentViewedItems(recentIpo);
           }
         } catch (e) {
-          console.log('sync favorites/recent error', e);
+          // sync favorites/recent error
         }
       };
 
@@ -140,7 +140,6 @@ export default function SearchScreen() {
     try {
       // 유효성 검사: company와 code_id가 모두 있어야 저장
       if (!item.company || !item.code_id) {
-        console.log('Invalid item data, skipping save:', item);
         router.push(`/ipo/${item.code_id}`);
         return;
       }
@@ -154,7 +153,7 @@ export default function SearchScreen() {
       await saveStringArray(STORAGE_KEYS.RECENT_SEARCH_RESULTS, jsonArray);
       setRecentViewedItems(updated);
     } catch (e) {
-      console.log('handlePressResultItem error', e);
+      // handlePressResultItem error
     } finally {
       router.push(`/ipo/${item.code_id}`);
     }
@@ -171,7 +170,7 @@ export default function SearchScreen() {
       await saveStringArray(STORAGE_KEYS.FAVORITES, updated);
       setFavorites(updated);
     } catch (e) {
-      console.log('handleToggleFavorite error', e);
+      // handleToggleFavorite error
     }
   };
 
@@ -188,7 +187,7 @@ export default function SearchScreen() {
       await saveStringArray(STORAGE_KEYS.RECENT_SEARCH_RESULTS, jsonArray);
       setRecentViewedItems(updated);
     } catch (e) {
-      console.log('removeRecentItem error', e);
+      // removeRecentItem error
     }
   };
 
@@ -198,7 +197,7 @@ export default function SearchScreen() {
       await saveStringArray(STORAGE_KEYS.RECENT_SEARCH_RESULTS, []);
       setRecentViewedItems([]);
     } catch (e) {
-      console.log('clearRecentItems error', e);
+      // clearRecentItems error
     }
   };
 

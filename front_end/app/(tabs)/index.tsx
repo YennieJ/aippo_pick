@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
-import Constants from 'expo-constants';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import {
@@ -50,7 +49,6 @@ export default function HomeScreen() {
 
   // 탭 변경 시 아코디언 모두 닫기
   useEffect(() => {
-    console.log('🔥 API_BASE_URL =', Constants.expoConfig?.extra?.apiBaseUrl);
     setExpandedItems(new Set());
   }, [selectedTab2]);
 

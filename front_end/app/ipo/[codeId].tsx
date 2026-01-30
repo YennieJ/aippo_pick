@@ -52,7 +52,9 @@ export default function IpoDetailScreen() {
         ].slice(0, 10);
         await saveStringArray(STORAGE_KEYS.RECENT_IPO, next);
       } catch (e) {
-        console.log('addRecentIpo error', e);
+        if (__DEV__) {
+          console.log('addRecentIpo error', e);
+        }
       }
     };
     addRecentIpo();
