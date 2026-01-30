@@ -1,9 +1,10 @@
 package com.itl.aippopick
 
+import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
-import android.content.SharedPreferences
+import android.content.Intent
 import android.widget.RemoteViews
 import android.util.Log
 import androidx.work.Constraints
@@ -51,6 +52,19 @@ class MyWidgetProvider : AppWidgetProvider() {
             Log.d(TAG, "로딩 상태: $isLoading")
 
             val views = RemoteViews(context.packageName, R.layout.widget_layout)
+
+            // 위젯 클릭 시 앱 실행
+            val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
+            if (launchIntent != null) {
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                val pendingIntent = PendingIntent.getActivity(
+                    context,
+                    appWidgetId,
+                    launchIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                views.setOnClickPendingIntent(R.id.widget_root, pendingIntent)
+            }
 
             if (isLoading) {
                 // 로딩 중: 이미지 표시, 테이블 숨김

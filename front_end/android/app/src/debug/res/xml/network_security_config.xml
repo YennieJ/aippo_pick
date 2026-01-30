@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+  <!-- 개발 빌드: Expo Metro 서버 통신을 위해 HTTP 허용 -->
+  <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

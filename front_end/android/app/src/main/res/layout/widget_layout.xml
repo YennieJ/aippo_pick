@@ -20,7 +20,7 @@
     <LinearLayout
         android:id="@+id/widget_content_layout"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:orientation="vertical">
 
         <!-- 제목 -->
@@ -32,7 +32,7 @@
             android:textSize="16sp"
             android:textStyle="bold"
             android:textColor="@color/widget_title_text"
-            android:layout_marginBottom="8dp" />
+            android:layout_marginBottom="6dp" />
 
         <!-- 테이블 헤더 -->
         <LinearLayout
@@ -40,7 +40,7 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:background="@color/widget_header_background"
-            android:paddingVertical="10dp"
+            android:paddingVertical="8dp"
             android:paddingHorizontal="6dp">
 
             <TextView
@@ -89,13 +89,13 @@
                 android:paddingStart="6dp" />
         </LinearLayout>
 
-        <!-- 공통 행 스타일 예시 : ROW 1 -->
+        <!-- ROW 1 -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:minHeight="32dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:orientation="horizontal"
-            android:paddingVertical="6dp"
+            android:gravity="center_vertical"
             android:paddingHorizontal="4dp">
 
             <TextView
@@ -149,10 +149,10 @@
         <!-- ROW 2 -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:minHeight="32dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:orientation="horizontal"
-            android:paddingVertical="6dp"
+            android:gravity="center_vertical"
             android:paddingHorizontal="4dp">
 
             <TextView
@@ -206,10 +206,10 @@
         <!-- ROW 3 -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:minHeight="32dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:orientation="horizontal"
-            android:paddingVertical="6dp"
+            android:gravity="center_vertical"
             android:paddingHorizontal="4dp">
 
             <TextView

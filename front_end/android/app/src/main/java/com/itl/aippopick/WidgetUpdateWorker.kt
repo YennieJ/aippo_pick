@@ -26,7 +26,12 @@ class WidgetUpdateWorker(
 
     companion object {
         private const val TAG = "WidgetUpdateWorker"
-        private const val API_BASE_URL = "http://122.42.248.81:4000"
+        // 개발: HTTP IP, 프로덕션: HTTPS 도메인
+        private val API_BASE_URL = if (BuildConfig.DEBUG) {
+            "http://122.42.248.81:4000"
+        } else {
+            "https://api.aippopick.shop"
+        }
         private const val PREFS_NAME = "widget_data"
     }
 
