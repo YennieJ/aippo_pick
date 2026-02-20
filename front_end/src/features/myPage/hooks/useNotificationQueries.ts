@@ -18,9 +18,13 @@ let cachedDeviceId: string | null = null;
 export async function getStableDeviceId(): Promise<string> {
   if (cachedDeviceId) return cachedDeviceId;
 
-  let id = Application.getAndroidId();
+  let id: string | null = null;
 
-  // iOS fallback
+  const { Platform } = require('react-native');
+  if (Platform.OS === 'android') {
+    id = Application.getAndroidId();
+  }
+
   if (!id) {
     id = `${Application.applicationId}-${Application.nativeApplicationVersion}`;
   }

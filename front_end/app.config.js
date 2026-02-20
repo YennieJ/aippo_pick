@@ -15,6 +15,7 @@ export default ({ config }) => ({
   ios: {
     supportsTablet: true,
     bundleIdentifier: "com.itl.aippopick",
+    appleTeamId: "LQ97BNQH9G",
     config: {
       usesNonExemptEncryption: false,
     },
@@ -65,8 +66,14 @@ export default ({ config }) => ({
       },
     ],
 
-    // Android HTTP 허용 (network_security_config.xml로 특정 도메인만 허용)
-    // 프로덕션에서는 networkSecurityConfig만 사용하여 보안 강화
+    [
+      "expo-build-properties",
+      {
+        ios: {
+          deploymentTarget: "15.1",
+        },
+      },
+    ],
 
     // iOS 위젯 (WidgetKit)
     "./plugins/withIOSWidget",
