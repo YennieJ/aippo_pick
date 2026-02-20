@@ -74,8 +74,8 @@ export default function TabLayout() {
         tabBarInactiveTintColor: Colors[colorScheme ?? 'light'].tabIconDefault,
         headerShown: false, // 헤더 숨김
         tabBarStyle: {
-          height: 70 + insets.bottom,
-          paddingTop: 10,
+          height: (Platform.OS === 'ios' ? 55 : 70) + insets.bottom,
+          paddingTop: Platform.OS === 'ios' ? 5 : 10,
           paddingBottom: insets.bottom,
           backgroundColor: Colors[colorScheme ?? 'light'].tabBarBackground,
           borderTopColor: colorScheme === 'dark' ? '#1f2937' : '#e5e7eb',

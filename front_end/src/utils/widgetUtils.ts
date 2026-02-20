@@ -53,8 +53,7 @@ const formatSecurities = (securities?: string[]): string => {
  * 위젯 데이터 업데이트
  */
 export const updateWidget = async (data: WidgetTableData): Promise<boolean> => {
-  if (Platform.OS !== 'android') {
-    console.log('Widget is only supported on Android');
+  if (Platform.OS !== 'android' && Platform.OS !== 'ios') {
     return false;
   }
 
@@ -62,7 +61,6 @@ export const updateWidget = async (data: WidgetTableData): Promise<boolean> => {
     await WidgetModule.updateWidgetData(data);
     return true;
   } catch (error) {
-    console.error('Widget update error:', error);
     return false;
   }
 };
@@ -72,14 +70,13 @@ export const updateWidget = async (data: WidgetTableData): Promise<boolean> => {
  * @returns 위젯 데이터 또는 null
  */
 export const getWidgetData = async (): Promise<WidgetTableData | null> => {
-  if (Platform.OS !== 'android') {
+  if (Platform.OS !== 'android' && Platform.OS !== 'ios') {
     return null;
   }
 
   try {
     return await WidgetModule.getWidgetData();
   } catch (error) {
-    console.error('Widget get data error:', error);
     return null;
   }
 };
@@ -92,7 +89,7 @@ export const getWidgetData = async (): Promise<WidgetTableData | null> => {
 export const updateWidgetWithIpoData = async (
   ipoData: IpoData | IpoData[]
 ): Promise<boolean> => {
-  if (Platform.OS !== 'android') {
+  if (Platform.OS !== 'android' && Platform.OS !== 'ios') {
     return false;
   }
 
@@ -155,7 +152,9 @@ export const updateWidgetWithIpoData = async (
 
     return await updateWidget(widgetData);
   } catch (error) {
-    console.error('Widget update with IPO data error:', error);
+    if (__DEV__) {
+      console.error('Widget update with IPO data error:', error);
+    }
     return false;
   }
 };
@@ -165,17 +164,14 @@ export const updateWidgetWithIpoData = async (
  * @returns 새로고침 성공 여부
  */
 export const forceRefreshWidget = async (): Promise<boolean> => {
-  if (Platform.OS !== 'android') {
-    console.log('Widget is only supported on Android');
+  if (Platform.OS !== 'android' && Platform.OS !== 'ios') {
     return false;
   }
 
   try {
     const result = await WidgetModule.forceRefreshWidget();
-    console.log('Widget force refresh result:', result);
     return true;
   } catch (error) {
-    console.error('Widget force refresh error:', error);
     return false;
   }
 };

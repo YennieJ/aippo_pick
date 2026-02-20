@@ -205,7 +205,9 @@ export default function HomeScreen() {
 
   const handleShowAll = () => {
     if (Platform.OS === 'web') {
-      Linking.openURL('https://play.google.com/store/apps/details?id=com.itl.aippopick');
+      Linking.openURL(
+        'https://play.google.com/store/apps/details?id=com.itl.aippopick'
+      );
     } else {
       router.push('/calendar');
     }
@@ -393,15 +395,15 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-black" edges={['top']}>
-      <ScrollView
-        ref={scrollViewRef}
-        className="flex-1 bg-white dark:bg-black"
-        contentContainerStyle={{ gap: 12 }}
-      >
-        {/* 슬라이더 */}
+      <ScrollView ref={scrollViewRef} className="flex-1 bg-white dark:bg-black">
+        {/* 슬라이더 (하단 여유로 카드 쉐도우가 잘리지 않도록) */}
         <View className="py-5 justify-center">
-          <SectionHeader title="오늘의 공모주" onPress={handleShowAll} showPlayStoreOnWeb />
-{isWeb ? (
+          <SectionHeader
+            title="오늘의 공모주"
+            onPress={handleShowAll}
+            showPlayStoreOnWeb
+          />
+          {isWeb ? (
             // 웹: 버튼으로 좌우 이동 + 도트 인디케이터
             <View className="px-4">
               <View className="flex-row items-center justify-center">
@@ -415,16 +417,27 @@ export default function HomeScreen() {
                 </TouchableOpacity>
 
                 <View className="flex-1 items-center">
-                  {todayIpo && todayIpo[webSliderIndex] && sliderItem({ item: todayIpo[webSliderIndex] })}
+                  {todayIpo &&
+                    todayIpo[webSliderIndex] &&
+                    sliderItem({ item: todayIpo[webSliderIndex] })}
                 </View>
 
                 <TouchableOpacity
                   onPress={handleWebSliderNext}
                   disabled={!todayIpo || webSliderIndex >= todayIpo.length - 1}
                   className="p-3"
-                  style={{ opacity: !todayIpo || webSliderIndex >= todayIpo.length - 1 ? 0.3 : 1 }}
+                  style={{
+                    opacity:
+                      !todayIpo || webSliderIndex >= todayIpo.length - 1
+                        ? 0.3
+                        : 1,
+                  }}
                 >
-                  <IconSymbol name="chevron.right" size={24} color={iconColor} />
+                  <IconSymbol
+                    name="chevron.right"
+                    size={24}
+                    color={iconColor}
+                  />
                 </TouchableOpacity>
               </View>
 
@@ -462,7 +475,10 @@ export default function HomeScreen() {
               horizontal
               pagingEnabled={false}
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: PADDING }}
+              contentContainerStyle={{
+                paddingHorizontal: PADDING,
+                paddingBottom: 12,
+              }}
               snapToAlignment="start"
               snapToInterval={ITEM_WIDTH + 10}
             />

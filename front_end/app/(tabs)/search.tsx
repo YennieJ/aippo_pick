@@ -3,6 +3,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   ScrollView,
   Text,
   TextInput,
@@ -34,7 +35,9 @@ export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [favorites, setFavorites] = useState<string[]>([]);
-  const [recentViewedItems, setRecentViewedItems] = useState<SearchResult[]>([]);
+  const [recentViewedItems, setRecentViewedItems] = useState<SearchResult[]>(
+    []
+  );
 
   // 스크롤뷰 ref
   const scrollViewRef = useRef<ScrollView>(null);
@@ -145,7 +148,9 @@ export default function SearchScreen() {
       }
 
       // 최근 본 공모주에 추가 (중복 제거 후 맨 앞에 추가)
-      const filtered = recentViewedItems.filter((i) => i.code_id !== item.code_id);
+      const filtered = recentViewedItems.filter(
+        (i) => i.code_id !== item.code_id
+      );
       const updated = [item, ...filtered].slice(0, 10); // 최대 10개 유지
 
       // 스토리지에 저장 (JSON 문자열 배열로) - 검색 페이지 전용 스토리지
@@ -182,7 +187,9 @@ export default function SearchScreen() {
   // 최근 검색 결과 개별 삭제
   const handleRemoveRecentItem = async (codeId: string) => {
     try {
-      const updated = recentViewedItems.filter((item) => item.code_id !== codeId);
+      const updated = recentViewedItems.filter(
+        (item) => item.code_id !== codeId
+      );
       const jsonArray = updated.map((i) => JSON.stringify(i));
       await saveStringArray(STORAGE_KEYS.RECENT_SEARCH_RESULTS, jsonArray);
       setRecentViewedItems(updated);
@@ -205,24 +212,19 @@ export default function SearchScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-black" edges={['top']}>
-      <ScrollView
-        ref={scrollViewRef}
-        className="flex-1 bg-white dark:bg-black"
-        contentContainerStyle={{ gap: 24 }}
-      >
+      <ScrollView ref={scrollViewRef} className="flex-1 bg-white dark:bg-black">
         {/* 헤더 */}
         <View className="py-5">
-          <SectionHeader title="공모주 검색" showPlayStoreOnWeb/>
+          <SectionHeader title="공모주 검색" showPlayStoreOnWeb />
 
           {/* 검색창 */}
-          <View className="flex-row items-center rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 mx-4">
+          <View className="flex-row items-center rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 mx-4" style={{ height: 44 }}>
             <MaterialIcons
               name="search"
-              size={24}
+              size={22}
               color={iconColor}
-              style={{ marginRight: 8 }}
+              style={{ marginRight: 10 }}
             />
-
             <TextInput
               className="flex-1 text-base text-gray-900 dark:text-white"
               placeholder="예) 삼성, 207940"
@@ -235,6 +237,20 @@ export default function SearchScreen() {
               blurOnSubmit={false}
               multiline={false}
               numberOfLines={1}
+              style={{
+                height: 44,
+                ...(Platform.OS === 'ios'
+                  ? {
+                      lineHeight: 20,
+                      paddingTop: 12,
+                      paddingBottom: 12,
+                    }
+                  : {
+                      paddingVertical: 0,
+                      textAlignVertical: 'center' as const,
+                      includeFontPadding: false,
+                    }),
+              }}
             />
           </View>
         </View>

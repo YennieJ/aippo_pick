@@ -14,6 +14,22 @@ export default ({ config }) => ({
 
   ios: {
     supportsTablet: true,
+    bundleIdentifier: "com.itl.aippopick",
+    config: {
+      usesNonExemptEncryption: false,
+    },
+    infoPlist: {
+      NSAppTransportSecurity: {
+        NSAllowsArbitraryLoads: false,
+        NSExceptionDomains: {
+          "api.aippopick.shop": {
+            NSIncludesSubdomains: true,
+            NSExceptionAllowsInsecureHTTPLoads: false,
+          },
+        },
+      },
+      ITSAppUsesNonExemptEncryption: false,
+    },
   },
 
   android: {
@@ -49,15 +65,11 @@ export default ({ config }) => ({
       },
     ],
 
-    // ❤️ 공주: HTTP 허용은 이 플러그인으로만 가능해
-    [
-      "expo-build-properties",
-      {
-        android: {
-          usesCleartextTraffic: true,
-        },
-      },
-    ],
+    // Android HTTP 허용 (network_security_config.xml로 특정 도메인만 허용)
+    // 프로덕션에서는 networkSecurityConfig만 사용하여 보안 강화
+
+    // iOS 위젯 (WidgetKit)
+    "./plugins/withIOSWidget",
   ],
 
   experiments: {

@@ -1,8 +1,10 @@
 import { Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { runOnJS } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SectionHeader } from '../../src/shared';
 import { useColorScheme } from '../../src/shared/hooks/use-color-scheme';
@@ -243,25 +245,37 @@ export default function CalendarScreen() {
   const weeks = generateCalendarWeeks(currentYear, currentMonth);
   const weekDays = ['월', '화', '수', '목', '금'];
 
-  // 이전 달로 이동
-  const goToPreviousMonth = () => {
+  const goToPreviousMonth = useCallback(() => {
     if (currentMonth === 1) {
       setCurrentMonth(12);
       setCurrentYear(currentYear - 1);
     } else {
       setCurrentMonth(currentMonth - 1);
     }
-  };
+  }, [currentYear, currentMonth]);
 
-  // 다음 달로 이동
-  const goToNextMonth = () => {
+  const goToNextMonth = useCallback(() => {
     if (currentMonth === 12) {
       setCurrentMonth(1);
       setCurrentYear(currentYear + 1);
     } else {
       setCurrentMonth(currentMonth + 1);
     }
-  };
+  }, [currentYear, currentMonth]);
+
+  // 가로 스와이프로 월 이동 (UI 스레드 콜백이므로 setState는 runOnJS로 호출)
+  const panGesture = useMemo(
+    () =>
+      Gesture.Pan()
+        .activeOffsetX([-24, 24])
+        .failOffsetY([-15, 15])
+        .onEnd((e) => {
+          const threshold = 40;
+          if (e.translationX > threshold) runOnJS(goToPreviousMonth)();
+          if (e.translationX < -threshold) runOnJS(goToNextMonth)();
+        }),
+    [goToPreviousMonth, goToNextMonth]
+  );
 
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-black" edges={['top']}>
@@ -296,15 +310,17 @@ export default function CalendarScreen() {
               </View>
             </View>
 
-            <CalendarHeader
-              year={currentYear}
-              month={currentMonth}
-              onPrevious={goToPreviousMonth}
-              onNext={goToNextMonth}
-            />
+            <GestureDetector gesture={panGesture}>
+              <View>
+                <CalendarHeader
+                  year={currentYear}
+                  month={currentMonth}
+                  onPrevious={goToPreviousMonth}
+                  onNext={goToNextMonth}
+                />
 
-            {/* 요일 헤더 */}
-            <View
+                {/* 요일 헤더 */}
+                <View
               className="flex-row px-4"
               style={{
                 borderBottomWidth: 1,
@@ -378,6 +394,8 @@ export default function CalendarScreen() {
                 />
               );
             })}
+              </View>
+            </GestureDetector>
           </View>
         </View>
       </ScrollView>
