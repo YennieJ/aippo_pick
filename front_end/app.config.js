@@ -90,6 +90,20 @@ export default ({ config }) => ({
   extra: {
     router: {},
     apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL, // APK에서도 인식됨
-    eas: { projectId: process.env.EAS_PROJECT_ID },
+    eas: {
+      projectId: process.env.EAS_PROJECT_ID,
+      build: {
+        experimental: {
+          ios: {
+            appExtensions: [
+              {
+                targetName: "IPOWidget",
+                bundleIdentifier: "com.itl.aippopick.widget",
+              },
+            ],
+          },
+        },
+      },
+    },
   },
 });
