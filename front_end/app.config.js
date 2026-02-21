@@ -99,6 +99,11 @@ export default ({ config }) => ({
               {
                 targetName: "IPOWidget",
                 bundleIdentifier: "com.itl.aippopick.widget",
+                entitlements: {
+                  "com.apple.security.application-groups": [
+                    "group.com.itl.aippopick",
+                  ],
+                },
               },
             ],
           },
