@@ -41,7 +41,8 @@
       "Bash(yes:*)",
       "Bash(~/Library/Android/sdk/cmdline-tools/latest/bin/sdkmanager:*)",
       "Bash(~/Library/Android/sdk/cmdline-tools/latest/bin/avdmanager create avd:*)",
-      "Bash(npx expo export:*)"
+      "Bash(npx expo export:*)",
+      "WebFetch(domain:expo.fyi)"
     ]
   }
 }

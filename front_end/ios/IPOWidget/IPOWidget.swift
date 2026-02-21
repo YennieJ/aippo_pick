@@ -20,7 +20,12 @@ struct IPOEntry: TimelineEntry {
 
 struct IPOProvider: TimelineProvider {
     let appGroupID = "group.com.itl.aippopick"
+    // 개발: HTTP IP, 프로덕션: HTTPS 도메인
+    #if DEBUG
     let apiURL = "http://122.42.248.81:4000/data_ipo/today"
+    #else
+    let apiURL = "https://api.aippopick.shop/data_ipo/today"
+    #endif
 
     func placeholder(in context: Context) -> IPOEntry {
         IPOEntry(date: Date(), rows: sampleRows(), isLoading: false)

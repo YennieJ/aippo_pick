@@ -77,6 +77,9 @@ export default ({ config }) => ({
 
     // iOS 위젯 (WidgetKit)
     "./plugins/withIOSWidget",
+
+    // Xcode 14+ resource bundle signing fix
+    "./plugins/withPodfileResourceBundleFix",
   ],
 
   experiments: {
