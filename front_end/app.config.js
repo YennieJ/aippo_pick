@@ -65,7 +65,6 @@ export default ({ config }) => ({
         dark: { backgroundColor: "#000000" },
       },
     ],
-
     [
       "expo-build-properties",
       {
@@ -74,11 +73,7 @@ export default ({ config }) => ({
         },
       },
     ],
-
-    // iOS 위젯 (WidgetKit)
     "./plugins/withIOSWidget",
-
-    // Xcode 14+ resource bundle signing fix
     "./plugins/withPodfileResourceBundleFix",
   ],
 
@@ -87,28 +82,27 @@ export default ({ config }) => ({
     reactCompiler: true,
   },
 
-  extra: {
-    router: {},
-    apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL, // APK에서도 인식됨
-    eas: {
-      projectId: process.env.EAS_PROJECT_ID,
-      build: {
-        experimental: {
-          ios: {
-            appExtensions: [
-              {
-                targetName: "IPOWidget",
-                bundleIdentifier: "com.itl.aippopick.widget",
-                entitlements: {
-                  "com.apple.security.application-groups": [
-                    "group.com.itl.aippopick",
-                  ],
-                },
-              },
+  build: {
+    ios: {
+      appExtensions: [
+        {
+          targetName: "IPOWidget",
+          bundleIdentifier: "com.itl.aippopick.widget",
+          entitlements: {
+            "com.apple.security.application-groups": [
+              "group.com.itl.aippopick",
             ],
           },
         },
-      },
+      ],
+    },
+  },
+
+  extra: {
+    router: {},
+    apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL,
+    eas: {
+      projectId: process.env.EAS_PROJECT_ID,
     },
   },
 });

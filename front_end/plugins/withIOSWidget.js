@@ -93,10 +93,11 @@ struct IPOProvider: TimelineProvider {
             var rows: [IPORowData] = []
             for item in jsonArray.prefix(3) {
                 let title = item["title"] as? String ?? "데이터 없음"
-                let subDate = extractStartDate(item["subscriptiondate"] as? String ?? "")
+                let status = item["status"] as? String ?? ""
+                let subRaw = item["subscriptiondate"] as? String ?? ""
                 let refundDate = item["refunddate"] as? String ?? ""
                 let listingDate = item["listingdate"] as? String ?? ""
-                let dday = calculateNearestDday(subscription: subDate, refund: refundDate, listing: listingDate)
+                let dday = ddayByStatus(status: status, subscription: subRaw, refund: refundDate, listing: listingDate)
                 let confirmedPrice = item["confirmedprice"] as? String ?? "-"
                 let price = (confirmedPrice.isEmpty || confirmedPrice == "-원") ? "-" : confirmedPrice
                 let brokers = item["brokers"] as? [String] ?? []
@@ -113,12 +114,42 @@ struct IPOProvider: TimelineProvider {
 
     // MARK: - D-Day Calculation
 
+    /// 청약일 범위(시작~종료)일 때, 시작일이 지나면 종료일 기준으로 D-day
     func extractStartDate(_ dateRange: String) -> String {
         if dateRange.isEmpty { return "" }
-        if dateRange.contains("~") {
-            return dateRange.components(separatedBy: "~").first?.trimmingCharacters(in: .whitespaces) ?? ""
+        let trimmed = dateRange.trimmingCharacters(in: .whitespaces)
+        if trimmed.contains("~") {
+            let parts = trimmed.components(separatedBy: "~").map { $0.trimmingCharacters(in: .whitespaces) }
+            guard parts.count >= 2, let startDate = parseDate(parts[0]) else { return parts.first ?? "" }
+            let today = Calendar.current.startOfDay(for: Date())
+            if today >= startDate { return parts[1] }
+            return parts[0]
         }
-        return dateRange.trimmingCharacters(in: .whitespaces)
+        return trimmed
+    }
+
+    /// 홈과 동일: API status 기준으로 해당 날짜만 사용해 D-day 표기
+    func ddayByStatus(status: String, subscription: String, refund: String, listing: String) -> String {
+        let dateStr: String
+        switch status {
+        case "청약":
+            dateStr = extractStartDate(subscription)
+        case "상장":
+            dateStr = listing.trimmingCharacters(in: .whitespaces)
+        case "환불":
+            dateStr = refund.trimmingCharacters(in: .whitespaces)
+        default:
+            return calculateNearestDday(subscription: extractStartDate(subscription), refund: refund, listing: listing)
+        }
+        if dateStr.isEmpty { return calculateNearestDday(subscription: extractStartDate(subscription), refund: refund, listing: listing) }
+        guard let target = parseDate(dateStr) else { return "-" }
+        let today = Calendar.current.startOfDay(for: Date())
+        let days = Calendar.current.dateComponents([.day], from: today, to: Calendar.current.startOfDay(for: target)).day ?? 0
+        let ddayStr: String
+        if days > 0 { ddayStr = "D-\\(days)" }
+        else if days == 0 { ddayStr = "D-Day" }
+        else { ddayStr = "D+\\(abs(days))" }
+        return "\\(status) \\(ddayStr)"
     }
 
     func calculateNearestDday(subscription: String, refund: String, listing: String) -> String {

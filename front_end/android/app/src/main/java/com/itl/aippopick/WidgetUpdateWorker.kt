@@ -58,18 +58,14 @@ class WidgetUpdateWorker(
                 // 첫 번째 행 데이터
                 val firstItem = ipoData.getJSONObject(0)
                 val row1Name = firstItem.optString("title", "데이터 없음")
-                val subscriptionDate1 = extractStartDate(firstItem.optString("subscriptiondate", ""))
+                val status1 = firstItem.optString("status", "")
+                val subRaw1 = firstItem.optString("subscriptiondate", "")
                 val refundDate1 = firstItem.optString("refunddate", "")
                 val listingDate1 = firstItem.optString("listingdate", "")
 
-                Log.d(TAG, "Row1 - 종목: $row1Name")
-                Log.d(TAG, "Row1 - 청약일: $subscriptionDate1, 환불일: $refundDate1, 상장일: $listingDate1")
+                Log.d(TAG, "Row1 - 종목: $row1Name, status: $status1")
 
-                val row1Dday = calculateNearestDday(
-                    subscriptionDate1,
-                    refundDate1,
-                    listingDate1
-                )
+                val row1Dday = ddayByStatus(status1, subRaw1, refundDate1, listingDate1)
 
                 Log.d(TAG, "Row1 - D-day: $row1Dday")
                 val confirmedPrice = firstItem.optString("confirmedprice", "")
@@ -84,9 +80,9 @@ class WidgetUpdateWorker(
                 if (ipoData.length() > 1) {
                     val secondItem = ipoData.getJSONObject(1)
                     row2Name = secondItem.optString("title", "데이터 없음")
-                    val subscriptionDate2 = extractStartDate(secondItem.optString("subscriptiondate", ""))
-                    row2Dday = calculateNearestDday(
-                        subscriptionDate2,
+                    row2Dday = ddayByStatus(
+                        secondItem.optString("status", ""),
+                        secondItem.optString("subscriptiondate", ""),
                         secondItem.optString("refunddate", ""),
                         secondItem.optString("listingdate", "")
                     )
@@ -108,9 +104,9 @@ class WidgetUpdateWorker(
                 if (ipoData.length() > 2) {
                     val thirdItem = ipoData.getJSONObject(2)
                     row3Name = thirdItem.optString("title", "데이터 없음")
-                    val subscriptionDate3 = extractStartDate(thirdItem.optString("subscriptiondate", ""))
-                    row3Dday = calculateNearestDday(
-                        subscriptionDate3,
+                    row3Dday = ddayByStatus(
+                        thirdItem.optString("status", ""),
+                        thirdItem.optString("subscriptiondate", ""),
                         thirdItem.optString("refunddate", ""),
                         thirdItem.optString("listingdate", "")
                     )
@@ -230,22 +226,79 @@ class WidgetUpdateWorker(
     }
 
     /**
-     * 청약 날짜 범위에서 시작 날짜만 추출
-     * 예: "2026.01.12~2026.01.13" -> "2026.01.12"
+     * 청약 날짜: 범위(시작~종료)일 때 시작일이 지나면 종료일 기준으로 D-day
+     * 예: "2026.01.12~2026.01.13" → 오늘 >= 01.12 이면 "2026.01.13", 아니면 "2026.01.12"
      */
     private fun extractStartDate(dateRange: String): String {
         if (dateRange.isEmpty()) return ""
 
         return try {
-            if (dateRange.contains("~")) {
-                dateRange.split("~")[0].trim()
+            val trimmed = dateRange.trim()
+            if (trimmed.contains("~")) {
+                val parts = trimmed.split("~").map { it.trim() }
+                if (parts.size < 2) return parts.firstOrNull() ?: ""
+                val startDate = parseDate(parts[0]) ?: return parts[0]
+                val today = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }.time
+                if (today.time >= startDate.time) parts[1] else parts[0]
             } else {
-                dateRange.trim()
+                trimmed
             }
         } catch (e: Exception) {
             Log.e(TAG, "청약 날짜 추출 실패: $dateRange", e)
             ""
         }
+    }
+
+    /**
+     * 홈과 동일: API status 기준으로 해당 날짜만 사용해 D-day 표기
+     */
+    private fun ddayByStatus(
+        status: String,
+        subscription: String,
+        refundDate: String,
+        listingDate: String
+    ): String {
+        val dateStr = when (status) {
+            "청약" -> extractStartDate(subscription)
+            "상장" -> listingDate.trim()
+            "환불" -> refundDate.trim()
+            else -> return calculateNearestDday(
+                extractStartDate(subscription),
+                refundDate,
+                listingDate
+            )
+        }
+        if (dateStr.isEmpty()) return calculateNearestDday(
+            extractStartDate(subscription),
+            refundDate,
+            listingDate
+        )
+        val target = parseDate(dateStr) ?: return "-"
+        val today = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        val targetCal = Calendar.getInstance().apply {
+            time = target
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        val diffDays = ((targetCal.timeInMillis - today.timeInMillis) / (1000 * 60 * 60 * 24)).toInt()
+        val dday = when {
+            diffDays > 0 -> "D-$diffDays"
+            diffDays == 0 -> "D-Day"
+            else -> "D+${-diffDays}"
+        }
+        return "$status $dday"
     }
 
     /**
