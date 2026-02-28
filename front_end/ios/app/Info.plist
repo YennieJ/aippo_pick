@@ -49,7 +49,17 @@
     <key>NSAppTransportSecurity</key>
     <dict>
       <key>NSAllowsArbitraryLoads</key>
-      <true/>
+      <false/>
+      <key>NSExceptionDomains</key>
+      <dict>
+        <key>api.aippopick.shop</key>
+        <dict>
+          <key>NSIncludesSubdomains</key>
+          <true/>
+          <key>NSExceptionAllowsInsecureHTTPLoads</key>
+          <false/>
+        </dict>
+      </dict>
     </dict>
     <key>NSUserActivityTypes</key>
     <array>

@@ -2,7 +2,6 @@ const {
     withEntitlementsPlist,
     withDangerousMod,
     withXcodeProject,
-    withInfoPlist,
 } = require("@expo/config-plugins");
 const fs = require("fs");
 const path = require("path");
@@ -36,12 +35,7 @@ struct IPOEntry: TimelineEntry {
 
 struct IPOProvider: TimelineProvider {
     let appGroupID = "${APP_GROUP_ID}"
-    // 개발: HTTP IP, 프로덕션: HTTPS 도메인
-    #if DEBUG
-    let apiURL = "http://122.42.248.81:4000/data_ipo/today"
-    #else
     let apiURL = "https://api.aippopick.shop/data_ipo/today"
-    #endif
 
     func placeholder(in context: Context) -> IPOEntry {
         IPOEntry(date: Date(), rows: sampleRows(), isLoading: false)
@@ -408,15 +402,7 @@ function withIOSWidget(config) {
         return config;
     });
 
-    // 2. Add ATS to Info.plist (already done in app.config.js, but ensure it's there)
-    config = withInfoPlist(config, (config) => {
-        config.modResults.NSAppTransportSecurity = {
-            NSAllowsArbitraryLoads: true,
-        };
-        return config;
-    });
-
-    // 3. Write widget extension files and native module
+    // 2. Write widget extension files and native module
     config = withDangerousMod(config, [
         "ios",
         async (config) => {
