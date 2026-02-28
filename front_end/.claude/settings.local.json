@@ -44,7 +44,16 @@
       "Bash(npx expo export:*)",
       "WebFetch(domain:expo.fyi)",
       "WebFetch(domain:docs.expo.dev)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(eas secret:list:*)",
+      "Bash(eas env:create:*)",
+      "Bash(adb reverse:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)",
+      "Bash(networksetup -getinfo:*)",
+      "Bash(npx expo:*)",
+      "Bash(npx react-native:*)",
+      "Bash(adb emu kill:*)"
     ]
   }
 }

@@ -2,12 +2,10 @@ import axios from 'axios';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
-// 개발: HTTP, 프로덕션: HTTPS
-const apiBaseUrl = __DEV__
-  ? 'http://122.42.248.81:4000'
-  : (Constants.expoConfig?.extra?.apiBaseUrl ??
-    process.env.EXPO_PUBLIC_API_BASE_URL ??
-    'https://api.aippopick.shop');
+const apiBaseUrl =
+  Constants.expoConfig?.extra?.apiBaseUrl ??
+  process.env.EXPO_PUBLIC_API_BASE_URL ??
+  'https://api.aippopick.shop';
 
 export const api = axios.create({
   baseURL: apiBaseUrl,
@@ -20,3 +18,4 @@ export const api = axios.create({
     },
   }),
 });
+

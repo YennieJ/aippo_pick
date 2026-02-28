@@ -30,6 +30,7 @@ Notifications.setNotificationHandler({
 });
 
 const WEB_MAX_WIDTH = 640;
+const queryClient = new QueryClient();
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -37,7 +38,6 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const queryClient = new QueryClient();
 
   // Android 알림 채널 설정
   useEffect(() => {

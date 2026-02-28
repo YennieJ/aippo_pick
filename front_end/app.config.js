@@ -91,7 +91,7 @@ export default ({ config }) => ({
     router: {},
     apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL, // APK에서도 인식됨
     eas: {
-      projectId: process.env.EAS_PROJECT_ID,
+      projectId: "cf310020-316f-4ac6-924d-f4272a955923",
       build: {
         experimental: {
           ios: {
