@@ -330,7 +330,7 @@ export default function IpoDetailScreen() {
                     <IconSymbol
                       name="checkmark.circle.fill"
                       size={24}
-                      color="#059669"
+                      color="#FF6B35"
                     />
                   ) : (
                     <IconSymbol
@@ -364,7 +364,7 @@ export default function IpoDetailScreen() {
                     <IconSymbol
                       name="checkmark.circle.fill"
                       size={24}
-                      color="#059669"
+                      color="#FF6B35"
                     />
                   ) : (
                     <IconSymbol
@@ -397,7 +397,7 @@ export default function IpoDetailScreen() {
                     <IconSymbol
                       name="checkmark.circle.fill"
                       size={24}
-                      color="#059669"
+                      color="#FF6B35"
                     />
                   ) : (
                     <IconSymbol
@@ -430,7 +430,7 @@ export default function IpoDetailScreen() {
                     <IconSymbol
                       name="checkmark.circle.fill"
                       size={24}
-                      color="#059669"
+                      color="#FF6B35"
                     />
                   ) : (
                     <IconSymbol
@@ -461,6 +461,18 @@ export default function IpoDetailScreen() {
             공모 정보
           </Text>
           <View className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+            <View className="flex-row justify-between items-center py-3 px-3 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+              <Text className="text-sm text-gray-600 dark:text-gray-400 font-medium flex-1">
+                확정공모가
+              </Text>
+              <Text className="text-sm text-gray-900 dark:text-white font-semibold flex-1 text-right">
+                {ipoData.confirmedprice &&
+                ipoData.confirmedprice !== '' &&
+                ipoData.confirmedprice !== '-원'
+                  ? ipoData.confirmedprice
+                  : '-'}
+              </Text>
+            </View>
             <View className="flex-row justify-between items-center py-3 px-3 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
               <Text className="text-sm text-gray-600 dark:text-gray-400 font-medium flex-1">
                 시가총액
