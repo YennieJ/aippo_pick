@@ -14,6 +14,15 @@ export default ({ config }) => ({
 
   ios: {
     supportsTablet: true,
+    // ✅ iOS 카카오 로그인 URL Scheme
+    infoPlist: {
+      CFBundleURLTypes: [
+        {
+          CFBundleURLSchemes: ["kakao6b4ad4a64e775ae17d3ffbf012e65d84"]
+        }
+      ],
+      LSApplicationQueriesSchemes: ["kakaokompassauth", "kakaolink"]
+    }
   },
 
   android: {
@@ -28,6 +37,21 @@ export default ({ config }) => ({
     package: "com.itl.aippopick",
     googleServicesFile: "./google-services.json",
     permissions: ["POST_NOTIFICATIONS"],
+
+    // ✅ Android 카카오 로그인 Intent Filter
+    intentFilters: [
+      {
+        action: "VIEW",
+        autoVerify: true,
+        data: [
+          {
+            scheme: "kakao6b4ad4a64e775ae17d3ffbf012e65d84",
+            host: "oauth"
+          }
+        ],
+        category: ["BROWSABLE", "DEFAULT"]
+      }
+    ]
   },
 
   web: {
@@ -58,6 +82,14 @@ export default ({ config }) => ({
         },
       },
     ],
+    // ✅ 카카오 로그인 플러그인
+    [
+      "@react-native-seoul/kakao-login",
+      {
+        kakaoAppKey: "6b4ad4a64e775ae17d3ffbf012e65d84",
+        iosAppScheme: "kakao6b4ad4a64e775ae17d3ffbf012e65d84"
+      }
+    ]
   ],
 
   experiments: {

@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   ScrollView,
@@ -26,6 +26,46 @@ import { IpoDetailData } from '../../src/features/ipo/types/ipo.types';
 
 import * as Application from 'expo-application';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+/* =========================================================
+   Kakao / Naver / Google Auth 
+========================================================= */
+type KakaoMeResponse = {
+  id: number;
+  kakao_account?: {
+    profile?: {
+      nickname?: string;
+      profile_image_url?: string;
+      thumbnail_image_url?: string;
+    };
+    email?: string;
+  };
+  properties?: {
+    nickname?: string;
+    profile_image?: string;
+    thumbnail_image?: string;
+  };
+};
+
+type NaverProfile = {
+  id: string;
+  nickname?: string;
+  name?: string;
+  email?: string;
+  profile_image?: string;
+};
+
+type GoogleProfile = {
+  id?: string;
+  name?: string;
+  email?: string;
+  photo?: string;
+};
+
+const AUTH_KAKAO_V1 = 'AUTH_KAKAO_V1';
+const AUTH_NAVER_V1 = 'AUTH_NAVER_V1';
+const AUTH_GOOGLE_V1 = 'AUTH_GOOGLE_V1';
 
 /* =========================================================
    🔐 1) 앱 전용 고정 Device ID 생성/로드
@@ -100,6 +140,9 @@ function formatDDayLabel(diff: number): string {
 export default function MyPageScreen() {
   const router = useRouter();
 
+  // ✅ 로그아웃 중복 클릭 방지
+  const isLoggingOutRef = useRef(false);
+
   // 문자열("24,650", " 8,000원") → 숫자로 안전하게 변환
   const parseNumber = (value?: string | null): number | null => {
     if (!value) return null;
@@ -112,7 +155,100 @@ export default function MyPageScreen() {
     return Number.isNaN(num) ? null : num;
   };
 
-  // 🔔 전체 알림 스위치 상태
+  /* =========================================================
+     ✅ 로그인 상태 (카카오/네이버/구글) 로드 + 로그아웃
+  ========================================================= */
+  const [kakaoMe, setKakaoMe] = useState<KakaoMeResponse | null>(null);
+  const [naverMe, setNaverMe] = useState<NaverProfile | null>(null);
+  const [googleMe, setGoogleMe] = useState<GoogleProfile | null>(null);
+
+  const loadAuth = useCallback(async () => {
+    try {
+      const kakaoRaw = await AsyncStorage.getItem(AUTH_KAKAO_V1);
+      if (kakaoRaw) {
+        const parsed = JSON.parse(kakaoRaw) as { profile?: KakaoMeResponse; me?: KakaoMeResponse };
+        const profile = parsed.profile ?? parsed.me ?? null;
+
+        setKakaoMe(profile);
+        setNaverMe(null);
+        setGoogleMe(null);
+        return;
+      }
+
+      const naverRaw = await AsyncStorage.getItem(AUTH_NAVER_V1);
+      if (naverRaw) {
+        const parsed = JSON.parse(naverRaw) as { profile?: NaverProfile };
+        const profile = parsed.profile ?? null;
+
+        setNaverMe(profile);
+        setKakaoMe(null);
+        setGoogleMe(null);
+        return;
+      }
+
+      const googleRaw = await AsyncStorage.getItem(AUTH_GOOGLE_V1);
+      if (googleRaw) {
+        const parsed = JSON.parse(googleRaw) as { profile?: GoogleProfile };
+        const profile = parsed.profile ?? null;
+
+        setGoogleMe(profile);
+        setKakaoMe(null);
+        setNaverMe(null);
+        return;
+      }
+
+      setKakaoMe(null);
+      setNaverMe(null);
+      setGoogleMe(null);
+    } catch (e) {
+      console.log('loadAuth error', e);
+      setKakaoMe(null);
+      setNaverMe(null);
+      setGoogleMe(null);
+    }
+  }, []);
+
+  const onPressLogout = useCallback(async () => {
+    if (isLoggingOutRef.current) return; // ✅ 중복 실행 방지
+    isLoggingOutRef.current = true;
+
+    try {
+      await AsyncStorage.multiRemove([AUTH_KAKAO_V1, AUTH_NAVER_V1, AUTH_GOOGLE_V1]);
+
+      setKakaoMe(null);
+      setNaverMe(null);
+      setGoogleMe(null);
+
+      Alert.alert('로그아웃', '로그아웃 되었습니다.');
+
+      // 로그인 화면으로 교체 이동 (스택 꼬임/이전 state 유지 체감 줄임)
+      router.replace('/(tabs)/login');
+    } catch (e) {
+      console.log('logout error', e);
+    } finally {
+      setTimeout(() => {
+        isLoggingOutRef.current = false;
+      }, 500);
+    }
+  }, [router]);
+
+  const kakaoNickname =
+    kakaoMe?.kakao_account?.profile?.nickname ?? kakaoMe?.properties?.nickname ?? null;
+
+  const loggedName = useMemo(() => {
+    return kakaoNickname ?? naverMe?.nickname ?? naverMe?.name ?? googleMe?.name ?? null;
+  }, [kakaoNickname, naverMe, googleMe]);
+
+  const loggedProvider = useMemo(() => {
+    if (kakaoMe) return 'KAKAO';
+    if (naverMe) return 'NAVER';
+    if (googleMe) return 'GOOGLE';
+    return null;
+  }, [kakaoMe, naverMe, googleMe]);
+
+  /* =========================================================
+     ✅ 알림 설정 state
+  ========================================================= */
   const [notifyAll, setNotifyAll] = useState(false);
   const [notifySpac, setNotifySpac] = useState(true);
   const [notifyReits, setNotifyReits] = useState(true);
@@ -292,6 +428,8 @@ export default function MyPageScreen() {
             if (typeof notify.spac === 'boolean') setNotifySpac(notify.spac);
             if (typeof notify.reits === 'boolean') setNotifyReits(notify.reits);
           }
+
+          await loadAuth();
         } catch (e) {
           console.log('MyPage load error', e);
         }
@@ -302,7 +440,7 @@ export default function MyPageScreen() {
       return () => {
         cancelled = true;
       };
-    }, [loadFavoriteDetails, loadRecentDetails])
+    }, [loadFavoriteDetails, loadRecentDetails, loadAuth])
   );
 
   // 최근 본 전체 삭제
@@ -405,10 +543,76 @@ export default function MyPageScreen() {
           </View>
         </View>
 
-        <ScrollView
-          style={{ backgroundColor: BG }}
-          contentContainerStyle={styles.scrollContent}
-        >
+        <ScrollView style={{ backgroundColor: BG }} contentContainerStyle={styles.scrollContent}>
+          {/* ✅ 로그인 카드 */}
+          <View style={styles.card}>
+            {loggedName ? (
+              <View style={styles.loginRow}>
+                <View style={{ flex: 1 }}>
+                  <View style={styles.loginTopRow}>
+                    <Text style={styles.loginTitle}>이름 : {loggedName}</Text>
+
+                    {!!loggedProvider && (
+                      <View
+                        style={[
+                          styles.providerBadge,
+                          loggedProvider === 'KAKAO'
+                            ? styles.providerBadgeKakao
+                            : loggedProvider === 'NAVER'
+                            ? styles.providerBadgeNaver
+                            : styles.providerBadgeGoogle, // ✅ GOOGLE
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.providerBadgeText,
+                            loggedProvider === 'KAKAO'
+                              ? styles.providerBadgeTextKakao
+                              : loggedProvider === 'NAVER'
+                              ? styles.providerBadgeTextNaver
+                              : styles.providerBadgeTextGoogle, // ✅ GOOGLE
+                          ]}
+                        >
+                          {loggedProvider}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+
+                  <Text style={styles.loginSub}>
+                    {loggedProvider === 'KAKAO'
+                      ? '카카오 계정으로 로그인됨'
+                      : loggedProvider === 'NAVER'
+                      ? '네이버 계정으로 로그인됨'
+                      : loggedProvider === 'GOOGLE'
+                      ? '구글 계정으로 로그인됨'
+                      : '로그인됨'}
+                  </Text>
+                </View>
+
+                <TouchableOpacity
+                  onPress={onPressLogout}
+                  activeOpacity={0.85}
+                  disabled={isLoggingOutRef.current}
+                >
+                  <View style={[styles.neutralPill, isLoggingOutRef.current && { opacity: 0.55 }]}>
+                    <MaterialIcons name="logout" size={18} color="#111827" />
+                    <Text style={styles.neutralPillText}>로그아웃</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                activeOpacity={0.9}
+                style={styles.goLoginBtn}
+                // ✅ 여기서는 로그아웃 절대 호출하지 않음 (이동만)
+                onPress={() => router.push('/login')}
+              >
+                <Text style={styles.goLoginBtnText}>간편 로그인 하러가기</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
           {/* ✅ 알림 설정 (이모티콘/아이콘 삭제 + 스위치 색 제거) */}
           <View style={styles.card}>
             <View style={styles.cardTitleRow}>
@@ -806,36 +1010,99 @@ const styles = StyleSheet.create({
     borderBottomColor: BORDER,
   },
 
-  cardHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  loginRow: {
     paddingHorizontal: PAD_X,
-    paddingTop: 14,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: BORDER,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
-  cardTitleNoMb: {
-    fontSize: 15,
-    fontWeight: '800',
+  loginTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flexWrap: 'wrap',
+  },
+  loginTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#111827',
+    letterSpacing: -0.2,
+  },
+  loginSub: {
+    marginTop: 6,
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '700',
+  },
+
+  providerBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  providerBadgeKakao: {
+    backgroundColor: '#FEE500',
+    borderColor: '#FEE500',
+  },
+  providerBadgeNaver: {
+    backgroundColor: '#03C75A',
+    borderColor: '#03C75A',
+  },
+  // ✅ Google: 흰/회색 배지 (요청 반영)
+  providerBadgeGoogle: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E5E7EB',
+  },
+
+  providerBadgeText: {
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  providerBadgeTextKakao: {
     color: '#111827',
   },
-  dangerPill: {
+  providerBadgeTextNaver: {
+    color: '#FFFFFF',
+  },
+  providerBadgeTextGoogle: {
+    color: '#111827',
+  },
+
+  neutralPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: '#FEF2F2',
     borderWidth: 1,
-    borderColor: '#FECACA',
+    borderColor: BORDER_STRONG,
+    backgroundColor: '#FFFFFF',
   },
-  dangerPillText: {
+  neutralPillText: {
     fontSize: 12,
-    color: '#DC2626',
-    fontWeight: '800',
+    fontWeight: '900',
+    color: '#111827',
+  },
+
+  goLoginBtn: {
+    marginTop: 12,
+    marginHorizontal: PAD_X,
+    marginBottom: 12,
+    height: 46,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: BORDER_STRONG,
+  },
+  goLoginBtnText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#111827',
   },
 
   settingLeft: {
@@ -844,13 +1111,11 @@ const styles = StyleSheet.create({
     gap: 10,
     flex: 1,
   },
-
   settingLeftNoIcon: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
   },
-
   settingRight: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -887,6 +1152,39 @@ const styles = StyleSheet.create({
   settingLabel: { fontSize: 13, color: '#111827', fontWeight: '700' },
   settingValue: { fontSize: 12, color: '#6B7280', fontWeight: '700' },
   settingValueStrong: { fontSize: 12, color: '#111827', fontWeight: '900' },
+
+  cardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: PAD_X,
+    paddingTop: 14,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+  },
+  cardTitleNoMb: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#111827',
+  },
+
+  dangerPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  dangerPillText: {
+    fontSize: 12,
+    color: '#DC2626',
+    fontWeight: '800',
+  },
 
   horizontalList: {
     paddingVertical: 14,
@@ -968,6 +1266,9 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 
+  favoriteIconOn: { fontSize: 18, fontWeight: 'bold', color: '#F59E0B' },
+  favoriteIconOff: { fontSize: 18, color: '#D1D5DB' },
+
   listRow: {
     minHeight: ROW_H,
     paddingHorizontal: PAD_X,
@@ -998,9 +1299,6 @@ const styles = StyleSheet.create({
   },
   listSub: { marginTop: 2, fontSize: 12, color: '#6B7280', fontWeight: '600' },
   deleteText: { fontSize: 12, color: '#9CA3AF', fontWeight: '800' },
-
-  favoriteIconOn: { fontSize: 18, fontWeight: 'bold', color: '#F59E0B' },
-  favoriteIconOff: { fontSize: 18, color: '#D1D5DB' },
 
   emptyBox: { paddingVertical: 18, paddingHorizontal: PAD_X },
   emptyTitle: {

@@ -1,6 +1,7 @@
 <resources>
   <string name="app_name">아이뽀픽</string>
   <string name="expo_system_ui_user_interface_style" translatable="false">automatic</string>
+  <string name="kakao_app_key">6b4ad4a64e775ae17d3ffbf012e65d84</string>
   <string name="expo_splash_screen_resize_mode" translatable="false">contain</string>
   <string name="expo_splash_screen_status_bar_translucent" translatable="false">false</string>
 </resources>

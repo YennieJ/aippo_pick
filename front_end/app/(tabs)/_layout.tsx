@@ -155,6 +155,13 @@ export default function TabLayout() {
           href: null,
         }}
       />
+      {/* ✅ 로그인 화면 탭 숨김 (이거 추가하면 하단 login 탭 사라짐) */}
+      <Tabs.Screen
+        name="login"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }
