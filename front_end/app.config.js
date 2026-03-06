@@ -45,6 +45,21 @@ export default ({ config }) => ({
     package: "com.itl.aippopick",
     googleServicesFile: "./google-services.json",
     permissions: ["POST_NOTIFICATIONS"],
+
+    // ✅ Android 카카오 로그인 Intent Filter
+    intentFilters: [
+      {
+        action: "VIEW",
+        autoVerify: true,
+        data: [
+          {
+            scheme: ["frontend", "kakao6b4ad4a64e775ae17d3ffbf012e65d84"],
+            host: "oauth"
+          }
+        ],
+        category: ["BROWSABLE", "DEFAULT"]
+      }
+    ]
   },
 
   web: {
@@ -74,12 +89,14 @@ export default ({ config }) => ({
         },
       },
     ],
-
-    // iOS 위젯 (WidgetKit)
-    "./plugins/withIOSWidget",
-
-    // Xcode 14+ resource bundle signing fix
-    "./plugins/withPodfileResourceBundleFix",
+    // ✅ 카카오 로그인 플러그인
+    [
+      "@react-native-seoul/kakao-login",
+      {
+        kakaoAppKey: "6b4ad4a64e775ae17d3ffbf012e65d84",
+        iosAppScheme: "kakao6b4ad4a64e775ae17d3ffbf012e65d84"
+      }
+    ]
   ],
 
   experiments: {

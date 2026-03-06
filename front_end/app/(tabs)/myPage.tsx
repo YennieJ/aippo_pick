@@ -1,46 +1,147 @@
-import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+﻿import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   ScrollView,
+  StyleSheet,
   Switch,
   Text,
   TouchableOpacity,
-  View
+  View,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import axios from 'axios';
 import * as Notifications from 'expo-notifications';
 
-import {
-  useAllBrokers,
-  useIpoDetailsByIds,
-} from '../../src/features/ipo/hooks/useIpoQueries';
-import { IpoDetailData } from '../../src/features/ipo/types/ipo.types';
 import {
   loadStringArray,
   removeItem,
   saveStringArray,
   STORAGE_KEYS,
 } from '../../src/shared/utils/storage.utils';
+import { getIpoByCodeId } from '../../src/features/ipo/api/ipo';
+import { IpoDetailData } from '../../src/features/ipo/types/ipo.types';
 
+import * as Application from 'expo-application';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import {
-  convert24To12,
-  getStableDeviceId,
-  NotificationSettingModal,
-  useNotificationSetting,
-  useUpdateNotificationSetting,
-} from '../../src/features/myPage';
-import { cn } from '../../src/lib/cn';
-import { IconSymbol, IpoStatusBadge, SectionHeader } from '../../src/shared';
-import { useColorScheme } from '../../src/shared/hooks/use-color-scheme';
+/* =========================================================
+   Kakao / Naver / Google Auth 
+========================================================= */
+type KakaoMeResponse = {
+  id: number;
+  kakao_account?: {
+    profile?: {
+      nickname?: string;
+      profile_image_url?: string;
+      thumbnail_image_url?: string;
+    };
+    email?: string;
+  };
+  properties?: {
+    nickname?: string;
+    profile_image?: string;
+    thumbnail_image?: string;
+  };
+};
+
+type NaverProfile = {
+  id: string;
+  nickname?: string;
+  name?: string;
+  email?: string;
+  profile_image?: string;
+};
+
+type GoogleProfile = {
+  id?: string;
+  name?: string;
+  email?: string;
+  photo?: string;
+};
+
+const AUTH_KAKAO_V1 = 'AUTH_KAKAO_V1';
+const AUTH_NAVER_V1 = 'AUTH_NAVER_V1';
+const AUTH_GOOGLE_V1 = 'AUTH_GOOGLE_V1';
+
+/* =========================================================
+   🔐 1) 앱 전용 고정 Device ID 생성/로드
+========================================================= */
+let cachedDeviceId: string | null = null;
+
+async function getStableDeviceId() {
+  console.log('getStableDeviceId 진입', cachedDeviceId);
+  if (cachedDeviceId) return cachedDeviceId;
+
+  let id = Application.getAndroidId();
+
+  // iOS fallback
+  if (!id) {
+    // iOS는 안드로이드ID가 없으니 앱+버전 조합으로 안정적 fallback 생성
+    id = `${Application.applicationId}-${Application.nativeApplicationVersion}`;
+  }
+
+  cachedDeviceId = id;
+  console.log('cachedDeviceId = id', cachedDeviceId);
+  return id;
+}
+
+/** =========================================================
+ *  날짜 유틸: listingdate(YYYY.MM.DD | YYYY-MM-DD) → Date
+ * ======================================================= */
+function parseYmdToDate(value?: string | null): Date | null {
+  if (!value) return null;
+
+  const raw = value.trim();
+  if (!raw) return null;
+
+  const normalized = raw.replace(/\./g, '-');
+  const match = normalized.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return null;
+
+  const y = Number(match[1]);
+  const m = Number(match[2]);
+  const d = Number(match[3]);
+
+  if (!y || !m || !d) return null;
+
+  // 날짜 비교 안정성 위해 정오로 생성
+  return new Date(y, m - 1, d, 12, 0, 0, 0);
+}
+
+/** =========================================================
+ * 오늘 기준 D-day 계산
+ * ======================================================= */
+function calcDDay(target: Date): number {
+  const now = new Date();
+  const today = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    12,
+    0,
+    0,
+    0
+  );
+
+  const diffMs = target.getTime() - today.getTime();
+  return Math.round(diffMs / (1000 * 60 * 60 * 24));
+}
+
+function formatDDayLabel(diff: number): string {
+  if (diff === 0) return 'D-DAY';
+  if (diff > 0) return `D-${diff}`;
+  return `D+${Math.abs(diff)}`;
+}
 
 export default function MyPageScreen() {
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const iconColor = colorScheme === 'dark' ? '#9CA3AF' : '#111827';
+
+  // ✅ 로그아웃 중복 클릭 방지
+  const isLoggingOutRef = useRef(false);
 
   // 문자열("24,650", " 8,000원") → 숫자로 안전하게 변환
   const parseNumber = (value?: string | null): number | null => {
@@ -54,29 +155,101 @@ export default function MyPageScreen() {
     return Number.isNaN(num) ? null : num;
   };
 
-  // 🔔 알림 설정 리액트 쿼리
-  const { data: notificationSetting, isLoading: notificationLoading } =
-    useNotificationSetting();
-  const updateNotificationMutation = useUpdateNotificationSetting();
+  /* =========================================================
+     ✅ 로그인 상태 (카카오/네이버/구글) 로드 + 로그아웃
+  ========================================================= */
+  const [kakaoMe, setKakaoMe] = useState<KakaoMeResponse | null>(null);
+  const [naverMe, setNaverMe] = useState<NaverProfile | null>(null);
+  const [googleMe, setGoogleMe] = useState<GoogleProfile | null>(null);
 
-  // 🔔 전체 알림 스위치 상태 (서버 데이터로 초기화)
+  const loadAuth = useCallback(async () => {
+    try {
+      const kakaoRaw = await AsyncStorage.getItem(AUTH_KAKAO_V1);
+      if (kakaoRaw) {
+        const parsed = JSON.parse(kakaoRaw) as { profile?: KakaoMeResponse; me?: KakaoMeResponse };
+        const profile = parsed.profile ?? parsed.me ?? null;
+
+        setKakaoMe(profile);
+        setNaverMe(null);
+        setGoogleMe(null);
+        return;
+      }
+
+      const naverRaw = await AsyncStorage.getItem(AUTH_NAVER_V1);
+      if (naverRaw) {
+        const parsed = JSON.parse(naverRaw) as { profile?: NaverProfile };
+        const profile = parsed.profile ?? null;
+
+        setNaverMe(profile);
+        setKakaoMe(null);
+        setGoogleMe(null);
+        return;
+      }
+
+      const googleRaw = await AsyncStorage.getItem(AUTH_GOOGLE_V1);
+      if (googleRaw) {
+        const parsed = JSON.parse(googleRaw) as { profile?: GoogleProfile };
+        const profile = parsed.profile ?? null;
+
+        setGoogleMe(profile);
+        setKakaoMe(null);
+        setNaverMe(null);
+        return;
+      }
+
+      setKakaoMe(null);
+      setNaverMe(null);
+      setGoogleMe(null);
+    } catch (e) {
+      console.log('loadAuth error', e);
+      setKakaoMe(null);
+      setNaverMe(null);
+      setGoogleMe(null);
+    }
+  }, []);
+
+  const onPressLogout = useCallback(async () => {
+    if (isLoggingOutRef.current) return; // ✅ 중복 실행 방지
+    isLoggingOutRef.current = true;
+
+    try {
+      await AsyncStorage.multiRemove([AUTH_KAKAO_V1, AUTH_NAVER_V1, AUTH_GOOGLE_V1]);
+
+      setKakaoMe(null);
+      setNaverMe(null);
+      setGoogleMe(null);
+
+      // 로그인 화면으로 교체 이동 (스택 꼬임/이전 state 유지 체감 줄임)
+      router.replace('/login/login');
+    } catch (e) {
+      console.log('logout error', e);
+    } finally {
+      setTimeout(() => {
+        isLoggingOutRef.current = false;
+      }, 500);
+    }
+  }, [router]);
+
+  const kakaoNickname =
+    kakaoMe?.kakao_account?.profile?.nickname ?? kakaoMe?.properties?.nickname ?? null;
+
+  const loggedName = useMemo(() => {
+    return kakaoNickname ?? naverMe?.nickname ?? naverMe?.name ?? googleMe?.name ?? null;
+  }, [kakaoNickname, naverMe, googleMe]);
+
+  const loggedProvider = useMemo(() => {
+    if (kakaoMe) return 'KAKAO';
+    if (naverMe) return 'NAVER';
+    if (googleMe) return 'GOOGLE';
+    return null;
+  }, [kakaoMe, naverMe, googleMe]);
+
+  /* =========================================================
+     ✅ 알림 설정 state
+  ========================================================= */
   const [notifyAll, setNotifyAll] = useState(false);
   const [notifySpac, setNotifySpac] = useState(true);
   const [notifyReits, setNotifyReits] = useState(true);
-  const [alarmTime, setAlarmTime] = useState('08:00');
-  const [selectedBrokers, setSelectedBrokers] = useState<string[]>([]);
-
-  // 🔔 알림 설정 모달 상태
-  const [isNotificationModalVisible, setIsNotificationModalVisible] =
-    useState(false);
-  // 모달 내 임시 상태
-  const [tempNotifySpac, setTempNotifySpac] = useState(true);
-  const [tempNotifyReits, setTempNotifyReits] = useState(true);
-  const [tempAlarmTime, setTempAlarmTime] = useState('08:00');
-  const [tempSelectedBrokers, setTempSelectedBrokers] = useState<string[]>([]);
-
-  // 증권사 목록
-  const { data: allBrokers = [] } = useAllBrokers();
 
   // 🔔 권한 확인 및 요청
   async function ensureNotificationPermission() {
@@ -99,151 +272,135 @@ export default function MyPageScreen() {
     return true;
   }
 
-  // 🔔 알림 설정 업데이트 함수
-  const handleUpdateNotification = useCallback(
-    async (updates: {
-      notifyAll?: boolean;
-      spac?: boolean;
-      reits?: boolean;
-      alarmTime?: string;
-      broker?: string;
-    }) => {
+  // 🔔 서버에 알림 설정 저장
+  async function saveNotifyAll(newValue: boolean) {
+    try {
       const deviceId = await getStableDeviceId();
-      const currentSetting = notificationSetting;
 
-      await updateNotificationMutation.mutateAsync({
+      await axios.put('http://122.42.248.81:4000/notification_setting', {
         deviceId,
-        notifyAll: updates.notifyAll ?? currentSetting?.notifyAll ?? false,
-        broker: updates.broker ?? currentSetting?.broker ?? '',
-        spac: updates.spac ?? currentSetting?.spac ?? true,
-        reits: updates.reits ?? currentSetting?.reits ?? true,
-        alarmTime: updates.alarmTime ?? currentSetting?.alarmTime ?? '08:00',
+        notifyAll: newValue,
+        broker: '',
+        spac: true,
+        reits: true,
+        alarmTime: '08:00',
       });
-    },
-    [notificationSetting, updateNotificationMutation]
-  );
 
-  // 🔔 모달 열기 (모달이 열릴 때마다 현재 시간을 12시간 형식으로 변환하여 초기화)
-  const openNotificationModal = useCallback(() => {
-    setTempNotifySpac(notifySpac);
-    setTempNotifyReits(notifyReits);
-    setTempAlarmTime(alarmTime);
-    setTempSelectedBrokers([...selectedBrokers]);
-    setIsNotificationModalVisible(true);
-  }, [notifySpac, notifyReits, alarmTime, selectedBrokers]);
+      console.log('⭐ notifyAll updated:', newValue);
+    } catch (e) {
+      console.log('notifyAll 업데이트 실패:', e);
+    }
+  }
 
-  // 🔔 모달 닫기
-  const closeNotificationModal = useCallback(() => {
-    setIsNotificationModalVisible(false);
-  }, []);
-
-  // 🔔 모달 내 증권사 토글
-  const toggleBroker = useCallback((brokerName: string) => {
-    setTempSelectedBrokers((prev) => {
-      if (prev.includes(brokerName)) {
-        return prev.filter((name) => name !== brokerName);
-      } else {
-        return [...prev, brokerName];
-      }
-    });
-  }, []);
-
-  // 🔔 모달 내 전체 선택 리셋
-  const resetToAll = useCallback(() => {
-    setTempSelectedBrokers([]);
-  }, []);
-
-  // 🔔 모달 적용
-  const applyNotificationSettings = useCallback(async () => {
-    const deviceId = await getStableDeviceId();
-    const brokerString =
-      tempSelectedBrokers.length === 0 ? '' : tempSelectedBrokers.join(',');
-    setNotifySpac(tempNotifySpac);
-    setNotifyReits(tempNotifyReits);
-    setAlarmTime(tempAlarmTime);
-    setSelectedBrokers([...tempSelectedBrokers]);
-
-    await updateNotificationMutation.mutateAsync({
-      deviceId,
-      notifyAll: notifyAll,
-      broker: brokerString,
-      spac: tempNotifySpac,
-      reits: tempNotifyReits,
-      alarmTime: tempAlarmTime,
-    });
-
-    setIsNotificationModalVisible(false);
-  }, [
-    tempNotifySpac,
-    tempNotifyReits,
-    tempAlarmTime,
-    tempSelectedBrokers,
-    notifyAll,
-    updateNotificationMutation,
-  ]);
+  async function loadNotifySetting() {
+    try {
+      const deviceId = await getStableDeviceId();
+      const res = await axios.get(
+        `http://122.42.248.81:4000/notification_setting/${deviceId}`
+      );
+      return res.data;
+    } catch (e) {
+      console.log('알림 설정 로딩 실패:', e);
+      return null;
+    }
+  }
 
   // ⭐⭐⭐ 그 다음이 기존 Hook들 시작 영역
   const [favorites, setFavorites] = useState<string[]>([]);
-  const [recentIds, setRecentIds] = useState<string[]>([]);
+  const [favoriteDetails, setFavoriteDetails] = useState<IpoDetailData[]>([]);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
 
-  // 리액트 쿼리로 즐겨찾기 상세 가져오기
-  const favoriteQueries = useIpoDetailsByIds(favorites);
-  const favoriteLoading = favoriteQueries.some((q) => q.isLoading);
+  const [recentDetails, setRecentDetails] = useState<IpoDetailData[]>([]);
+  const [recentLoading, setRecentLoading] = useState(false);
 
-  // favorites 배열 순서대로 정렬
-  const favoriteDetailsMap = new Map<string, IpoDetailData>();
-  favoriteQueries.forEach((query, index) => {
-    if (query.data && favorites[index]) {
-      const detail: IpoDetailData | undefined = Array.isArray(query.data)
-        ? query.data[0]
-        : query.data;
-      if (detail) {
-        favoriteDetailsMap.set(favorites[index], detail);
+  const fetchIpoDetailsByIds = useCallback(
+    async (ids: string[]): Promise<IpoDetailData[]> => {
+      if (!ids.length) return [];
+
+      const results = await Promise.all(
+        ids.map(async (codeId) => {
+          try {
+            const data = await getIpoByCodeId(codeId);
+            const detail: IpoDetailData | undefined = Array.isArray(data)
+              ? data[0]
+              : data;
+            return detail ?? null;
+          } catch (e) {
+            console.log('getIpoByCodeId error', codeId, e);
+            return null;
+          }
+        })
+      );
+
+      const unique: IpoDetailData[] = [];
+      const seen = new Set<string>();
+
+      for (const item of results) {
+        if (!item) continue;
+        if (seen.has(item.code_id)) continue;
+        seen.add(item.code_id);
+        unique.push(item);
       }
-    }
-  });
 
-  const favoriteDetails: IpoDetailData[] = [...favorites]
-    .reverse() // 최신순
-    .map((id) => favoriteDetailsMap.get(id))
-    .filter((item): item is IpoDetailData => item !== undefined);
-
-  // 리액트 쿼리로 최근 본 상세 가져오기
-  const recentQueries = useIpoDetailsByIds(recentIds);
-  const recentLoading = recentQueries.some((q) => q.isLoading);
-
-  // recentIds 배열 순서대로 정렬
-  const recentDetailsMap = new Map<string, IpoDetailData>();
-  recentQueries.forEach((query, index) => {
-    if (query.data && recentIds[index]) {
-      const detail: IpoDetailData | undefined = Array.isArray(query.data)
-        ? query.data[0]
-        : query.data;
-      if (detail) {
-        recentDetailsMap.set(recentIds[index], detail);
-      }
-    }
-  });
-
-  const recentDetails: IpoDetailData[] = recentIds
-    .map((id) => recentDetailsMap.get(id))
-    .filter((item): item is IpoDetailData => item !== undefined);
+      return unique;
+    },
+    []
+  );
 
   const isFavorite = useCallback(
     (ipoId: string) => favorites.includes(ipoId),
     [favorites]
   );
 
-  // 스크롤뷰 ref
-  const scrollViewRef = useRef<ScrollView>(null);
+  // 즐겨찾기 상세
+  const loadFavoriteDetails = useCallback(
+    async (ids: string[]) => {
+      if (!ids.length) {
+        setFavoriteDetails([]);
+        return;
+      }
+
+      setFavoriteLoading(true);
+      try {
+        const details = await fetchIpoDetailsByIds(ids);
+
+        const map = new Map(details.map((d) => [d.code_id, d]));
+        const ordered = [...ids]
+          .reverse()
+          .map((id) => map.get(id))
+          .filter(Boolean) as IpoDetailData[];
+
+        setFavoriteDetails(ordered);
+      } finally {
+        setFavoriteLoading(false);
+      }
+    },
+    [fetchIpoDetailsByIds]
+  );
+
+  // 최근 본 상세
+  const loadRecentDetails = useCallback(
+    async (ids: string[]) => {
+      if (!ids.length) {
+        setRecentDetails([]);
+        return;
+      }
+
+      setRecentLoading(true);
+      try {
+        const details = await fetchIpoDetailsByIds(ids);
+        setRecentDetails(details);
+      } finally {
+        setRecentLoading(false);
+      }
+    },
+    [fetchIpoDetailsByIds]
+  );
 
   // 탭 포커스시 즐겨찾기 + 최근 본 동시 로딩
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-
-      // 스크롤을 최상단으로 이동
-      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
 
       const load = async () => {
         try {
@@ -253,17 +410,26 @@ export default function MyPageScreen() {
           ]);
           if (cancelled) return;
 
-          if (__DEV__) {
-            console.log('⭐ MyPage favorites:', favoriteList);
-            console.log('👀 MyPage recent:', recentList);
-          }
+          console.log('⭐ MyPage favorites:', favoriteList);
+          console.log('👀 MyPage recent:', recentList);
 
           setFavorites(favoriteList);
-          setRecentIds(recentList);
-        } catch (e) {
-          if (__DEV__) {
-            console.log('MyPage load error', e);
+
+          await Promise.all([
+            loadFavoriteDetails(favoriteList),
+            loadRecentDetails(recentList),
+          ]);
+
+          const notify = await loadNotifySetting();
+          if (!cancelled && notify) {
+            setNotifyAll(notify.notifyAll === true);
+            if (typeof notify.spac === 'boolean') setNotifySpac(notify.spac);
+            if (typeof notify.reits === 'boolean') setNotifyReits(notify.reits);
           }
+
+          await loadAuth();
+        } catch (e) {
+          console.log('MyPage load error', e);
         }
       };
 
@@ -272,41 +438,16 @@ export default function MyPageScreen() {
       return () => {
         cancelled = true;
       };
-    }, [])
+    }, [loadFavoriteDetails, loadRecentDetails, loadAuth])
   );
-
-  // 알림 설정 데이터가 로드되면 상태 업데이트
-  useEffect(() => {
-    if (notificationSetting) {
-      setNotifyAll(notificationSetting.notifyAll === true);
-      if (typeof notificationSetting.spac === 'boolean') {
-        setNotifySpac(notificationSetting.spac);
-      }
-      if (typeof notificationSetting.reits === 'boolean') {
-        setNotifyReits(notificationSetting.reits);
-      }
-      if (notificationSetting.alarmTime) {
-        setAlarmTime(notificationSetting.alarmTime);
-      }
-      if (notificationSetting.broker) {
-        setSelectedBrokers(
-          notificationSetting.broker
-            .split(',')
-            .filter((b) => b.trim().length > 0)
-        );
-      }
-    }
-  }, [notificationSetting]);
 
   // 최근 본 전체 삭제
   const onClearRecent = useCallback(async () => {
     try {
       await removeItem(STORAGE_KEYS.RECENT_IPO);
-      setRecentIds([]);
+      setRecentDetails([]);
     } catch (e) {
-      if (__DEV__) {
-        console.log('onClearRecent error', e);
-      }
+      console.log('onClearRecent error', e);
     }
   }, []);
 
@@ -315,10 +456,9 @@ export default function MyPageScreen() {
     try {
       await removeItem(STORAGE_KEYS.FAVORITES);
       setFavorites([]);
+      setFavoriteDetails([]);
     } catch (e) {
-      if (__DEV__) {
-        console.log('onClearFavorites error', e);
-      }
+      console.log('onClearFavorites error', e);
     }
   }, []);
 
@@ -328,11 +468,9 @@ export default function MyPageScreen() {
       const current = await loadStringArray(STORAGE_KEYS.RECENT_IPO);
       const next = current.filter((id) => id !== ipoId);
       await saveStringArray(STORAGE_KEYS.RECENT_IPO, next);
-      setRecentIds((prev) => prev.filter((id) => id !== ipoId));
+      setRecentDetails((prev) => prev.filter((item) => item.code_id !== ipoId));
     } catch (e) {
-      if (__DEV__) {
-        console.log('onRemoveRecent error', e);
-      }
+      console.log('onRemoveRecent error', e);
     }
   }, []);
 
@@ -347,6 +485,26 @@ export default function MyPageScreen() {
       // 스토리지에 저장
       await saveStringArray(STORAGE_KEYS.FAVORITES, nextIds);
       setFavorites(nextIds);
+
+      if (existsNow) {
+        setFavoriteDetails((prev) => prev.filter((x) => x.code_id !== ipoId));
+      } else {
+        try {
+          const data = await getIpoByCodeId(ipoId);
+          const detail: IpoDetailData | undefined = Array.isArray(data)
+            ? data[0]
+            : data;
+
+          if (detail) {
+            setFavoriteDetails((prev) => {
+              if (prev.some((x) => x.code_id === detail.code_id)) return prev;
+              return [...prev, detail];
+            });
+          }
+        } catch (e) {
+          console.log('getIpoByCodeId error (single)', e);
+        }
+      }
     },
     [favorites]
   );
@@ -372,385 +530,780 @@ export default function MyPageScreen() {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-white dark:bg-black" edges={['top']}>
-      <View className="flex-1 bg-white dark:bg-black">
-        <ScrollView
-          ref={scrollViewRef}
-          className="flex-1 bg-white dark:bg-black"
-        >
-          {/* 헤더 */}
-          <View className="py-5">
-            <SectionHeader title="My 페이지" />
+    <SafeAreaView style={{ flex: 1, backgroundColor: BG }} edges={['top']}>
+      <View style={styles.container}>
+        {/* 헤더 */}
+        <View style={styles.header}>
+          <View style={styles.headerRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.headerTitle}>My 페이지</Text>
+            </View>
           </View>
+        </View>
 
-              <View className="pb-6">
-                <View className="pb-4 px-4 flex-row items-center gap-2.5">
-                  <MaterialIcons
-                    name="notifications"
-                    size={20}
-                    color={iconColor}
-                  />
-                  <Text className="text-base font-semibold text-gray-900 dark:text-white">
-                    알림 설정
-                  </Text>
-                </View>
-                <View className="mx-4 bg-white dark:bg-gray-800 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
-                  {/* 전체 알림 */}
-                  <View className="min-h-[54px] px-4 py-3 flex-row justify-between items-center border-b border-gray-200 dark:border-gray-700">
-                    <View className="flex-row items-center flex-1">
-                      <Text className="text-sm text-gray-900 dark:text-white font-medium">
-                        전체 알림
-                      </Text>
-                    </View>
+        <ScrollView style={{ backgroundColor: BG }} contentContainerStyle={styles.scrollContent}>
+          {/* ✅ 로그인 카드 */}
+          <View style={styles.card}>
+            {loggedName ? (
+              <View style={styles.loginRow}>
+                <View style={{ flex: 1 }}>
+                  <View style={styles.loginTopRow}>
+                    <Text style={styles.loginTitle}>이름 : {loggedName}</Text>
 
-                    <Switch
-                      value={notifyAll}
-                      onValueChange={async (newValue) => {
-                        if (newValue === true) {
-                          const ok = await ensureNotificationPermission();
-                          if (!ok) return;
-                        }
-
-                        setNotifyAll(newValue);
-                        await handleUpdateNotification({ notifyAll: newValue });
-                      }}
-                      trackColor={{ false: '#E5E7EB', true: '#5B9FFF' }}
-                      thumbColor="#FFFFFF"
-                    />
-                  </View>
-
-                  {/* 상세 설정 */}
-                  <TouchableOpacity
-                    className={`min-h-[54px] px-4 py-3 flex-row justify-between items-center ${
-                      !notifyAll ? 'opacity-50' : ''
-                    }`}
-                    activeOpacity={notifyAll ? 0.8 : 1}
-                    onPress={notifyAll ? openNotificationModal : undefined}
-                    disabled={!notifyAll}
-                  >
-                    <View className="flex-1">
-                      <Text
-                        className={`text-sm font-medium mb-1 ${
-                          notifyAll
-                            ? 'text-gray-900 dark:text-white'
-                            : 'text-gray-500 dark:text-gray-300'
-                        }`}
+                    {!!loggedProvider && (
+                      <View
+                        style={[
+                          styles.providerBadge,
+                          loggedProvider === 'KAKAO'
+                            ? styles.providerBadgeKakao
+                            : loggedProvider === 'NAVER'
+                            ? styles.providerBadgeNaver
+                            : styles.providerBadgeGoogle, // ✅ GOOGLE
+                        ]}
                       >
-                        상세 설정
-                      </Text>
-                      {notifyAll ? (
-                        <View className="flex-row items-center gap-2">
-                          <Text className="text-xs text-gray-600 dark:text-gray-400">
-                            시간:{' '}
-                            {(() => {
-                              const time12 = convert24To12(alarmTime);
-                              return `${time12.period === 'AM' ? '오전' : '오후'} ${time12.hour}:${time12.minute.toString().padStart(2, '0')}`;
-                            })()}
-                          </Text>
-                          <Text className="text-xs text-gray-600 dark:text-gray-400">
-                            •
-                          </Text>
-                          <Text className="text-xs text-gray-600 dark:text-gray-400">
-                            {selectedBrokers.length === 0
-                              ? '증권사: 전체'
-                              : `증권사: ${selectedBrokers.length}개`}
-                          </Text>
-                        </View>
-                      ) : (
-                        <Text className="text-xs text-gray-500 dark:text-gray-300">
-                          전체 알림을 켜야 설정할 수 있습니다
+                        <Text
+                          style={[
+                            styles.providerBadgeText,
+                            loggedProvider === 'KAKAO'
+                              ? styles.providerBadgeTextKakao
+                              : loggedProvider === 'NAVER'
+                              ? styles.providerBadgeTextNaver
+                              : styles.providerBadgeTextGoogle, // ✅ GOOGLE
+                          ]}
+                        >
+                          {loggedProvider}
                         </Text>
-                      )}
-                    </View>
-
-                    {notifyAll && (
-                      <MaterialIcons
-                        name="chevron-right"
-                        size={22}
-                        color={iconColor}
-                      />
+                      </View>
                     )}
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              <View className="pb-6">
-                <View className="pb-4 px-4 flex-row justify-between items-center">
-                  <Text className="text-base font-semibold text-gray-900 dark:text-white">
-                    ⭐ 즐겨찾기 공모주
-                  </Text>
-                  <TouchableOpacity
-                    onPress={onClearFavorites}
-                    activeOpacity={0.7}
-                    className="flex-row items-center gap-1.5 px-3 py-1.5"
-                  >
-                    <MaterialIcons
-                      name="delete-outline"
-                      size={18}
-                      color={iconColor}
-                    />
-                    <Text className="text-sm text-gray-600 dark:text-gray-400 font-medium">
-                      전체삭제
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-                {favoriteLoading && favoriteDetails.length === 0 ? (
-                  <View className="py-4 px-4">
-                    <Text className="text-sm text-gray-600 dark:text-gray-400">
-                      즐겨찾기 정보를 불러오는 중입니다.
-                    </Text>
                   </View>
-                ) : favoriteDetails.length === 0 ? (
-                  <View className="mx-4 bg-white dark:bg-gray-800 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
-                    <View className="py-4 px-4">
-                      <Text className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
-                        즐겨찾기한 공모주가 없습니다.
-                      </Text>
-                      <Text className="text-xs text-gray-600 dark:text-gray-400">
-                        공모주 상세 화면에서 ⭐ 버튼을 눌러 즐겨찾기를
-                        추가해보세요.
-                      </Text>
-                    </View>
-                  </View>
-                ) : (
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{
-                      paddingHorizontal: 16,
-                      gap: 12,
-                    }}
-                  >
-                    {favoriteDetails.map((item) => {
-                      const id = item.code_id;
-                      const favorite = isFavorite(id);
-                      const { displayPrice, priceLabel } =
-                        getDisplayPrice(item);
 
-                      const rate =
-                        item.competitionrate ??
-                        item.institutional_competition_rate ??
-                        null;
-
-                      return (
-                        <TouchableOpacity
-                          key={id}
-                          className="w-[228px] rounded-2xl px-3.5 py-3 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
-                          style={{ height: 180 }}
-                          activeOpacity={0.88}
-                          onPress={() =>
-                            router.push({
-                              pathname: '/ipo/[codeId]',
-                              params: { codeId: id },
-                            })
-                          }
-                        >
-                          <View className="flex-1 justify-between">
-                            {/* 헤더 영역 (고정 높이) */}
-                            <View style={{ height: 70 }}>
-                              {/* 타이틀과 별표시 */}
-                              <View className="flex-row items-start justify-between mb-2.5">
-                                <Text
-                                  className="text-[15px] font-black text-gray-900 dark:text-gray-100 flex-1 mr-2"
-                                  numberOfLines={2}
-                                >
-                                  {item.company}
-                                </Text>
-                                <TouchableOpacity
-                                  onPress={(e) => {
-                                    e.stopPropagation();
-                                    onToggleFavorite(id);
-                                  }}
-                                  hitSlop={{
-                                    top: 6,
-                                    bottom: 6,
-                                    left: 6,
-                                    right: 6,
-                                  }}
-                                  className="px-1 pt-0.5 justify-center items-center"
-                                >
-                                  <IconSymbol
-                                    name={favorite ? 'star.fill' : 'star'}
-                                    size={22}
-                                    color="#FACC15"
-                                  />
-                                </TouchableOpacity>
-                              </View>
-
-                              {/* 뱃지 */}
-                              <View>
-                                <IpoStatusBadge
-                                  subscriptiondate={item.subscriptiondate}
-                                  listingdate={item.listingdate}
-                                  refunddate={item.refunddate}
-                                  size="small"
-                                />
-                              </View>
-                            </View>
-
-                            {/* 데이터 영역 */}
-                            <View className="flex-1 justify-center">
-                              {/* 가격 */}
-                              <View className="flex-row items-center justify-between py-1.5 border-t border-gray-100 dark:border-gray-700">
-                                <Text className="text-xs text-gray-600 dark:text-gray-400 font-bold">
-                                  {priceLabel}
-                                </Text>
-                                <Text className="text-xs text-gray-900 dark:text-gray-100 font-black">
-                                  {displayPrice !== null
-                                    ? `${displayPrice.toLocaleString()}원`
-                                    : '-'}
-                                </Text>
-                              </View>
-
-                              {/* 경쟁률 */}
-                              <View className="flex-row items-center justify-between py-1.5 border-t border-gray-100 dark:border-gray-700">
-                                <Text className="text-xs text-gray-600 dark:text-gray-400 font-bold">
-                                  경쟁률
-                                </Text>
-                                <Text
-                                  className="text-xs text-emerald-600 dark:text-emerald-400 font-black"
-                                  numberOfLines={1}
-                                >
-                                  {rate || '-'}
-                                </Text>
-                              </View>
-                            </View>
-
-                            {/* 자세히 보기 (항상 맨 아래 고정) */}
-                            <View className="pt-2.5 border-t border-gray-100 dark:border-gray-700 flex-row items-center justify-between">
-                              <Text className="text-xs text-gray-600 dark:text-gray-400 font-extrabold">
-                                자세히 보기
-                              </Text>
-                              <MaterialIcons
-                                name="chevron-right"
-                                size={18}
-                                color={iconColor}
-                              />
-                            </View>
-                          </View>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </ScrollView>
-                )}
-              </View>
-
-              <View className="pb-6">
-                <View className="pb-4 px-4 flex-row justify-between items-center">
-                  <Text className="text-base font-semibold text-gray-900 dark:text-white">
-                    👀 최근 본 공모주
+                  <Text style={styles.loginSub}>
+                    {loggedProvider === 'KAKAO'
+                      ? '카카오 계정으로 로그인됨'
+                      : loggedProvider === 'NAVER'
+                      ? '네이버 계정으로 로그인됨'
+                      : loggedProvider === 'GOOGLE'
+                      ? '구글 계정으로 로그인됨'
+                      : '로그인됨'}
                   </Text>
-                  <TouchableOpacity
-                    onPress={onClearRecent}
-                    activeOpacity={0.7}
-                    className="flex-row items-center gap-1.5 px-3 py-1.5"
-                  >
-                    <MaterialIcons
-                      name="delete-outline"
-                      size={18}
-                      color={iconColor}
-                    />
-                    <Text className="text-sm text-gray-600 dark:text-gray-400 font-medium">
-                      전체삭제
-                    </Text>
-                  </TouchableOpacity>
                 </View>
-                <View className="mx-4 bg-white dark:bg-gray-800 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
-                  {recentLoading && recentDetails.length === 0 ? (
-                    <View className="py-4 px-4">
-                      <Text className="text-sm text-gray-600 dark:text-gray-400">
-                        최근 본 공모주를 불러오는 중입니다.
-                      </Text>
-                    </View>
-                  ) : recentDetails.length === 0 ? (
-                    <View className="py-4 px-4">
-                      <Text className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
-                        최근 본 공모주가 없습니다.
-                      </Text>
-                      <Text className="text-xs text-gray-600 dark:text-gray-400">
-                        공모주 상세 화면에 들어가면 여기에서 바로 확인할 수
-                        있어요.
-                      </Text>
-                    </View>
-                  ) : (
-                    recentDetails.map((item, idx) => {
-                      const isLast = idx === recentDetails.length - 1;
 
-                      return (
-                        <TouchableOpacity
-                          key={item.code_id}
-                          className={cn(
-                            'min-h-[54px] px-4 py-3 flex-row items-center justify-between gap-2',
-                            !isLast &&
-                              'border-b border-gray-200 dark:border-gray-700'
-                          )}
-                          activeOpacity={0.85}
-                          onPress={() =>
-                            router.push({
-                              pathname: '/ipo/[codeId]',
-                              params: { codeId: item.code_id },
-                            })
-                          }
-                        >
-                          <View className="flex-1">
-                            <Text className="text-sm font-semibold text-gray-900 dark:text-white">
-                              {item.company}
-                            </Text>
-                          </View>
-
-                          <View className="flex-row items-center gap-2.5">
-                            <TouchableOpacity
-                              onPress={() => onRemoveRecent(item.code_id)}
-                              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                              activeOpacity={0.8}
-                            >
-                              <Text className="text-xs text-gray-600 dark:text-gray-400 font-medium">
-                                삭제
-                              </Text>
-                            </TouchableOpacity>
-                            <MaterialIcons
-                              name="chevron-right"
-                              size={22}
-                              color={iconColor}
-                            />
-                          </View>
-                        </TouchableOpacity>
-                      );
-                    })
-                  )}
-                </View>
-              </View>
-
-              <View className="pb-6 px-4">
                 <TouchableOpacity
-                  onPress={() => router.push('/termAndConditions')}
-                  activeOpacity={0.7}
-                  className="items-center"
+                  onPress={onPressLogout}
+                  activeOpacity={0.85}
+                  disabled={isLoggingOutRef.current}
                 >
-                  <Text className="text-xs text-gray-600 dark:text-gray-400 underline">
-                    약관 및 개인정보 처리방침
-                  </Text>
+                  <View style={[styles.neutralPill, isLoggingOutRef.current && { opacity: 0.55 }]}>
+                    <MaterialIcons name="logout" size={18} color="#111827" />
+                    <Text style={styles.neutralPillText}>로그아웃</Text>
+                  </View>
                 </TouchableOpacity>
               </View>
+            ) : (
+              <TouchableOpacity
+                activeOpacity={0.9}
+                style={styles.goLoginBtn}
+                // ✅ 여기서는 로그아웃 절대 호출하지 않음 (이동만)
+                onPress={() => router.push('/login/login')}
+              >
+                <Text style={styles.goLoginBtnText}>간편 로그인 하러가기</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* ✅ 알림 설정 (이모티콘/아이콘 삭제 + 스위치 색 제거) */}
+          <View style={styles.card}>
+            <View style={styles.cardTitleRow}>
+              <Text style={styles.cardTitle}>알림 설정</Text>
+            </View>
+
+            {/* 전체 알림 */}
+            <View style={styles.settingRow}>
+              <View style={styles.settingLeftNoIcon}>
+                <Text style={styles.settingLabel}>전체 알림</Text>
+              </View>
+
+              {/* ✅ 체크 색 제거: trackColor/thumbColor 지정 안함 */}
+              <Switch
+                value={notifyAll}
+                onValueChange={async (newValue) => {
+                  if (newValue === true) {
+                    const ok = await ensureNotificationPermission();
+                    if (!ok) return;
+                  }
+
+                  setNotifyAll(newValue);
+                  await saveNotifyAll(newValue);
+                }}
+              />
+            </View>
+
+            {/* SPAC 알림 (✅ 토글 동작하도록 state 연결) */}
+            <View style={styles.settingRow}>
+              <View style={styles.settingLeftNoIcon}>
+                <Text style={styles.settingLabel}>SPAC 알림</Text>
+              </View>
+              <Switch
+                value={notifySpac}
+                onValueChange={async (newValue) => {
+                  if (newValue === true) {
+                    const ok = await ensureNotificationPermission();
+                    if (!ok) return;
+                  }
+                  setNotifySpac(newValue);
+                }}
+              />
+            </View>
+
+            {/* REITS 알림 (✅ 토글 동작하도록 state 연결) */}
+            <View style={styles.settingRow}>
+              <View style={styles.settingLeftNoIcon}>
+                <Text style={styles.settingLabel}>REITS 알림</Text>
+              </View>
+              <Switch
+                value={notifyReits}
+                onValueChange={async (newValue) => {
+                  if (newValue === true) {
+                    const ok = await ensureNotificationPermission();
+                    if (!ok) return;
+                  }
+                  setNotifyReits(newValue);
+                }}
+              />
+            </View>
+
+            {/* 알림 시간 */}
+            <TouchableOpacity style={styles.settingRow} activeOpacity={0.8}>
+              <View style={styles.settingLeftNoIcon}>
+                <Text style={styles.settingLabel}>알림 시간</Text>
+              </View>
+
+              <View style={styles.settingRight}>
+                <Text style={styles.settingValueStrong}>08:00</Text>
+                <MaterialIcons name="chevron-right" size={22} color="#9CA3AF" />
+              </View>
+            </TouchableOpacity>
+
+            {/* 증권사 알림 */}
+            <TouchableOpacity style={styles.settingRowLast} activeOpacity={0.8}>
+              <View style={styles.settingLeftNoIcon}>
+                <Text style={styles.settingLabel}>증권사 알림</Text>
+              </View>
+
+              <View style={styles.settingRight}>
+                <Text style={styles.settingValue}>전체</Text>
+                <MaterialIcons name="chevron-right" size={22} color="#9CA3AF" />
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {/* ⭐ 즐겨찾기 공모주 (전체보기 제거 → 전체삭제로 변경) */}
+          <View style={styles.card}>
+            <View style={styles.cardHeaderRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cardTitleNoMb}>⭐ 즐겨찾기 공모주</Text>
+              </View>
+
+              <TouchableOpacity onPress={onClearFavorites} activeOpacity={0.8}>
+                <View style={styles.dangerPill}>
+                  <MaterialIcons name="delete-outline" size={18} color="#DC2626" />
+                  <Text style={styles.dangerPillText}>전체삭제</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            {favoriteLoading && favoriteDetails.length === 0 ? (
+              <View style={styles.emptyBox}>
+                <Text style={styles.emptySub}>즐겨찾기 정보를 불러오는 중입니다.</Text>
+              </View>
+            ) : favoriteDetails.length === 0 ? (
+              <View style={styles.emptyBox}>
+                <Text style={styles.emptyTitle}>즐겨찾기한 공모주가 없습니다.</Text>
+                <Text style={styles.emptySub}>
+                  공모주 상세 화면에서 ⭐ 버튼을 눌러 즐겨찾기를 추가해보세요.
+                </Text>
+              </View>
+            ) : (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.horizontalList}
+              >
+                {favoriteDetails.map((item) => {
+                  const id = item.code_id;
+                  const favorite = isFavorite(id);
+                  const { displayPrice, priceLabel } = getDisplayPrice(item);
+
+                  const listingDate = parseYmdToDate(item.listingdate ?? null);
+                  const dText = listingDate
+                    ? formatDDayLabel(calcDDay(listingDate))
+                    : null;
+
+                  const rate =
+                    item.competitionrate ??
+                    item.institutional_competition_rate ??
+                    null;
+
+                  return (
+                    <TouchableOpacity
+                      key={id}
+                      style={styles.homeCard}
+                      activeOpacity={0.88}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/ipo/[codeId]',
+                          params: { codeId: id },
+                        })
+                      }
+                    >
+                      <View style={styles.homeCardTopRow}>
+                        <View style={styles.badge}>
+                          <Text style={styles.badgeText}>
+                            상장{dText ? ` ${dText}` : ''}
+                          </Text>
+                        </View>
+
+                        <TouchableOpacity
+                          onPress={() => onToggleFavorite(id)}
+                          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                        >
+                          <Text
+                            style={
+                              favorite
+                                ? styles.favoriteIconOn
+                                : styles.favoriteIconOff
+                            }
+                          >
+                            {favorite ? '★' : '☆'}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      <Text style={styles.homeCardTitle} numberOfLines={1}>
+                        {item.company}
+                      </Text>
+
+                      {displayPrice !== null && (
+                        <View style={styles.homeCardInfoRow}>
+                          <Text style={styles.homeCardInfoLabel}>{priceLabel}</Text>
+                          <Text style={styles.homeCardInfoValue}>
+                            {displayPrice.toLocaleString()}원
+                          </Text>
+                        </View>
+                      )}
+
+                      {rate && (
+                        <View style={styles.homeCardInfoRow}>
+                          <Text style={styles.homeCardInfoLabel}>경쟁률</Text>
+                          <Text style={styles.homeCardRateStrong} numberOfLines={1}>
+                            {rate}
+                          </Text>
+                        </View>
+                      )}
+
+                      <View style={styles.homeCardFooter}>
+                        <Text style={styles.homeCardFooterText}>자세히 보기</Text>
+                        <MaterialIcons name="chevron-right" size={18} color="#9CA3AF" />
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            )}
+          </View>
+
+          {/* 👀 최근 본 공모주 */}
+          <View style={styles.card}>
+            <View style={styles.cardHeaderRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cardTitleNoMb}>👀 최근 본 공모주</Text>
+              </View>
+
+              <TouchableOpacity onPress={onClearRecent} activeOpacity={0.8}>
+                <View style={styles.dangerPill}>
+                  <MaterialIcons name="delete-outline" size={18} color="#DC2626" />
+                  <Text style={styles.dangerPillText}>전체삭제</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            {recentLoading && recentDetails.length === 0 ? (
+              <View style={styles.emptyBox}>
+                <Text style={styles.emptySub}>최근 본 공모주를 불러오는 중입니다.</Text>
+              </View>
+            ) : recentDetails.length === 0 ? (
+              <View style={styles.emptyBox}>
+                <Text style={styles.emptyTitle}>최근 본 공모주가 없습니다.</Text>
+                <Text style={styles.emptySub}>
+                  공모주 상세 화면에 들어가면 여기에서 바로 확인할 수 있어요.
+                </Text>
+              </View>
+            ) : (
+              recentDetails.map((item, idx) => {
+                const isLast = idx === recentDetails.length - 1;
+
+                return (
+                  <TouchableOpacity
+                    key={item.code_id}
+                    style={isLast ? styles.listRowLast : styles.listRow}
+                    activeOpacity={0.85}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/ipo/[codeId]',
+                        params: { codeId: item.code_id },
+                      })
+                    }
+                  >
+                    <View style={styles.listRowLeft}>
+                      <Text style={styles.listTitle}>{item.company}</Text>
+                      <Text style={styles.listSub}>최근에 조회한 공모주</Text>
+                    </View>
+
+                    <View style={styles.listRowRight}>
+                      <TouchableOpacity
+                        onPress={() => onRemoveRecent(item.code_id)}
+                        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.deleteText}>삭제</Text>
+                      </TouchableOpacity>
+                      <MaterialIcons name="chevron-right" size={22} color="#D1D5DB" />
+                    </View>
+                  </TouchableOpacity>
+                );
+              })
+            )}
+          </View>
+
+          {/* ⚙️ 앱 설정 */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitlePlain}>⚙️ 앱 설정</Text>
+
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={() => router.push('/termAndConditions')}
+              activeOpacity={0.8}
+            >
+              <View style={styles.settingLeft}>
+                <View style={[styles.iconChip, { backgroundColor: '#F3F4F6' }]}>
+                  <MaterialIcons name="policy" size={18} color="#111827" />
+                </View>
+                <Text style={styles.settingLabel}>약관 및 개인정보 처리방침</Text>
+              </View>
+
+              <View style={styles.settingRight}>
+                <Text style={styles.settingValue}>보기</Text>
+                <MaterialIcons name="chevron-right" size={22} color="#9CA3AF" />
+              </View>
+            </TouchableOpacity>
+
+            <View style={styles.settingRowLast}>
+              <View style={styles.settingLeft}>
+                <View style={[styles.iconChip, { backgroundColor: '#F3F4F6' }]}>
+                  <MaterialIcons name="info-outline" size={18} color="#111827" />
+                </View>
+                <Text style={styles.settingLabel}>앱 버전</Text>
+              </View>
+
+              <Text style={styles.settingValue}>v1.0.0</Text>
+            </View>
+          </View>
+
+          <View style={styles.scrollBottomSpacer} />
         </ScrollView>
       </View>
-
-      {/* 알림 설정 모달 */}
-      <NotificationSettingModal
-        visible={isNotificationModalVisible}
-        onClose={closeNotificationModal}
-        allBrokers={allBrokers}
-        tempNotifySpac={tempNotifySpac}
-        tempNotifyReits={tempNotifyReits}
-        tempAlarmTime={tempAlarmTime}
-        tempSelectedBrokers={tempSelectedBrokers}
-        onToggleSpac={() => setTempNotifySpac(!tempNotifySpac)}
-        onToggleReits={() => setTempNotifyReits(!tempNotifyReits)}
-        onAlarmTimeChange={setTempAlarmTime}
-        onToggleBroker={toggleBroker}
-        onResetToAll={resetToAll}
-        onApply={applyNotificationSettings}
-      />
     </SafeAreaView>
   );
 }
+
+/* =========================================================
+   ✅ 디자인 리워크(요청 반영)
+   - "내 설정" / "알림 설정" 이모티콘/아이콘 제거
+   - 알림 Switch 색 지정 제거(기본색)
+   - SPAC/REITS 스위치 state 연결해서 토글되게 수정
+   - 즐겨찾기: "전체보기" 제거 → "전체삭제" 추가
+========================================================= */
+
+const BG = '#F6F7FB';
+const CARD = '#FFFFFF';
+const BORDER = '#E5E7EB';
+const BORDER_STRONG = '#D1D5DB';
+
+const ROW_H = 54;
+const PAD_X = 16;
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: BG,
+  },
+
+  header: {
+    paddingTop: 14,
+    paddingHorizontal: 18,
+    paddingBottom: 12,
+    backgroundColor: BG,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#111827',
+    letterSpacing: -0.2,
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 32,
+    backgroundColor: BG,
+  },
+  scrollBottomSpacer: { height: 28 },
+
+  card: {
+    backgroundColor: CARD,
+    borderRadius: 18,
+    marginBottom: 14,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: BORDER,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 6px 18px rgba(17,24,39,0.06)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOpacity: 0.08,
+        shadowRadius: 14,
+        shadowOffset: { width: 0, height: 6 },
+        elevation: 3,
+      },
+    }),
+  },
+
+  cardTitleRow: {
+    paddingHorizontal: PAD_X,
+    paddingTop: 14,
+    paddingBottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+  },
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  cardTitlePlain: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#111827',
+    paddingHorizontal: PAD_X,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+  },
+
+  loginRow: {
+    paddingHorizontal: PAD_X,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  loginTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flexWrap: 'wrap',
+  },
+  loginTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#111827',
+    letterSpacing: -0.2,
+  },
+  loginSub: {
+    marginTop: 6,
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '700',
+  },
+
+  providerBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  providerBadgeKakao: {
+    backgroundColor: '#FEE500',
+    borderColor: '#FEE500',
+  },
+  providerBadgeNaver: {
+    backgroundColor: '#03C75A',
+    borderColor: '#03C75A',
+  },
+  // ✅ Google: 흰/회색 배지 (요청 반영)
+  providerBadgeGoogle: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E5E7EB',
+  },
+
+  providerBadgeText: {
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  providerBadgeTextKakao: {
+    color: '#111827',
+  },
+  providerBadgeTextNaver: {
+    color: '#FFFFFF',
+  },
+  providerBadgeTextGoogle: {
+    color: '#111827',
+  },
+
+  neutralPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: BORDER_STRONG,
+    backgroundColor: '#FFFFFF',
+  },
+  neutralPillText: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#111827',
+  },
+
+  goLoginBtn: {
+    marginTop: 12,
+    marginHorizontal: PAD_X,
+    marginBottom: 12,
+    height: 46,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: BORDER_STRONG,
+  },
+  goLoginBtnText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#111827',
+  },
+
+  settingLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  settingLeftNoIcon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  settingRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  iconChip: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+
+  settingRow: {
+    minHeight: ROW_H,
+    paddingHorizontal: PAD_X,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER_STRONG,
+  },
+  settingRowLast: {
+    minHeight: ROW_H,
+    paddingHorizontal: PAD_X,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  settingLabel: { fontSize: 13, color: '#111827', fontWeight: '700' },
+  settingValue: { fontSize: 12, color: '#6B7280', fontWeight: '700' },
+  settingValueStrong: { fontSize: 12, color: '#111827', fontWeight: '900' },
+
+  cardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: PAD_X,
+    paddingTop: 14,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+  },
+  cardTitleNoMb: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#111827',
+  },
+
+  dangerPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  dangerPillText: {
+    fontSize: 12,
+    color: '#DC2626',
+    fontWeight: '800',
+  },
+
+  horizontalList: {
+    paddingVertical: 14,
+    paddingHorizontal: PAD_X,
+    gap: 12,
+  },
+  homeCard: {
+    width: 228,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+  },
+  homeCardTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  badge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#DC2626',
+  },
+
+  homeCardTitle: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#111827',
+    marginBottom: 10,
+  },
+
+  homeCardInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  homeCardInfoLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '700',
+  },
+  homeCardInfoValue: {
+    fontSize: 12,
+    color: '#111827',
+    fontWeight: '900',
+  },
+  homeCardRateStrong: {
+    fontSize: 12,
+    color: '#059669',
+    fontWeight: '900',
+  },
+
+  homeCardFooter: {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  homeCardFooterText: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '800',
+  },
+
+  favoriteIconOn: { fontSize: 18, fontWeight: 'bold', color: '#F59E0B' },
+  favoriteIconOff: { fontSize: 18, color: '#D1D5DB' },
+
+  listRow: {
+    minHeight: ROW_H,
+    paddingHorizontal: PAD_X,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER_STRONG,
+  },
+  listRowLast: {
+    minHeight: ROW_H,
+    paddingHorizontal: PAD_X,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  listRowLeft: { flex: 1 },
+  listRowRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  listTitle: {
+    fontSize: 14,
+    color: '#111827',
+    fontWeight: '900',
+    marginBottom: 2,
+  },
+  listSub: { marginTop: 2, fontSize: 12, color: '#6B7280', fontWeight: '600' },
+  deleteText: { fontSize: 12, color: '#9CA3AF', fontWeight: '800' },
+
+  emptyBox: { paddingVertical: 18, paddingHorizontal: PAD_X },
+  emptyTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#374151',
+    marginBottom: 4,
+  },
+  emptySub: { fontSize: 12, color: '#9CA3AF', fontWeight: '600' },
+});
