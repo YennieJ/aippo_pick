@@ -1,5 +1,4 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import * as Application from 'expo-application';
 import {
   getNotificationSetting,
   registerDevice,
@@ -10,28 +9,7 @@ import {
   UpdateNotificationSettingRequest,
 } from '../types/notification.types';
 
-/* =========================================================
-   🔐 Device ID 생성/로드
-========================================================= */
-let cachedDeviceId: string | null = null;
-
-export async function getStableDeviceId(): Promise<string> {
-  if (cachedDeviceId) return cachedDeviceId;
-
-  let id: string | null = null;
-
-  const { Platform } = require('react-native');
-  if (Platform.OS === 'android') {
-    id = Application.getAndroidId();
-  }
-
-  if (!id) {
-    id = `${Application.applicationId}-${Application.nativeApplicationVersion}`;
-  }
-
-  cachedDeviceId = id;
-  return id;
-}
+import { getStableDeviceId } from '../../../shared/utils/device-id.utils';
 
 /**
  * 디바이스 등록/업데이트 뮤테이션

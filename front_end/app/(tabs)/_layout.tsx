@@ -10,10 +10,8 @@ import { useColorScheme } from '../../src/shared/hooks/use-color-scheme';
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
-import {
-  getStableDeviceId,
-  useRegisterDevice,
-} from '../../src/features/myPage';
+import { useRegisterDevice } from '../../src/features/myPage';
+import { getStableDeviceId } from '../../src/shared/utils/device-id.utils';
 
 /* =========================================================
    🌈 탭 레이아웃
