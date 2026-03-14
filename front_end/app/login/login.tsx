@@ -33,7 +33,6 @@ import {
   getProfile as kakaoGetProfile,
   KakaoProfile,
 } from "@react-native-seoul/kakao-login";
-import NaverLogin from "@react-native-seoul/naver-login";
 import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin";
 
 WebBrowser.maybeCompleteAuthSession();
@@ -47,11 +46,6 @@ const CONFIG = {
     REST_API_KEY: "bcd4aad8d33b30306ff700c24fc8d00b",
     CLIENT_SECRET: undefined as string | undefined,
   },
-  NAVER: {
-    CLIENT_ID: "4x0VfeU5u5XN3327IL4z",
-    CLIENT_SECRET: "OxZ0vvyblq",
-    APP_NAME: "아이뽀픽",
-  },
   GOOGLE: {
     WEB_CLIENT_ID: "450639430736-pablshju24jve9hkugus5l04qiotgupg.apps.googleusercontent.com",
     ANDROID_CLIENT_ID: "450639430736-5bmhe4itcg2nm0jdsp1r1fnp32j5looi.apps.googleusercontent.com",
@@ -61,7 +55,6 @@ const CONFIG = {
 
 const STORAGE_KEY = {
   KAKAO: "AUTH_KAKAO_V1",
-  NAVER: "AUTH_NAVER_V1",
   GOOGLE: "AUTH_GOOGLE_V1",
 } as const;
 
@@ -78,21 +71,6 @@ const GOOGLE_DISCOVERY = {
   ✅ SDK 초기화 – 모듈 레벨 (컴포넌트 mount 전 실행, useEffect 딜레이 없음)
 ========================================================= */
 const IS_WEB = Platform.OS === "web";
-const NAVER_INIT = {
-  consumerKey: CONFIG.NAVER.CLIENT_ID,
-  consumerSecret: CONFIG.NAVER.CLIENT_SECRET,
-  appName: CONFIG.NAVER.APP_NAME,
-};
-
-if (!IS_WEB) {
-  // Naver 초기화
-  try {
-    const nav = NaverLogin as any;
-    (nav.initialize ?? nav.init)?.(NAVER_INIT);
-  } catch (e) {
-    console.warn("NaverLogin init error:", e);
-  }
-}
 
 // Google 초기화 (web 포함)
 GoogleSignin.configure({
@@ -104,19 +82,17 @@ GoogleSignin.configure({
 /* =========================================================
   Types
 ========================================================= */
-type Provider = "KAKAO" | "NAVER" | "GOOGLE" | "APPLE";
+type Provider = "KAKAO" | "GOOGLE" | "APPLE";
 
 type KakaoMeResponse = {
   id: number;
   kakao_account?: { profile?: { nickname?: string; profile_image_url?: string }; email?: string };
   properties?: { nickname?: string; profile_image?: string };
 };
-type NaverProfile = { id: string; nickname?: string; name?: string; email?: string; profile_image?: string };
 type GoogleProfile = { id?: string; name?: string; email?: string; photo?: string };
 
 type AuthState =
   | { provider: "KAKAO"; profile: KakaoMeResponse }
-  | { provider: "NAVER"; profile: NaverProfile }
   | { provider: "GOOGLE"; profile: GoogleProfile }
   | null;
 
@@ -127,7 +103,6 @@ type Theme = {
   bg: string; card: string; card2: string; border: string;
   text: string; subText: string; overlayBg: string;
   kakaoBg: string; kakaoText: string;
-  naverBg: string; naverText: string;
   googleBg: string; googleText: string; googleBorder: string;
   googleBadgeBg: string; googleBadgeText: string; googleBadgeBorder: string;
   badgeText: string;
@@ -137,7 +112,6 @@ const lightTheme: Theme = {
   bg: "#F5F6F8", card: "#FFFFFF", card2: "#F9FAFB", border: "#E6E8EC",
   text: "#0B1220", subText: "#607086", overlayBg: "rgba(0,0,0,0.45)",
   kakaoBg: "#FEE500", kakaoText: "#111111",
-  naverBg: "#03C75A", naverText: "#FFFFFF",
   googleBg: "#FFFFFF", googleText: "#111111", googleBorder: "#E6E8EC",
   googleBadgeBg: "#FFFFFF", googleBadgeText: "#111111", googleBadgeBorder: "#D6DAE1",
   badgeText: "#111111",
@@ -146,7 +120,6 @@ const darkTheme: Theme = {
   bg: "#0B1220", card: "#111B2F", card2: "#0E172A", border: "rgba(255,255,255,0.08)",
   text: "#EAF1FF", subText: "rgba(234,241,255,0.70)", overlayBg: "rgba(0,0,0,0.55)",
   kakaoBg: "#FEE500", kakaoText: "#111111",
-  naverBg: "#03C75A", naverText: "#FFFFFF",
   googleBg: "#FFFFFF", googleText: "#111111", googleBorder: "#E6E8EC",
   googleBadgeBg: "#FFFFFF", googleBadgeText: "#111111", googleBadgeBorder: "#D6DAE1",
   badgeText: "#111111",
@@ -165,18 +138,6 @@ const styleCache = new WeakMap<Theme, ReturnType<typeof makeStyles>>();
 function getStyles(theme: Theme) {
   if (!styleCache.has(theme)) styleCache.set(theme, makeStyles(theme));
   return styleCache.get(theme)!;
-}
-
-/* =========================================================
-  Naver helpers
-========================================================= */
-async function fetchNaverProfile(accessToken: string): Promise<NaverProfile> {
-  const res = await fetch("https://openapi.naver.com/v1/nid/me", {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  const json = await res.json().catch(() => ({} as any));
-  if (!res.ok || json?.resultcode !== "00") throw new Error(json?.message ?? "네이버 프로필 조회 실패");
-  return json.response as NaverProfile;
 }
 
 /* =========================================================
@@ -285,16 +246,14 @@ export default function LoginScreen() {
   /* ---- 저장된 auth 로드 ---- */
   const loadAuth = useCallback(async () => {
     try {
-      const [[, kr], [, nr], [, gr]] = await AsyncStorage.multiGet([
-        STORAGE_KEY.KAKAO, STORAGE_KEY.NAVER, STORAGE_KEY.GOOGLE,
+      const [[, kr], [, gr]] = await AsyncStorage.multiGet([
+        STORAGE_KEY.KAKAO, STORAGE_KEY.GOOGLE,
       ]);
       const kakao = safeParse<{ profile?: KakaoMeResponse; me?: KakaoMeResponse }>(kr);
-      const naver = safeParse<{ profile?: NaverProfile }>(nr);
       const google = safeParse<{ profile?: GoogleProfile }>(gr);
 
       const k = kakao?.profile ?? kakao?.me;
       if (k)              return setAuth({ provider: "KAKAO",  profile: k });
-      if (naver?.profile) return setAuth({ provider: "NAVER",  profile: naver.profile });
       if (google?.profile)return setAuth({ provider: "GOOGLE", profile: google.profile });
       setAuth(null);
     } catch {
@@ -371,7 +330,7 @@ export default function LoginScreen() {
     saveAndNavigate(
       STORAGE_KEY.KAKAO,
       { provider: "KAKAO", token, profile, savedAt: new Date().toISOString(), platform: Platform.OS },
-      [STORAGE_KEY.NAVER, STORAGE_KEY.GOOGLE],
+      [STORAGE_KEY.GOOGLE],
       { provider: "KAKAO", profile }
     );
   }, [saveAndNavigate]);
@@ -387,31 +346,11 @@ export default function LoginScreen() {
       saveAndNavigate(
         STORAGE_KEY.KAKAO,
         { provider: "KAKAO", token, profile: me, savedAt: new Date().toISOString(), platform: "web" },
-        [STORAGE_KEY.NAVER, STORAGE_KEY.GOOGLE],
+        [STORAGE_KEY.GOOGLE],
         { provider: "KAKAO", profile: me }
       );
     });
   }, [webRedirectUri, withLoading, saveAndNavigate]);
-
-  // ── Naver Native ──
-  const handleNaverNative = useCallback(async () => {
-    void WebBrowser.dismissBrowser(); // ✅ await 제거
-    const res: any = await (NaverLogin as any).login();
-    const success = res?.successResponse ?? res?.success;
-    const failure = res?.failureResponse ?? res?.failure;
-
-    if (failure) throw new Error(failure?.message ?? failure?.errorMessage ?? "네이버 로그인 실패");
-    const accessToken = success?.accessToken ?? success?.access_token ?? res?.accessToken ?? res?.access_token;
-    if (!accessToken) throw new Error("네이버 accessToken 없음");
-
-    const profile = await fetchNaverProfile(String(accessToken));
-    saveAndNavigate(
-      STORAGE_KEY.NAVER,
-      { provider: "NAVER", token: { accessToken: String(accessToken) }, profile, savedAt: new Date().toISOString(), platform: Platform.OS, mode: "native-only" },
-      [STORAGE_KEY.KAKAO, STORAGE_KEY.GOOGLE],
-      { provider: "NAVER", profile }
-    );
-  }, [saveAndNavigate]);
 
   // ── Google Web code exchange ──
   const handleGoogleWebCode = useCallback(async (code: string) => {
@@ -437,7 +376,7 @@ export default function LoginScreen() {
       saveAndNavigate(
         STORAGE_KEY.GOOGLE,
         { provider: "GOOGLE", profile, tokens: json?.tokens, savedAt: new Date().toISOString(), platform: "web" },
-        [STORAGE_KEY.KAKAO, STORAGE_KEY.NAVER],
+        [STORAGE_KEY.KAKAO],
         { provider: "GOOGLE", profile }
       );
     });
@@ -453,11 +392,6 @@ export default function LoginScreen() {
     }
     await withLoading("KAKAO", handleKakaoNative);
   }, [kakaoRequest, kakaoPromptAsync, handleKakaoNative, withLoading]);
-
-  const onPressNaver = useCallback(async () => {
-    if (IS_WEB) return Alert.alert("네이버 로그인", "앱 전용입니다.");
-    await withLoading("NAVER", handleNaverNative);
-  }, [handleNaverNative, withLoading]);
 
   const onPressGoogle = useCallback(async () => {
     if (IS_WEB) {
@@ -487,7 +421,7 @@ export default function LoginScreen() {
       saveAndNavigate(
         STORAGE_KEY.GOOGLE,
         { provider: "GOOGLE", profile, tokens, savedAt: new Date().toISOString(), platform: Platform.OS },
-        [STORAGE_KEY.KAKAO, STORAGE_KEY.NAVER],
+        [STORAGE_KEY.KAKAO],
         { provider: "GOOGLE", profile }
       );
     });
@@ -501,15 +435,10 @@ export default function LoginScreen() {
   /* ---- Logout ---- */
   const logoutAll = useCallback(async () => {
     setAuth(null); // ✅ UI 즉시 반영
-    void AsyncStorage.multiRemove([STORAGE_KEY.KAKAO, STORAGE_KEY.NAVER, STORAGE_KEY.GOOGLE]);
+    void AsyncStorage.multiRemove([STORAGE_KEY.KAKAO, STORAGE_KEY.GOOGLE]);
     if (!IS_WEB) {
       void Promise.allSettled([  // ✅ 병렬 처리
         kakaoLogout(),
-        (async () => {
-          const nav = NaverLogin as any;
-          await (nav.logout?.() ?? Promise.resolve());
-          await (nav.deleteToken?.() ?? Promise.resolve());
-        })(),
         GoogleSignin.signOut(),
       ]);
     }
@@ -518,7 +447,6 @@ export default function LoginScreen() {
   /* ---- Derived display name ---- */
   const loggedInName =
     auth?.provider === "KAKAO"  ? (auth.profile.kakao_account?.profile?.nickname ?? auth.profile.properties?.nickname ?? "") :
-    auth?.provider === "NAVER"  ? (auth.profile.nickname ?? auth.profile.name ?? "") :
     auth?.provider === "GOOGLE" ? (auth.profile.name ?? "") : "";
 
   /* =========================================================
@@ -552,15 +480,6 @@ export default function LoginScreen() {
               onLogout={logoutAll} theme={theme}
             />
           )}
-          {auth?.provider === "NAVER" && (
-            <ProviderCard
-              title="네이버 계정" badgeLabel="NAVER"
-              badgeBg={theme.naverBg} badgeText="#FFFFFF" badgeBorderColor="transparent"
-              name={auth.profile.nickname ?? auth.profile.name ?? "-"}
-              email={auth.profile.email ?? "-"}
-              onLogout={logoutAll} theme={theme}
-            />
-          )}
           {auth?.provider === "GOOGLE" && (
             <ProviderCard
               title="구글 계정" badgeLabel="GOOGLE"
@@ -579,13 +498,6 @@ export default function LoginScreen() {
                 subColor={theme.kakaoText} borderColor="transparent"
                 disabled={isBusy} loading={loadingProvider === "KAKAO"}
                 onPress={onPressKakao} theme={theme}
-              />
-              <BrandButton
-                title="네이버로 계속하기" leftIcon="public"
-                bg={theme.naverBg} textColor={theme.naverText}
-                subColor="rgba(255,255,255,0.9)" borderColor="transparent"
-                disabled={isBusy} loading={loadingProvider === "NAVER"}
-                onPress={onPressNaver} theme={theme}
               />
               <BrandButton
                 title="구글로 계속하기" leftIcon="account-circle"

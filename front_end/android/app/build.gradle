@@ -92,8 +92,8 @@ android {
         applicationId 'com.itl.aippopick'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 3
-        versionName "1.0.2"
+        versionCode 1
+        versionName "1.0.0"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
@@ -153,6 +153,8 @@ android {
 }
 
 dependencies {
+    implementation("androidx.work:work-runtime-ktx:2.8.1")
+
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
 
@@ -179,12 +181,6 @@ dependencies {
     } else {
         implementation jscFlavor
     }
-
-    // WorkManager for scheduled widget updates
-    implementation("androidx.work:work-runtime-ktx:2.9.0")
-    
-    // OkHttp for API calls
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }
 
 apply plugin: 'com.google.gms.google-services'
