@@ -1,12 +1,6 @@
-import { useEffect, useState } from 'react';
-import {
-  Modal,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import WheelPicker from '@quidone/react-native-wheel-picker';
+import { useEffect, useMemo, useState } from 'react';
+import { Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IconSymbol } from '../../../shared';
 import { useColorScheme } from '../../../shared/hooks/use-color-scheme';
@@ -49,77 +43,52 @@ export default function NotificationSettingModal({
   const colorScheme = useColorScheme();
   const iconColor = colorScheme === 'dark' ? '#9CA3AF' : '#666';
 
-  // 24시간 형식을 12시간 형식으로 변환
-  const [period, setPeriod] = useState<'AM' | 'PM'>('AM');
-  const [hour, setHour] = useState<string>('8');
-  const [minute, setMinute] = useState<string>('00');
+  const isDark = colorScheme === 'dark';
+  const textColor = isDark ? '#FFFFFF' : '#333333';
 
-  // 모달이 열릴 때마다 현재 시간으로 초기화
+  const [period, setPeriod] = useState<'AM' | 'PM'>('AM');
+  const [hour, setHour] = useState(8);
+  const [minute, setMinute] = useState(0);
+
+  // 휠 피커 데이터
+  const periodData = useMemo(
+    () => [
+      { value: 'AM' as const, label: '오전' },
+      { value: 'PM' as const, label: '오후' },
+    ],
+    [],
+  );
+
+  const hourData = useMemo(
+    () =>
+      Array.from({ length: 12 }, (_, i) => ({
+        value: i + 1,
+        label: String(i + 1),
+      })),
+    [],
+  );
+
+  const minuteData = useMemo(
+    () =>
+      Array.from({ length: 60 }, (_, i) => ({
+        value: i,
+        label: String(i).padStart(2, '0'),
+      })),
+    [],
+  );
+
   useEffect(() => {
     if (visible) {
       const time12 = convert24To12(tempAlarmTime);
       setPeriod(time12.period);
-      setHour(time12.hour.toString());
-      setMinute(time12.minute.toString().padStart(2, '0'));
+      setHour(time12.hour);
+      setMinute(time12.minute);
     }
   }, [visible, tempAlarmTime]);
 
-  // 시간 입력 핸들러
-  const handleHourChange = (text: string) => {
-    // 숫자만 허용
-    const numText = text.replace(/[^0-9]/g, '');
-    if (numText === '') {
-      setHour('');
-      return;
-    }
-    const num = parseInt(numText, 10);
-    // 1-12 범위만 허용
-    if (num >= 1 && num <= 12) {
-      setHour(numText);
-      const paddedMinute = minute || '00';
-      updateTime(period, numText, paddedMinute);
-    } else if (num === 0) {
-      // 0은 허용하지 않음
-      return;
-    }
-  };
-
-  const handleMinuteChange = (text: string) => {
-    // 숫자만 허용
-    const numText = text.replace(/[^0-9]/g, '');
-    if (numText === '') {
-      setMinute('');
-      return;
-    }
-    const num = parseInt(numText, 10);
-    // 0-59 범위만 허용
-    if (num >= 0 && num <= 59) {
-      // 2자리로 패딩
-      const padded = numText.length === 1 ? numText.padStart(2, '0') : numText;
-      setMinute(padded);
-      const currentHour = hour || '8';
-      updateTime(period, currentHour, padded);
-    }
-  };
-
-  const handlePeriodChange = (newPeriod: 'AM' | 'PM') => {
-    setPeriod(newPeriod);
-    updateTime(newPeriod, hour, minute);
-  };
-
-  const updateTime = (
-    newPeriod: 'AM' | 'PM',
-    newHour: string,
-    newMinute: string
-  ) => {
-    if (newHour && newMinute) {
-      const hourNum = parseInt(newHour, 10);
-      const minuteNum = parseInt(newMinute, 10);
-      if (hourNum >= 1 && hourNum <= 12 && minuteNum >= 0 && minuteNum <= 59) {
-        const time24 = convert12To24(newPeriod, hourNum, minuteNum);
-        onAlarmTimeChange(time24);
-      }
-    }
+  const updateTime = (p: 'AM' | 'PM', h: number, m: number) => {
+    const time24 = convert12To24(p, h, m);
+    onAlarmTimeChange(time24);
   };
 
   return (
@@ -135,7 +104,7 @@ export default function NotificationSettingModal({
           activeOpacity={1}
           onPress={onClose}
         />
-        <View className="bg-white dark:bg-gray-800 rounded-t-[20px] max-h-[85%] min-h-[500px] flex-col">
+        <View className="bg-white dark:bg-gray-800 rounded-t-[20px] max-h-[90%] min-h-[70%] flex-col">
           <View className="flex-row justify-between items-center p-4">
             <Text className="text-lg font-bold text-gray-900 dark:text-white">
               알림 설정
@@ -198,78 +167,68 @@ export default function NotificationSettingModal({
 
             {/* 알림 시간 */}
             <View className="px-5 pt-4 pb-4 border-b border-b-[#f0f0f0] dark:border-b-gray-700">
-              <Text className="text-base font-semibold text-[#333] dark:text-white mb-3">
+              <Text className="text-base font-semibold text-[#333] dark:text-white mb-1">
                 알림 시간
               </Text>
-              <View className="flex-row items-center gap-3">
-                {/* 오전/오후 선택 */}
-                <View className="flex-row gap-2">
-                  <TouchableOpacity
-                    onPress={() => handlePeriodChange('AM')}
-                    className={`px-4 py-2.5 rounded-lg border-2 ${
-                      period === 'AM'
-                        ? 'bg-[#4A90E2] border-[#4A90E2]'
-                        : 'bg-white dark:bg-gray-700 border-[#ddd] dark:border-gray-600'
-                    }`}
-                  >
-                    <Text
-                      className={`text-sm font-semibold ${
-                        period === 'AM'
-                          ? 'text-white'
-                          : 'text-[#333] dark:text-white'
-                      }`}
-                    >
-                      오전
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => handlePeriodChange('PM')}
-                    className={`px-4 py-2.5 rounded-lg border-2 ${
-                      period === 'PM'
-                        ? 'bg-[#4A90E2] border-[#4A90E2]'
-                        : 'bg-white dark:bg-gray-700 border-[#ddd] dark:border-gray-600'
-                    }`}
-                  >
-                    <Text
-                      className={`text-sm font-semibold ${
-                        period === 'PM'
-                          ? 'text-white'
-                          : 'text-[#333] dark:text-white'
-                      }`}
-                    >
-                      오후
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* 시간 입력 */}
-                <View className="flex-row items-center gap-2 flex-1">
-                  <TextInput
-                    value={hour}
-                    onChangeText={handleHourChange}
-                    keyboardType="number-pad"
-                    maxLength={2}
-                    className="flex-1 bg-white dark:bg-gray-700 border border-[#ddd] dark:border-gray-600 rounded-lg px-3 py-2.5 text-center text-base font-semibold text-[#333] dark:text-white"
-                    placeholder="12"
-                    placeholderTextColor={
-                      colorScheme === 'dark' ? '#9CA3AF' : '#999'
-                    }
-                  />
-                  <Text className="text-lg font-bold text-[#333] dark:text-white">
-                    :
-                  </Text>
-                  <TextInput
-                    value={minute}
-                    onChangeText={handleMinuteChange}
-                    keyboardType="number-pad"
-                    maxLength={2}
-                    className="flex-1 bg-white dark:bg-gray-700 border border-[#ddd] dark:border-gray-600 rounded-lg px-3 py-2.5 text-center text-base font-semibold text-[#333] dark:text-white"
-                    placeholder="00"
-                    placeholderTextColor={
-                      colorScheme === 'dark' ? '#9CA3AF' : '#999'
-                    }
-                  />
-                </View>
+              <View
+                className="flex-row items-center justify-center"
+                style={{ height: 150 }}
+              >
+                <WheelPicker
+                  data={periodData}
+                  value={period}
+                  onValueChanged={({ item: { value } }) => {
+                    setPeriod(value);
+                    updateTime(value, hour, minute);
+                  }}
+                  itemHeight={40}
+                  width={70}
+                  itemTextStyle={{
+                    fontSize: 18,
+                    fontWeight: '600',
+                    color: textColor,
+                  }}
+                />
+                <WheelPicker
+                  data={hourData}
+                  value={hour}
+                  onValueChanged={({ item: { value } }) => {
+                    setHour(value);
+                    updateTime(period, value, minute);
+                  }}
+                  itemHeight={40}
+                  width={60}
+                  itemTextStyle={{
+                    fontSize: 20,
+                    fontWeight: '700',
+                    color: textColor,
+                  }}
+                />
+                <Text
+                  style={{
+                    fontSize: 20,
+                    fontWeight: '700',
+                    color: textColor,
+                    marginHorizontal: 2,
+                  }}
+                >
+                  :
+                </Text>
+                <WheelPicker
+                  data={minuteData}
+                  value={minute}
+                  onValueChanged={({ item: { value } }) => {
+                    setMinute(value);
+                    updateTime(period, hour, value);
+                  }}
+                  itemHeight={40}
+                  width={60}
+                  itemTextStyle={{
+                    fontSize: 20,
+                    fontWeight: '700',
+                    color: textColor,
+                  }}
+                />
               </View>
             </View>
 
@@ -302,7 +261,7 @@ export default function NotificationSettingModal({
               <View className="gap-0">
                 {allBrokers.map((broker: any) => {
                   const isSelected = tempSelectedBrokers.includes(
-                    broker.broker_name
+                    broker.broker_name,
                   );
                   return (
                     <TouchableOpacity

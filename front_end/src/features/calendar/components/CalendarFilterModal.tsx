@@ -47,7 +47,7 @@ export default function CalendarFilterModal({
           activeOpacity={1}
           onPress={onClose}
         />
-        <View className="bg-white dark:bg-gray-800 rounded-t-[20px] max-h-[85%] min-h-[500px] flex-col">
+        <View className="bg-white dark:bg-gray-800 rounded-t-[20px] max-h-[90%] min-h-[70%] flex-col">
           <View className="flex-row justify-between items-center p-4">
             <Text className="text-lg font-bold text-gray-900 dark:text-white">
               캘린더 필터
