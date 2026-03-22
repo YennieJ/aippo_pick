@@ -22,6 +22,7 @@ import {
 import { cn } from '../../src/lib/cn';
 import {
   DeepLinkButton,
+  getDateByStatus,
   IconSymbol,
   IpoStatusBadge,
   SectionHeader,
@@ -93,47 +94,6 @@ export default function HomeScreen() {
     if (!brokerRanking) return [];
     return brokerRanking[selectedTab2] || [];
   }, [brokerRanking, selectedTab2]);
-
-  // YYYY.MM.DD 문자열을 날짜(자정 기준)로 파싱
-  const parseDateString = (s: string): Date | null => {
-    const normalized = s.trim().replace(/\./g, '-');
-    const match = normalized.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    if (!match) return null;
-    const [, y, m, d] = match;
-    return new Date(Number(y), Number(m) - 1, Number(d), 12, 0, 0, 0);
-  };
-
-  // status에 따른 날짜 가져오기
-  const getDateByStatus = (item: any): string | null => {
-    switch (item.status) {
-      case '청약': {
-        const subDate = item.subscriptiondate || item.date;
-        if (!subDate) return null;
-        const parts = subDate.split('~').map((p: string) => p.trim());
-        if (parts.length < 2) return parts[0] || null;
-        const startDate = parseDateString(parts[0]);
-        const today = new Date();
-        const todayNoon = new Date(
-          today.getFullYear(),
-          today.getMonth(),
-          today.getDate(),
-          12,
-          0,
-          0,
-          0
-        );
-        // 시작일이 지났으면 종료일 기준으로 D-day
-        if (startDate && todayNoon >= startDate) return parts[1];
-        return parts[0];
-      }
-      case '상장':
-        return item.listingdate || null;
-      case '환불':
-        return item.refunddate || null;
-      default:
-        return item.date || null;
-    }
-  };
 
   // 공모가 가져오기 (confirmedprice가 있으면 사용, 없으면 desiredprice)
   const getPrice = (item: any): string => {

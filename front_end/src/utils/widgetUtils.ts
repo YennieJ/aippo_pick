@@ -1,5 +1,6 @@
 import { NativeModules, Platform } from 'react-native';
 import type { IpoData } from '../features/ipo/types/ipo.types';
+import { getDDayText } from '../shared/utils/dday.utils';
 
 const { WidgetModule } = NativeModules;
 
@@ -22,23 +23,7 @@ interface WidgetTableData {
  * 날짜로부터 디데이 계산
  */
 const calculateDday = (dateString?: string): string => {
-  if (!dateString) return '-';
-
-  try {
-    const targetDate = new Date(dateString);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    targetDate.setHours(0, 0, 0, 0);
-
-    const diffTime = targetDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays > 0) return `D-${diffDays}`;
-    if (diffDays === 0) return 'D-Day';
-    return `D+${Math.abs(diffDays)}`;
-  } catch {
-    return '-';
-  }
+  return getDDayText(dateString) ?? '-';
 };
 
 /**
