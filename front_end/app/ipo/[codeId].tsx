@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -8,7 +8,11 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useIpoByCodeId } from '../../src/features/ipo/hooks/useIpoQueries';
+import { ScoreSection } from '../../src/features/ipo/components/ScoreSection';
+import {
+  useIpoByCodeId,
+  useIpoScore,
+} from '../../src/features/ipo/hooks/useIpoQueries';
 import { IpoDetailData } from '../../src/features/ipo/types/ipo.types';
 import { DeepLinkButton, IconSymbol, IpoStatusBadge } from '../../src/shared';
 import { useColorScheme } from '../../src/shared/hooks/use-color-scheme';
@@ -19,6 +23,7 @@ import {
 } from '../../src/shared/utils/storage.utils';
 
 export default function IpoDetailScreen() {
+  const router = useRouter();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const { codeId } = useLocalSearchParams<{ codeId: string }>();
@@ -33,6 +38,8 @@ export default function IpoDetailScreen() {
   const ipoData: IpoDetailData | undefined = Array.isArray(data)
     ? data[0]
     : data;
+
+  const { data: scoreData } = useIpoScore(ipoData?.company ?? '');
 
   // codeId(혹은 ipoData?.code_id)를 키로 사용
   const favoriteKey = ipoData?.code_id ?? codeId ?? '';
@@ -132,7 +139,11 @@ export default function IpoDetailScreen() {
       ? ipoData.price
       : ipoData.confirmedprice && ipoData.confirmedprice !== '-원'
         ? ipoData.confirmedprice
-        : ipoData.desiredprice || null;
+        : ipoData.desiredprice
+          ? ipoData.desiredprice.includes('원')
+            ? ipoData.desiredprice
+            : `${ipoData.desiredprice}원`
+          : null;
 
   const priceLabel =
     ipoData.price && ipoData.price !== '-'
@@ -218,57 +229,48 @@ export default function IpoDetailScreen() {
         contentContainerStyle={{ padding: 16, gap: 12 }}
       >
         {/* Level 1: 헤더 영역 */}
-        <View className="pt-4">
-          {/* 회사명, 즐겨찾기, 상태 배지 */}
-          <View className="flex-row items-start justify-between mb-2.5">
-            <View className="flex-1 mr-3">
-              <Text className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-                {ipoData.company}
+        {/* 회사명, 즐겨찾기, 상태 배지 */}
+        <View className="flex-row items-start justify-between">
+          <View className="flex-1 mr-3">
+            <Text className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+              {ipoData.company}
+            </Text>
+            {industry ? (
+              <Text className="text-sm text-gray-600 dark:text-gray-400 mb-3 leading-[20px]">
+                {industry}
               </Text>
-              <IpoStatusBadge
-                subscriptiondate={ipoData.subscriptiondate}
-                listingdate={ipoData.listingdate}
-                refunddate={ipoData.refunddate}
-              />
-            </View>
-            <TouchableOpacity
-              onPress={onToggleFavorite}
-              className="px-2 pt-0.5 justify-center items-center"
-            >
-              <IconSymbol
-                name={isFavorite ? 'star.fill' : 'star'}
-                size={30}
-                color="#FACC15"
-              />
-            </TouchableOpacity>
+            ) : null}
+            <IpoStatusBadge
+              subscriptiondate={ipoData.subscriptiondate}
+              listingdate={ipoData.listingdate}
+              refunddate={ipoData.refunddate}
+            />
           </View>
+          <TouchableOpacity
+            onPress={onToggleFavorite}
+            className="px-2 pt-0.5 justify-center items-center"
+          >
+            <IconSymbol
+              name={isFavorite ? 'star.fill' : 'star'}
+              size={30}
+              color="#FACC15"
+            />
+          </TouchableOpacity>
         </View>
 
-        {/* Level 2: 회사 소개 */}
-        {industry && (
-          <View className="bg-white dark:bg-gray-800 p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
-            <Text className="text-base font-semibold text-gray-900 dark:text-white mb-2.5">
-              회사 소개
-            </Text>
-            <Text className="text-[15px] text-gray-800 dark:text-gray-200 leading-[22px]">
-              {industry}
-            </Text>
-          </View>
-        )}
-
-        {/* Level 3: 주요 정보 카드 (2열) */}
-        <View className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 flex-row gap-4 shadow-sm">
+        {/* Level 2: 주요 정보 카드 (2열) */}
+        <View className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 flex-row gap-4">
           {/* 왼쪽: 현재가/확정 공모가/희망 공모가 */}
           <View className="flex-1 border-r border-gray-100 dark:border-gray-700 pr-4">
             <Text className="text-sm text-gray-600 dark:text-gray-400 mb-2 font-medium">
               {priceLabel}
             </Text>
             {currentPrice ? (
-              <Text className="text-[28px] font-bold text-gray-900 dark:text-white mb-1">
+              <Text className="text-xl font-bold text-gray-900 dark:text-white mb-1">
                 {currentPrice}
               </Text>
             ) : (
-              <Text className="text-[28px] font-bold text-gray-900 dark:text-white mb-1">
+              <Text className="text-xl font-bold text-gray-900 dark:text-white mb-1">
                 -
               </Text>
             )}
@@ -285,11 +287,11 @@ export default function IpoDetailScreen() {
               {competitionLabel}
             </Text>
             {competitionRate ? (
-              <Text className="text-[28px] font-bold text-[#FF6B35] dark:text-[#FF6B35] mb-1">
+              <Text className="text-xl font-bold text-[#FF6B35] dark:text-[#FF6B35] mb-1">
                 {competitionRate}
               </Text>
             ) : (
-              <Text className="text-[28px] font-bold text-[#FF6B35] dark:text-[#FF6B35] mb-1">
+              <Text className="text-xl font-bold text-[#FF6B35] dark:text-[#FF6B35] mb-1">
                 -
               </Text>
             )}
@@ -299,7 +301,7 @@ export default function IpoDetailScreen() {
         {/* Level 4: 상세 정보 카드들 */}
         {/* 청약 가능한 증권사 */}
         {underwriters.length > 0 && (
-          <View className="bg-white dark:bg-gray-800 p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+          <View className="bg-white dark:bg-gray-800 p-3.5 rounded-xl border border-gray-200 dark:border-gray-700">
             <Text className="text-base font-semibold text-gray-900 dark:text-white mb-2.5">
               청약 가능한 증권사
             </Text>
@@ -317,8 +319,18 @@ export default function IpoDetailScreen() {
           </View>
         )}
 
+        {/* AI */}
+        <ScoreSection
+          scoreData={scoreData ?? null}
+          isDark={isDark}
+          onPress={() =>
+            router.push(
+              `/ipo/ai-report?company=${encodeURIComponent(ipoData.company)}&codeId=${codeIdStr}`,
+            )
+          }
+        />
         {/* 일정 */}
-        <View className="bg-white dark:bg-gray-800 p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+        <View className="bg-white dark:bg-gray-800 p-3.5 rounded-xl border border-gray-200 dark:border-gray-700">
           <Text className="text-base font-semibold text-gray-900 dark:text-white mb-2.5">
             일정
           </Text>
@@ -456,7 +468,7 @@ export default function IpoDetailScreen() {
         </View>
 
         {/* 공모 정보 */}
-        <View className="bg-white dark:bg-gray-800 p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+        <View className="bg-white dark:bg-gray-800 p-3.5 rounded-xl border border-gray-200 dark:border-gray-700">
           <Text className="text-base font-semibold text-gray-900 dark:text-white mb-2.5">
             공모 정보
           </Text>

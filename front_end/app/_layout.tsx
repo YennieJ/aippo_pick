@@ -83,6 +83,27 @@ export default function RootLayout() {
               <Stack>
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen
+                name="ipo/ai-report"
+                options={({ navigation }) => ({
+                  title: 'AI 분석',
+                  headerLeft: () => {
+                    const isDark = colorScheme === 'dark';
+                    return (
+                      <TouchableOpacity
+                        onPress={() => navigation.goBack()}
+                        style={{ paddingRight: 8 }}
+                      >
+                        <IconSymbol
+                          name="chevron.left"
+                          size={28}
+                          color={isDark ? '#fff' : '#000'}
+                        />
+                      </TouchableOpacity>
+                    );
+                  },
+                })}
+              />
+              <Stack.Screen
                 name="ipo/[codeId]"
                 options={({ navigation }) => ({
                   title: '공모주 상세',

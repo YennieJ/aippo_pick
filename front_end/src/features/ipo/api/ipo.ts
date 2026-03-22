@@ -1,4 +1,5 @@
 import { api } from '../../../shared/api/client';
+import type { IpoScoreData } from '../types/ipo.types';
 
 export const getTodayIpo = async () => {
   const response = await api.get('/data_ipo/today');
@@ -39,6 +40,13 @@ export const searchAndResolve = async (
   keyword: string,
 ): Promise<IpoSearchResult[]> => {
   const res = await api.get<IpoSearchResult[]>(`/data_ipo/search/${encodeURIComponent(keyword)}`
+  );
+  return res.data;
+};
+
+export const getIpoScore = async (company: string): Promise<IpoScoreData> => {
+  const res = await api.get<IpoScoreData>(
+    `/score/company/${encodeURIComponent(company)}`
   );
   return res.data;
 };

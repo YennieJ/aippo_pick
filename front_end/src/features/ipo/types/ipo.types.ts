@@ -61,3 +61,26 @@ export interface BrokerRankingResponse {
 }
 
 export type RankingType = 'topByCount' | 'topByAvg' | 'topByMax';
+
+export interface IpoScoreData {
+  company: string;
+  code_id: string;
+  total_score: string;
+  demand_score: string;
+  market_score: string;
+  value_score: string;
+  inst_competition_score: string;
+  retention_score: string;
+  circulation_score: string;
+  market_temp_score: string;
+  theme_score: string;
+  ipo_return_score: string;
+  stability_score: string;
+  band_score: string;
+  confirmedprice: string;
+  firstday_close: string;
+  ai_adjusted_yn: boolean;
+  listingdate: string;
+  ai_report: string | null;
+  ai_webtoon: string;
+}

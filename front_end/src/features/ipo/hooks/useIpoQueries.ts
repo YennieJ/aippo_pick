@@ -4,6 +4,7 @@ import {
   getBrokerRanking,
   getIpoByCodeId,
   getIpoCalendar,
+  getIpoScore,
   getTodayIpo,
   searchAndResolve,
 } from '../api/ipo';
@@ -60,5 +61,13 @@ export function useIpoDetailsByIds(codeIds: string[]) {
       queryFn: () => getIpoByCodeId(codeId),
       enabled: !!codeId,
     })),
+  });
+}
+
+export function useIpoScore(company: string) {
+  return useQuery({
+    queryKey: ['ipo', 'score', company],
+    queryFn: () => getIpoScore(company),
+    enabled: !!company,
   });
 }
