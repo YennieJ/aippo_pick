@@ -111,14 +111,15 @@ export default function MyPageScreen() {
       const deviceId = await getStableDeviceId();
       const currentSetting = notificationSetting;
 
-      await updateNotificationMutation.mutateAsync({
+      const requestBody = {
         deviceId,
         notifyAll: updates.notifyAll ?? currentSetting?.notifyAll ?? false,
         broker: updates.broker ?? currentSetting?.broker ?? '',
         spac: updates.spac ?? currentSetting?.spac ?? true,
         reits: updates.reits ?? currentSetting?.reits ?? true,
         alarmTime: updates.alarmTime ?? currentSetting?.alarmTime ?? '08:00',
-      });
+      };
+      await updateNotificationMutation.mutateAsync(requestBody);
     },
     [notificationSetting, updateNotificationMutation],
   );
@@ -158,21 +159,27 @@ export default function MyPageScreen() {
     const deviceId = await getStableDeviceId();
     const brokerString =
       tempSelectedBrokers.length === 0 ? '' : tempSelectedBrokers.join(',');
-    setNotifySpac(tempNotifySpac);
-    setNotifyReits(tempNotifyReits);
-    setAlarmTime(tempAlarmTime);
-    setSelectedBrokers([...tempSelectedBrokers]);
 
-    await updateNotificationMutation.mutateAsync({
+    const requestBody = {
       deviceId,
       notifyAll: notifyAll,
       broker: brokerString,
       spac: tempNotifySpac,
       reits: tempNotifyReits,
       alarmTime: tempAlarmTime,
-    });
+    };
+    try {
+      await updateNotificationMutation.mutateAsync(requestBody);
 
-    setIsNotificationModalVisible(false);
+      setNotifySpac(tempNotifySpac);
+      setNotifyReits(tempNotifyReits);
+      setAlarmTime(tempAlarmTime);
+      setSelectedBrokers([...tempSelectedBrokers]);
+      setIsNotificationModalVisible(false);
+    } catch (err) {
+      console.error('[알림] 상세 설정 적용 → 실패 ❌', err);
+      Alert.alert('알림 설정 실패', '설정 저장에 실패했습니다. 다시 시도해주세요.');
+    }
   }, [
     tempNotifySpac,
     tempNotifyReits,

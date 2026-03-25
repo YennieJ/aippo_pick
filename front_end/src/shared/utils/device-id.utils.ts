@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Application from 'expo-application';
+import * as Crypto from 'expo-crypto';
 import { Platform } from 'react-native';
-import { v4 as uuidv4 } from 'uuid';
 
 const DEVICE_ID_KEY = 'STABLE_DEVICE_ID';
 
@@ -32,7 +32,7 @@ export async function getStableDeviceId(): Promise<string> {
   }
 
   // 최초 실행: UUID 생성 후 저장
-  const newId = uuidv4();
+  const newId = Crypto.randomUUID();
   await AsyncStorage.setItem(DEVICE_ID_KEY, newId);
   cachedDeviceId = newId;
   return newId;
