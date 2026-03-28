@@ -5,7 +5,7 @@ export default ({ config }) => ({
 
   name: "아이뽀픽",
   slug: "front_end",
-  version: "1.1.0",
+  version: "1.1.1",
   orientation: "portrait",
   icon: "./assets/images/android-icon-aippopick.png",
   scheme: "frontend",
