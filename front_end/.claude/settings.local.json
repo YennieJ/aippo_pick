@@ -57,7 +57,8 @@
       "Bash(npm ls:*)",
       "Bash(npm install:*)",
       "Bash(npx pod-install:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(find /Users/yennie/Develop/aippo_pick/front_end/android -type f \\\\\\(-name *.java -o -name *.kt \\\\\\) ! -path */build/* ! -path */.gradle/*)"
     ]
   }
 }

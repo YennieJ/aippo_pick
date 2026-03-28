@@ -1,7 +1,10 @@
 package com.itl.aippopick
 
 import android.app.Application
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.res.Configuration
+import android.os.Build
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
@@ -56,11 +59,34 @@ class MainApplication : Application(), ReactApplication {
     loadReactNative(this)
     ApplicationLifecycleDispatcher.onApplicationCreate(this)
     
+    // 알림 채널 생성
+    createNotificationChannel()
+
     // 위젯 자동 업데이트 스케줄링 (매일 12시)
     scheduleWidgetUpdate()
     
     // 앱 실행 시 즉시 위젯 업데이트
     updateWidgetImmediately()
+  }
+
+  /**
+   * 공모주 알림 채널 생성 (Android 8.0+)
+   */
+  private fun createNotificationChannel() {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      val channel = NotificationChannel(
+        "default",
+        "공모주 알림",
+        NotificationManager.IMPORTANCE_HIGH
+      ).apply {
+        description = "공모주 청약 알림"
+        enableVibration(true)
+        vibrationPattern = longArrayOf(0, 250, 250, 250)
+        lightColor = 0xFF5B9FFF.toInt()
+      }
+      val manager = getSystemService(NotificationManager::class.java)
+      manager.createNotificationChannel(channel)
+    }
   }
 
   /**

@@ -2,6 +2,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
+  Linking,
   ScrollView,
   Switch,
   Text,
@@ -10,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import * as Notifications from 'expo-notifications';
+import messaging from '@react-native-firebase/messaging';
 
 import {
   useAllBrokers,
@@ -80,23 +81,38 @@ export default function MyPageScreen() {
 
   // 🔔 권한 확인 및 요청
   async function ensureNotificationPermission() {
-    const { status: existingStatus } =
-      await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
+    const authStatus = await messaging().hasPermission();
 
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
+    // 이미 허용된 경우
+    if (
+      authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+      authStatus === messaging.AuthorizationStatus.PROVISIONAL
+    ) {
+      return true;
     }
 
-    if (finalStatus !== 'granted') {
-      Alert.alert(
-        '알림 권한 필요',
-        '알림을 받으려면 권한이 필요합니다.\n설정에서 알림을 켜주세요.',
+    // 아직 결정되지 않은 경우 → OS 권한 다이얼로그 표시
+    if (authStatus === messaging.AuthorizationStatus.NOT_DETERMINED) {
+      const newStatus = await messaging().requestPermission();
+      return (
+        newStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+        newStatus === messaging.AuthorizationStatus.PROVISIONAL
       );
-      return false;
     }
-    return true;
+
+    // 거부된 경우 → 설정 앱으로 안내
+    Alert.alert(
+      '알림 권한 필요',
+      '알림이 꺼져 있습니다.\n설정에서 알림을 켜주세요.',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '설정으로 이동',
+          onPress: () => Linking.openSettings(),
+        },
+      ],
+    );
+    return false;
   }
 
   // 🔔 알림 설정 업데이트 함수
