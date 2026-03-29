@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { RelatedContentSection } from '../../src/features/ipo/components/RelatedContentSection';
 import { ScoreSection } from '../../src/features/ipo/components/ScoreSection';
 import {
   useIpoByCodeId,
@@ -547,6 +548,9 @@ export default function IpoDetailScreen() {
             </View>
           </View>
         </View>
+
+        {/* 연관 콘텐츠 (뉴스, 유튜브, 블로그) */}
+        <RelatedContentSection company={ipoData.company} isDark={isDark} />
       </ScrollView>
     </SafeAreaView>
   );
