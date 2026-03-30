@@ -16,6 +16,7 @@ export default ({ config }) => ({
     supportsTablet: true,
     bundleIdentifier: "com.itl.aippopick",
     appleTeamId: "LQ97BNQH9G",
+    googleServicesFile: "./ios/app/GoogleService-Info.plist",
     config: {
       usesNonExemptEncryption: false,
     },
@@ -74,6 +75,10 @@ export default ({ config }) => ({
         },
       },
     ],
+
+    // Firebase
+    "@react-native-firebase/app",
+    "@react-native-firebase/messaging",
 
     // iOS 위젯 (WidgetKit)
     "./plugins/withIOSWidget",
