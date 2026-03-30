@@ -38,16 +38,6 @@ export default function RootLayout() {
     return unsubscribe;
   }, []);
 
-  // iOS 포그라운드 알림 표시 설정
-  useEffect(() => {
-    if (Platform.OS === 'ios') {
-      messaging().setForegroundPresentationOptions({
-        alert: true,
-        badge: true,
-        sound: true,
-      });
-    }
-  }, []);
 
   // 기존 사용자 알림 설정 초기화 안내
   useEffect(() => {

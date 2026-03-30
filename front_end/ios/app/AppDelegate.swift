@@ -2,9 +2,10 @@ import Expo
 import React
 import ReactAppDependencyProvider
 import FirebaseCore
+import UserNotifications
 
 @UIApplicationMain
-public class AppDelegate: ExpoAppDelegate {
+public class AppDelegate: ExpoAppDelegate, UNUserNotificationCenterDelegate {
   var window: UIWindow?
 
   var reactNativeDelegate: ExpoReactNativeFactoryDelegate?
@@ -15,6 +16,9 @@ public class AppDelegate: ExpoAppDelegate {
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
     FirebaseApp.configure()
+
+    // 포그라운드에서 알림 표시
+    UNUserNotificationCenter.current().delegate = self
 
     let delegate = ReactNativeDelegate()
     let factory = ExpoReactNativeFactory(delegate: delegate)
@@ -33,6 +37,15 @@ public class AppDelegate: ExpoAppDelegate {
 #endif
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  // 포그라운드 알림 표시 허용
+  public func userNotificationCenter(
+    _ center: UNUserNotificationCenter,
+    willPresent notification: UNNotification,
+    withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+  ) {
+    completionHandler([.banner, .badge, .sound])
   }
 
   // Linking API

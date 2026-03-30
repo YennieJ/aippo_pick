@@ -16,6 +16,7 @@
 		8050DA9FA491FE3160B205FE /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = C209FE2BAFC47739A8CDB03C /* ExpoModulesProvider.swift */; };
 		84E8A1698D7643529DEAC129 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F57E2CE09F5745CCA4EDBA98 /* WidgetKit.framework */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
+		C07D27AE5F581B4E98105C1E /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = C002EF16D08471AEF7E5856B /* GoogleService-Info.plist */; };
 		D37A4CDDF43E43C0BC7C70E2 /* IPOWidget.appex in Copy Files */ = {isa = PBXBuildFile; fileRef = B7D8D9042E9A44E6BC66CAAC /* IPOWidget.appex */; };
 		E74063929A9E4D1F86559952 /* IPOWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9E3DCFE5A5249DC9DDC2F4E /* IPOWidget.swift */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
@@ -59,6 +60,7 @@
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = app/SplashScreen.storyboard; sourceTree = "<group>"; };
 		B7D8D9042E9A44E6BC66CAAC /* IPOWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; fileEncoding = 9; includeInIndex = 0; path = IPOWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
+		C002EF16D08471AEF7E5856B /* GoogleService-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "app/GoogleService-Info.plist"; sourceTree = "<group>"; };
 		C209FE2BAFC47739A8CDB03C /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-app/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		C7515593E66B48179D411FC1 /* Pods-app.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-app.release.xcconfig"; path = "Target Support Files/Pods-app/Pods-app.release.xcconfig"; sourceTree = "<group>"; };
 		D9E3DCFE5A5249DC9DDC2F4E /* IPOWidget.swift */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.swift; path = IPOWidget.swift; sourceTree = "<group>"; };
@@ -99,6 +101,7 @@
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
 				6AF781EB829C6410B698DFF7 /* PrivacyInfo.xcprivacy */,
+				C002EF16D08471AEF7E5856B /* GoogleService-Info.plist */,
 			);
 			name = app;
 			sourceTree = "<group>";
@@ -282,6 +285,7 @@
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
 				5109ED2191A6F6DD02EAF5DB /* PrivacyInfo.xcprivacy in Resources */,
+				C07D27AE5F581B4E98105C1E /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
