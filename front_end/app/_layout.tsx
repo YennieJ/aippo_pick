@@ -10,17 +10,18 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { Alert, TouchableOpacity, View, Platform } from 'react-native';
 import messaging from '@react-native-firebase/messaging';
+import { Alert, TouchableOpacity, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import '../global.css';
 import { IconSymbol } from '../src/shared';
-import '../src/shared/api/client';
+import { registerQueryClient } from '../src/shared/api/client';
 import { useColorScheme } from '../src/shared/hooks/use-color-scheme';
 import { checkAndRemoveLegacyDeviceId } from '../src/shared/utils/device-id.utils';
 
-const WEB_MAX_WIDTH = 640;
 const queryClient = new QueryClient();
+// axios 인터셉터에서 401 발생 시 React Query 캐시를 정리할 수 있도록 주입
+registerQueryClient(queryClient);
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -38,7 +39,6 @@ export default function RootLayout() {
     return unsubscribe;
   }, []);
 
-
   // 기존 사용자 알림 설정 초기화 안내
   useEffect(() => {
     checkAndRemoveLegacyDeviceId().then((isLegacyUser) => {
@@ -51,8 +51,6 @@ export default function RootLayout() {
     });
   }, []);
 
-  const isWeb = Platform.OS === 'web';
-
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
@@ -64,66 +62,56 @@ export default function RootLayout() {
               style={{
                 flex: 1,
                 width: '100%',
-                maxWidth: isWeb ? WEB_MAX_WIDTH : undefined,
                 alignSelf: 'center',
-                ...(isWeb && {
-                  borderLeftWidth: 1,
-                  borderRightWidth: 1,
-                  borderColor: colorScheme === 'dark' ? '#374151' : '#e5e7eb',
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 0 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 10,
-                }),
               }}
             >
               <Stack>
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen
-                name="ipo/ai-report"
-                options={({ navigation }) => ({
-                  title: 'AI 분석',
-                  headerLeft: () => {
-                    const isDark = colorScheme === 'dark';
-                    return (
-                      <TouchableOpacity
-                        onPress={() => navigation.goBack()}
-                        style={{ paddingRight: 8 }}
-                      >
-                        <IconSymbol
-                          name="chevron.left"
-                          size={28}
-                          color={isDark ? '#fff' : '#000'}
-                        />
-                      </TouchableOpacity>
-                    );
-                  },
-                })}
-              />
-              <Stack.Screen
-                name="ipo/[codeId]"
-                options={({ navigation }) => ({
-                  title: '공모주 상세',
-                  headerLeft: () => {
-                    const isDark = colorScheme === 'dark';
-                    return (
-                      <TouchableOpacity
-                        onPress={() => navigation.goBack()}
-                        style={{
-                          paddingRight: 8,
-                        }}
-                      >
-                        <IconSymbol
-                          name="chevron.left"
-                          size={28}
-                          color={isDark ? '#fff' : '#000'}
-                        />
-                      </TouchableOpacity>
-                    );
-                  },
-                })}
-              />
-            </Stack>
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen
+                  name="ipo/ai-report"
+                  options={({ navigation }) => ({
+                    title: 'AI 분석',
+                    headerLeft: () => {
+                      const isDark = colorScheme === 'dark';
+                      return (
+                        <TouchableOpacity
+                          onPress={() => navigation.goBack()}
+                          style={{ paddingRight: 8 }}
+                        >
+                          <IconSymbol
+                            name="chevron.left"
+                            size={28}
+                            color={isDark ? '#fff' : '#000'}
+                          />
+                        </TouchableOpacity>
+                      );
+                    },
+                  })}
+                />
+                <Stack.Screen
+                  name="ipo/[codeId]"
+                  options={({ navigation }) => ({
+                    title: '공모주 상세',
+                    headerLeft: () => {
+                      const isDark = colorScheme === 'dark';
+                      return (
+                        <TouchableOpacity
+                          onPress={() => navigation.goBack()}
+                          style={{
+                            paddingRight: 8,
+                          }}
+                        >
+                          <IconSymbol
+                            name="chevron.left"
+                            size={28}
+                            color={isDark ? '#fff' : '#000'}
+                          />
+                        </TouchableOpacity>
+                      );
+                    },
+                  })}
+                />
+              </Stack>
             </View>
             <StatusBar style="auto" translucent={false} />
           </ThemeProvider>

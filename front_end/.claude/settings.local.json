@@ -58,7 +58,14 @@
       "Bash(npm install:*)",
       "Bash(npx pod-install:*)",
       "Bash(npx tsc:*)",
-      "Bash(find /Users/yennie/Develop/aippo_pick/front_end/android -type f \\\\\\(-name *.java -o -name *.kt \\\\\\) ! -path */build/* ! -path */.gradle/*)"
+      "Bash(find /Users/yennie/Develop/aippo_pick/front_end/android -type f \\\\\\(-name *.java -o -name *.kt \\\\\\) ! -path */build/* ! -path */.gradle/*)",
+      "Bash(git -C /Users/yennie/Develop/aippo_pick/front_end mv app/login/login.tsx deprecated/login.tsx)",
+      "Bash(git -C /Users/yennie/Develop/aippo_pick/front_end status)",
+      "Bash(git -C /Users/yennie/Develop/aippo_pick/front_end ls-files)",
+      "Bash(git -C /Users/yennie/Develop/aippo_pick/front_end ls-files --error-unmatch .env)",
+      "Bash(git -C /Users/yennie/Develop/aippo_pick/front_end check-ignore -v .env google-services.json ios/app/GoogleService-Info.plist YennieJ.mobileprovision)",
+      "Bash(git -C /Users/yennie/Develop/aippo_pick/front_end check-ignore -v credentials/ios/* deprecated/login.tsx)",
+      "Bash(git -C /Users/yennie/Develop/aippo_pick/front_end ls-files credentials/)"
     ]
   }
 }

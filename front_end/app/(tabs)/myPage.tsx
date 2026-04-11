@@ -1,8 +1,16 @@
-import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+﻿import { useFocusEffect, useRouter } from 'expo-router';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   Alert,
   Linking,
+  Modal,
+  Pressable,
   ScrollView,
   Switch,
   Text,
@@ -12,7 +20,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import messaging from '@react-native-firebase/messaging';
-
 import {
   useAllBrokers,
   useIpoDetailsByIds,
@@ -26,6 +33,38 @@ import {
 } from '../../src/shared/utils/storage.utils';
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useKakaoLogin, useLogout, useMe } from '../../src/features/auth';
+
+/* =========================================================
+   Kakao Auth
+========================================================= */
+type KakaoMeResponse = {
+  id: number;
+  kakao_account?: {
+    profile?: {
+      nickname?: string;
+      profile_image_url?: string;
+      thumbnail_image_url?: string;
+    };
+    email?: string;
+  };
+  properties?: {
+    nickname?: string;
+    profile_image?: string;
+    thumbnail_image?: string;
+  };
+};
+
+// type GoogleProfile = {
+//   id?: string;
+//   name?: string;
+//   email?: string;
+//   photo?: string;
+// };
+
+const AUTH_KAKAO_V1 = 'AUTH_KAKAO_V1';
+// const AUTH_GOOGLE_V1 = 'AUTH_GOOGLE_V1';
 
 import {
   convert24To12,
@@ -38,10 +77,117 @@ import { IconSymbol, IpoStatusBadge, SectionHeader } from '../../src/shared';
 import { useColorScheme } from '../../src/shared/hooks/use-color-scheme';
 import { getStableDeviceId } from '../../src/shared/utils/device-id.utils';
 
+// 소셜 프로바이더별 라벨/색상 매핑
+function getProviderTheme(provider: string) {
+  switch (provider.toLowerCase()) {
+    case 'kakao':
+      return { label: '카카오', bgColor: '#FEE500', textColor: '#191919' };
+    case 'google':
+      return { label: '구글', bgColor: '#FFFFFF', textColor: '#111111' };
+    case 'apple':
+      return { label: '애플', bgColor: '#000000', textColor: '#FFFFFF' };
+    default:
+      return { label: provider, bgColor: '#9CA3AF', textColor: '#FFFFFF' };
+  }
+}
+
 export default function MyPageScreen() {
   const router = useRouter();
+
   const colorScheme = useColorScheme();
   const iconColor = colorScheme === 'dark' ? '#9CA3AF' : '#111827';
+
+  // ✅ 로그아웃 중복 클릭 방지
+  const isLoggingOutRef = useRef(false);
+
+  // 카카오 로그인 mutation
+  const kakaoLoginMutation = useKakaoLogin();
+
+  // 내 정보 조회
+  const { data: me } = useMe();
+
+  // 로그아웃 mutation
+  const logoutMutation = useLogout();
+
+  /* =========================================================
+     ✅ 로그인 상태 (카카오) 로드 + 로그아웃
+  ========================================================= */
+  const [kakaoMe, setKakaoMe] = useState<KakaoMeResponse | null>(null);
+  // const [googleMe, setGoogleMe] = useState<GoogleProfile | null>(null);
+
+  const loadAuth = useCallback(async () => {
+    try {
+      const kakaoRaw = await AsyncStorage.getItem(AUTH_KAKAO_V1);
+      if (kakaoRaw) {
+        const parsed = JSON.parse(kakaoRaw) as {
+          profile?: KakaoMeResponse;
+          me?: KakaoMeResponse;
+        };
+        const profile = parsed.profile ?? parsed.me ?? null;
+
+        setKakaoMe(profile);
+        // setGoogleMe(null);
+        return;
+      }
+
+      // const googleRaw = await AsyncStorage.getItem(AUTH_GOOGLE_V1);
+      // if (googleRaw) {
+      //   const parsed = JSON.parse(googleRaw) as { profile?: GoogleProfile };
+      //   const profile = parsed.profile ?? null;
+      //
+      //   setGoogleMe(profile);
+      //   setKakaoMe(null);
+      //   return;
+      // }
+
+      setKakaoMe(null);
+      // setGoogleMe(null);
+    } catch (e) {
+      console.log('loadAuth error', e);
+      setKakaoMe(null);
+      // setGoogleMe(null);
+    }
+  }, []);
+
+  const onPressLogout = useCallback(async () => {
+    if (isLoggingOutRef.current) return; // ✅ 중복 실행 방지
+    isLoggingOutRef.current = true;
+
+    try {
+      await AsyncStorage.multiRemove([
+        AUTH_KAKAO_V1,
+        // AUTH_GOOGLE_V1,
+      ]);
+
+      setKakaoMe(null);
+      // setGoogleMe(null);
+    } catch (e) {
+      console.log('logout error', e);
+    } finally {
+      setTimeout(() => {
+        isLoggingOutRef.current = false;
+      }, 500);
+    }
+  }, [router]);
+
+  const kakaoNickname =
+    kakaoMe?.kakao_account?.profile?.nickname ??
+    kakaoMe?.properties?.nickname ??
+    null;
+
+  const loggedName = useMemo(() => {
+    return (
+      kakaoNickname ??
+      // googleMe?.name ??
+      null
+    );
+  }, [kakaoNickname]);
+
+  const loggedProvider = useMemo(() => {
+    if (kakaoMe) return 'KAKAO';
+    // if (googleMe) return 'GOOGLE';
+    return null;
+  }, [kakaoMe]);
 
   // 문자열("24,650", " 8,000원") → 숫자로 안전하게 변환
   const parseNumber = (value?: string | null): number | null => {
@@ -61,6 +207,7 @@ export default function MyPageScreen() {
   const updateNotificationMutation = useUpdateNotificationSetting();
 
   // 🔔 전체 알림 스위치 상태 (서버 데이터로 초기화)
+
   const [notifyAll, setNotifyAll] = useState(false);
   const [notifySpac, setNotifySpac] = useState(true);
   const [notifyReits, setNotifyReits] = useState(true);
@@ -194,7 +341,10 @@ export default function MyPageScreen() {
       setIsNotificationModalVisible(false);
     } catch (err) {
       console.error('[알림] 상세 설정 적용 → 실패 ❌', err);
-      Alert.alert('알림 설정 실패', '설정 저장에 실패했습니다. 다시 시도해주세요.');
+      Alert.alert(
+        '알림 설정 실패',
+        '설정 저장에 실패했습니다. 다시 시도해주세요.',
+      );
     }
   }, [
     tempNotifySpac,
@@ -208,6 +358,7 @@ export default function MyPageScreen() {
   // ⭐⭐⭐ 그 다음이 기존 Hook들 시작 영역
   const [favorites, setFavorites] = useState<string[]>([]);
   const [recentIds, setRecentIds] = useState<string[]>([]);
+  const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
 
   // 리액트 쿼리로 즐겨찾기 상세 가져오기
   const favoriteQueries = useIpoDetailsByIds(favorites);
@@ -406,6 +557,80 @@ export default function MyPageScreen() {
             <SectionHeader title="My 페이지" />
           </View>
 
+          <View className="px-4 pb-4">
+            {me ? (
+              (() => {
+                const providerTheme = getProviderTheme(me.provider);
+                return (
+                  <View className="rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 mb-2 shadow-sm">
+                    {/* 이름 / 이메일 */}
+                    <Text
+                      className="text-lg font-bold text-gray-900 dark:text-white"
+                      numberOfLines={1}
+                    >
+                      {me.nickname}
+                    </Text>
+                    <Text
+                      className="text-sm text-gray-500 dark:text-gray-400 mt-0.5"
+                      numberOfLines={1}
+                    >
+                      {me.email}
+                    </Text>
+
+                    {/* 구분선 */}
+                    <View className="h-px bg-gray-200 dark:bg-gray-700 my-3" />
+
+                    {/* 프로바이더 + 로그아웃 */}
+                    <View className="flex-row items-center justify-between">
+                      <View className="flex-row items-center flex-1">
+                        <View
+                          className="h-2 w-2 rounded-full mr-2"
+                          style={{ backgroundColor: providerTheme.bgColor }}
+                        />
+                        <Text className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                          {providerTheme.label} 계정으로 로그인됨
+                        </Text>
+                      </View>
+                      <Pressable
+                        disabled={logoutMutation.isPending}
+                        onPress={() => logoutMutation.mutate()}
+                        hitSlop={16}
+                        className="py-2 px-3 -my-2 -mr-2 rounded-md"
+                        android_ripple={{
+                          color: 'rgba(0,0,0,0.1)',
+                          borderless: false,
+                        }}
+                        style={({ pressed }) => ({
+                          opacity: pressed ? 0.5 : 1,
+                        })}
+                      >
+                        <Text className="text-xs font-semibold text-gray-500 dark:text-gray-400 underline">
+                          {logoutMutation.isPending
+                            ? '로그아웃 중...'
+                            : '로그아웃'}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                );
+              })()
+            ) : (
+              <>
+                <TouchableOpacity
+                  className="items-center rounded-lg bg-[#FED45C] py-3 mb-2 dark:bg-[#D4A72C]"
+                  onPress={() => setIsLoginModalVisible(true)}
+                  activeOpacity={0.8}
+                >
+                  <Text className="text-base font-bold text-black dark:text-white">
+                    로그인 하기
+                  </Text>
+                </TouchableOpacity>
+                <Text className="text-sm text-center text-gray-600 dark:text-gray-400">
+                  로그인 하면 매도 일지를 사용할 수 있습니다.
+                </Text>
+              </>
+            )}
+          </View>
           <View className="pb-6">
             <View className="pb-4 px-4 flex-row items-center gap-2.5">
               <MaterialIcons name="notifications" size={20} color={iconColor} />
@@ -750,6 +975,42 @@ export default function MyPageScreen() {
           </View>
         </ScrollView>
       </View>
+
+      {/* 로그인 모달 */}
+      <Modal
+        visible={isLoginModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setIsLoginModalVisible(false)}
+      >
+        <View className="flex-1 justify-end bg-black/50">
+          <TouchableOpacity
+            className="flex-1"
+            activeOpacity={1}
+            onPress={() => setIsLoginModalVisible(false)}
+          />
+          <View className="rounded-t-[20px] bg-white px-5 pb-10 pt-8 dark:bg-gray-800">
+            <TouchableOpacity
+              className="items-center rounded-lg bg-[#FEE500] py-3.5"
+              activeOpacity={0.8}
+              onPress={() => {
+                kakaoLoginMutation.mutate(undefined, {
+                  onSuccess: () => {
+                    setIsLoginModalVisible(false);
+                  },
+                  onError: (e: any) => {
+                    Alert.alert('로그인 실패', e.message ?? '알 수 없는 에러');
+                  },
+                });
+              }}
+            >
+              <Text className="text-base font-bold text-[#191919]">
+                카카오톡으로 로그인하기
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* 알림 설정 모달 */}
       <NotificationSettingModal

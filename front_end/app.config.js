@@ -23,10 +23,18 @@ export default ({ config }) => ({
     infoPlist: {
       NSAppTransportSecurity: {
         NSAllowsArbitraryLoads: false,
+        // iOS 시뮬레이터/실기기에서 로컬 개발 서버(HTTP)와 통신 가능하게 함.
+        // 프로덕션 도메인(api.aippopick.shop)은 여전히 HTTPS만 허용.
+        NSAllowsLocalNetworking: true,
         NSExceptionDomains: {
           "api.aippopick.shop": {
             NSIncludesSubdomains: true,
             NSExceptionAllowsInsecureHTTPLoads: false,
+          },
+          // 개발용: iOS 시뮬레이터에서 Mac의 localhost 접근 허용
+          localhost: {
+            NSExceptionAllowsInsecureHTTPLoads: true,
+            NSIncludesSubdomains: true,
           },
         },
       },
@@ -46,6 +54,21 @@ export default ({ config }) => ({
     package: "com.itl.aippopick",
     googleServicesFile: "./google-services.json",
     permissions: ["POST_NOTIFICATIONS"],
+
+    // ✅ Android 카카오 로그인 Intent Filter
+    intentFilters: [
+      {
+        action: "VIEW",
+        autoVerify: true,
+        data: [
+          {
+            scheme: ["frontend", "kakao6b4ad4a64e775ae17d3ffbf012e65d84"],
+            host: "oauth"
+          }
+        ],
+        category: ["BROWSABLE", "DEFAULT"]
+      }
+    ]
   },
 
   web: {
@@ -76,6 +99,9 @@ export default ({ config }) => ({
       },
     ],
 
+    // 보안 토큰 저장소 (iOS Keychain / Android EncryptedSharedPreferences)
+    "expo-secure-store",
+
     // Firebase
     "@react-native-firebase/app",
     "@react-native-firebase/messaging",
@@ -85,6 +111,14 @@ export default ({ config }) => ({
 
     // Xcode 14+ resource bundle signing fix
     "./plugins/withPodfileResourceBundleFix",
+    // ✅ 카카오 로그인 플러그인
+    [
+      "@react-native-seoul/kakao-login",
+      {
+        kakaoAppKey: "6b4ad4a64e775ae17d3ffbf012e65d84",
+        iosAppScheme: "kakao6b4ad4a64e775ae17d3ffbf012e65d84"
+      }
+    ]
   ],
 
   experiments: {

@@ -1,7 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
   <uses-permission android:name="android.permission.INTERNET"/>
   <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+  <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+  <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
   <uses-permission android:name="android.permission.VIBRATE"/>
+  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
   <queries>
     <intent>
       <action android:name="android.intent.action.VIEW"/>
@@ -25,8 +28,22 @@
         <data android:scheme="frontend"/>
         <data android:scheme="exp+frontend"/>
       </intent-filter>
+      <intent-filter android:autoVerify="true" data-generated="true">
+        <action android:name="android.intent.action.VIEW"/>
+        <data android:scheme="frontend,kakao6b4ad4a64e775ae17d3ffbf012e65d84" android:host="oauth"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+      </intent-filter>
     </activity>
-    <!-- 공모주 위젯 -->
+    <activity android:name="com.kakao.sdk.auth.AuthCodeHandlerActivity" android:exported="true">
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+        <data android:host="oauth" android:scheme="kakao6b4ad4a64e775ae17d3ffbf012e65d84"/>
+      </intent-filter>
+    </activity>
+      <!-- 공모주 위젯 -->
     <receiver android:name=".MyWidgetProvider" android:exported="true" android:label="오늘의 공모주">
       <intent-filter>
         <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>

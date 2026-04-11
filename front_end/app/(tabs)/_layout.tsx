@@ -1,4 +1,4 @@
-import { Tabs } from 'expo-router';
+﻿import { Tabs } from 'expo-router';
 import React, { useEffect } from 'react';
 import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,13 +7,13 @@ import { IconSymbol } from '../../src/shared/components/ui/icon-symbol';
 import { Colors } from '../../src/shared/constants/theme';
 import { useColorScheme } from '../../src/shared/hooks/use-color-scheme';
 // --- Push & Device ---
-import * as Device from 'expo-device';
 import messaging from '@react-native-firebase/messaging';
+import * as Device from 'expo-device';
 import { useRegisterDevice } from '../../src/features/myPage';
 import { getStableDeviceId } from '../../src/shared/utils/device-id.utils';
 
 /* =========================================================
-   🌈 탭 레이아웃
+   🔐 1) 앱 전용 고정 Device ID 생성/로드
 ========================================================= */
 export default function TabLayout() {
   const colorScheme = useColorScheme();
