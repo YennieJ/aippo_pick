@@ -7,7 +7,6 @@ import React, {
   useState,
 } from 'react';
 import {
-  Alert,
   Linking,
   Modal,
   Pressable,
@@ -73,7 +72,12 @@ import {
   useUpdateNotificationSetting,
 } from '../../src/features/myPage';
 import { cn } from '../../src/lib/cn';
-import { IconSymbol, IpoStatusBadge, SectionHeader } from '../../src/shared';
+import {
+  ConfirmDialog,
+  IconSymbol,
+  IpoStatusBadge,
+  SectionHeader,
+} from '../../src/shared';
 import { useColorScheme } from '../../src/shared/hooks/use-color-scheme';
 import { getStableDeviceId } from '../../src/shared/utils/device-id.utils';
 
@@ -248,17 +252,7 @@ export default function MyPageScreen() {
     }
 
     // 거부된 경우 → 설정 앱으로 안내
-    Alert.alert(
-      '알림 권한 필요',
-      '알림이 꺼져 있습니다.\n설정에서 알림을 켜주세요.',
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '설정으로 이동',
-          onPress: () => Linking.openSettings(),
-        },
-      ],
-    );
+    setIsPermissionDialogVisible(true);
     return false;
   }
 
@@ -341,10 +335,10 @@ export default function MyPageScreen() {
       setIsNotificationModalVisible(false);
     } catch (err) {
       console.error('[알림] 상세 설정 적용 → 실패 ❌', err);
-      Alert.alert(
-        '알림 설정 실패',
-        '설정 저장에 실패했습니다. 다시 시도해주세요.',
-      );
+      setInfoDialog({
+        title: '알림 설정 실패',
+        message: '설정 저장에 실패했습니다. 다시 시도해주세요.',
+      });
     }
   }, [
     tempNotifySpac,
@@ -359,6 +353,13 @@ export default function MyPageScreen() {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [recentIds, setRecentIds] = useState<string[]>([]);
   const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
+  const [isLogoutConfirmVisible, setIsLogoutConfirmVisible] = useState(false);
+  const [isPermissionDialogVisible, setIsPermissionDialogVisible] =
+    useState(false);
+  const [infoDialog, setInfoDialog] = useState<{
+    title: string;
+    message: string;
+  } | null>(null);
 
   // 리액트 쿼리로 즐겨찾기 상세 가져오기
   const favoriteQueries = useIpoDetailsByIds(favorites);
@@ -593,7 +594,7 @@ export default function MyPageScreen() {
                       </View>
                       <Pressable
                         disabled={logoutMutation.isPending}
-                        onPress={() => logoutMutation.mutate()}
+                        onPress={() => setIsLogoutConfirmVisible(true)}
                         hitSlop={16}
                         className="py-2 px-3 -my-2 -mr-2 rounded-md"
                         android_ripple={{
@@ -999,7 +1000,10 @@ export default function MyPageScreen() {
                     setIsLoginModalVisible(false);
                   },
                   onError: (e: any) => {
-                    Alert.alert('로그인 실패', e.message ?? '알 수 없는 에러');
+                    setInfoDialog({
+                      title: '로그인 실패',
+                      message: e.message ?? '알 수 없는 에러',
+                    });
                   },
                 });
               }}
@@ -1027,6 +1031,43 @@ export default function MyPageScreen() {
         onToggleBroker={toggleBroker}
         onResetToAll={resetToAll}
         onApply={applyNotificationSettings}
+      />
+
+      {/* 로그아웃 확인 다이얼로그 */}
+      <ConfirmDialog
+        visible={isLogoutConfirmVisible}
+        title="로그아웃"
+        message={'정말 로그아웃 하시겠습니까?\n로그아웃 시 매매 일지를 사용할 수 없습니다.'}
+        confirmText="로그아웃"
+        destructive
+        onConfirm={() => {
+          setIsLogoutConfirmVisible(false);
+          logoutMutation.mutate();
+        }}
+        onCancel={() => setIsLogoutConfirmVisible(false)}
+      />
+
+      {/* 알림 권한 필요 다이얼로그 (설정 앱 이동) */}
+      <ConfirmDialog
+        visible={isPermissionDialogVisible}
+        title="알림 권한 필요"
+        message={'알림이 꺼져 있습니다.\n설정에서 알림을 켜주세요.'}
+        confirmText="설정으로 이동"
+        onConfirm={() => {
+          setIsPermissionDialogVisible(false);
+          Linking.openSettings();
+        }}
+        onCancel={() => setIsPermissionDialogVisible(false)}
+      />
+
+      {/* 정보/에러 알림 다이얼로그 (1버튼) */}
+      <ConfirmDialog
+        visible={infoDialog !== null}
+        title={infoDialog?.title ?? ''}
+        message={infoDialog?.message}
+        confirmText="확인"
+        hideCancel
+        onConfirm={() => setInfoDialog(null)}
       />
     </SafeAreaView>
   );

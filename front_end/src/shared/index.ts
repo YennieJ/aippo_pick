@@ -2,6 +2,8 @@
 export * from './api/client';
 
 // Components
+export { ConfirmDialog } from './components/ui/confirm-dialog';
+export type { ConfirmDialogProps } from './components/ui/confirm-dialog';
 export { DeepLinkButton } from './components/ui/deep-link-button';
 export { IconSymbol } from './components/ui/icon-symbol';
 export { IpoStatusBadge } from './components/ui/ipo-status-badge';
