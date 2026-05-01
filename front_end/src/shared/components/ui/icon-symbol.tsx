@@ -34,6 +34,7 @@ const MAPPING = {
   star: 'star-border',
   xmark: 'close',
   'xmark.circle.fill': 'close',
+  'note.text': 'receipt-long',
 } as IconMapping;
 
 /**

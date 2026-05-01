@@ -109,6 +109,16 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
+        name="journal"
+        options={{
+          title: '일지',
+          href: isWeb ? null : undefined,
+          tabBarIcon: ({ color }) => (
+            <IconSymbol name="note.text" size={24} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="myPage"
         options={{
           title: '마이',
