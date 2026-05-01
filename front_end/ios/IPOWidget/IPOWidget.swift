@@ -107,28 +107,10 @@ struct IPOProvider: TimelineProvider {
         return trimmed
     }
 
-    /// 홈과 동일: API status 기준으로 해당 날짜만 사용해 D-day 표기
+    /// 상세(날짜 3종) 기준으로 통일: status는 신뢰하지 않고 날짜로 상태를 추론해 D-day 표기
     func ddayByStatus(status: String, subscription: String, refund: String, listing: String) -> String {
-        let dateStr: String
-        switch status {
-        case "청약":
-            dateStr = extractStartDate(subscription)
-        case "상장":
-            dateStr = listing.trimmingCharacters(in: .whitespaces)
-        case "환불":
-            dateStr = refund.trimmingCharacters(in: .whitespaces)
-        default:
-            return calculateNearestDday(subscription: extractStartDate(subscription), refund: refund, listing: listing)
-        }
-        if dateStr.isEmpty { return calculateNearestDday(subscription: extractStartDate(subscription), refund: refund, listing: listing) }
-        guard let target = parseDate(dateStr) else { return "-" }
-        let today = Calendar.current.startOfDay(for: Date())
-        let days = Calendar.current.dateComponents([.day], from: today, to: Calendar.current.startOfDay(for: target)).day ?? 0
-        let ddayStr: String
-        if days > 0 { ddayStr = "D-\(days)" }
-        else if days == 0 { ddayStr = "D-Day" }
-        else { ddayStr = "D+\(abs(days))" }
-        return "\(status) \(ddayStr)"
+        // status 파라미터는 API 호환을 위해 유지하지만, 실제 표시는 날짜 기반 추론을 사용
+        return calculateNearestDday(subscription: extractStartDate(subscription), refund: refund, listing: listing)
     }
 
     func calculateNearestDday(subscription: String, refund: String, listing: String) -> String {
@@ -136,23 +118,30 @@ struct IPOProvider: TimelineProvider {
 
         struct DateInfo {
             let date: Date
-            let type: String
+            let status: String
         }
 
         var candidates: [DateInfo] = []
-        if let d = parseDate(subscription), d >= today { candidates.append(DateInfo(date: d, type: "청약")) }
-        if let d = parseDate(refund), d >= today { candidates.append(DateInfo(date: d, type: "환불")) }
-        if let d = parseDate(listing), d >= today { candidates.append(DateInfo(date: d, type: "상장")) }
+        if let d = parseDate(subscription), d >= today { candidates.append(DateInfo(date: d, status: "청약")) }
+        if let d = parseDate(refund), d >= today { candidates.append(DateInfo(date: d, status: "환불")) }
+        if let d = parseDate(listing), d >= today { candidates.append(DateInfo(date: d, status: "상장")) }
 
         guard let nearest = candidates.min(by: { $0.date < $1.date }) else { return "-" }
 
         let days = Calendar.current.dateComponents([.day], from: today, to: Calendar.current.startOfDay(for: nearest.date)).day ?? 0
-        let ddayStr: String
-        if days > 0 { ddayStr = "D-\(days)" }
-        else if days == 0 { ddayStr = "D-Day" }
-        else { ddayStr = "D+\(abs(days))" }
+        let ddayText = formatAppDday(days)
+        if ddayText == "-" { return "-" }
+        return "\(nearest.status) \(ddayText)"
+    }
 
-        return "\(nearest.type) \(ddayStr)"
+    /// 앱과 동일 규칙의 D-day 텍스트
+    /// - 과거: "-"
+    /// - 오늘: "D-Day"
+    /// - 미래: "D-N"
+    func formatAppDday(_ days: Int) -> String {
+        if days < 0 { return "-" }
+        if days == 0 { return "D-Day" }
+        return "D-\(days)"
     }
 
     func parseDate(_ str: String) -> Date? {
@@ -198,7 +187,7 @@ struct IPOProvider: TimelineProvider {
 
     func sampleRows() -> [IPORowData] {
         return [
-            IPORowData(name: "샘플 종목", dday: "청약 D-3", price: "10,000원", securities: "NH투자증권"),
+            IPORowData(name: "샘플 종목", dday: "D-3", price: "10,000원", securities: "NH투자증권"),
             IPORowData(name: "데이터 없음", dday: "-", price: "-", securities: "-"),
             IPORowData(name: "데이터 없음", dday: "-", price: "-", securities: "-"),
         ]

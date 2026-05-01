@@ -255,7 +255,7 @@ class WidgetUpdateWorker(
     }
 
     /**
-     * 홈과 동일: API status 기준으로 해당 날짜만 사용해 D-day 표기
+     * 상세(날짜 3종) 기준으로 통일: status는 신뢰하지 않고 날짜로 상태를 추론해 D-day 표기
      */
     private fun ddayByStatus(
         status: String,
@@ -263,56 +263,37 @@ class WidgetUpdateWorker(
         refundDate: String,
         listingDate: String
     ): String {
-        val dateStr = when (status) {
-            "청약" -> extractStartDate(subscription)
-            "상장" -> listingDate.trim()
-            "환불" -> refundDate.trim()
-            else -> return calculateNearestDday(
-                extractStartDate(subscription),
-                refundDate,
-                listingDate
-            )
-        }
-        if (dateStr.isEmpty()) return calculateNearestDday(
+        // status 파라미터는 API 호환을 위해 유지하지만, 실제 표시는 날짜 기반 추론을 사용
+        return calculateNearestDdayWithStatus(
             extractStartDate(subscription),
             refundDate,
             listingDate
         )
-        val target = parseDate(dateStr) ?: return "-"
-        val today = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
-        val targetCal = Calendar.getInstance().apply {
-            time = target
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
-        val diffDays = ((targetCal.timeInMillis - today.timeInMillis) / (1000 * 60 * 60 * 24)).toInt()
-        val dday = when {
-            diffDays > 0 -> "D-$diffDays"
+    }
+
+    /**
+     * 앱과 동일 규칙의 D-day 텍스트
+     * - 과거: "-"
+     * - 오늘: "D-Day"
+     * - 미래: "D-N"
+     */
+    private fun formatAppDday(diffDays: Int): String {
+        return when {
+            diffDays < 0 -> "-"
             diffDays == 0 -> "D-Day"
-            else -> "D+${-diffDays}"
+            else -> "D-$diffDays"
         }
-        return "$status $dday"
     }
 
     /**
      * 청약일, 환불일, 상장일 중 가장 가까운 날짜의 D-day 계산
-     * 반환 형식: "청약 D-3", "환불 D-Day", "상장 D+1" 등
+     * 앱과 동일: 가장 가까운 "미래/오늘" 일정의 D-day만 반환 (과거는 "-" 처리)
      */
-    private fun calculateNearestDday(
+    private fun calculateNearestDdayWithStatus(
         subscriptionStart: String,
         refundDate: String,
         listingDate: String
     ): String {
-        data class DateInfo(val date: java.util.Date, val dday: String, val type: String)
-
-        val dateInfos = mutableListOf<DateInfo>()
         val today = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0)
             set(Calendar.MINUTE, 0)
@@ -320,68 +301,29 @@ class WidgetUpdateWorker(
             set(Calendar.MILLISECOND, 0)
         }
 
-        // 청약일 확인
-        parseDate(subscriptionStart)?.let { subDate ->
-            val subCal = Calendar.getInstance().apply {
-                time = subDate
+        fun diffDaysFor(date: java.util.Date): Int {
+            val cal = Calendar.getInstance().apply {
+                time = date
                 set(Calendar.HOUR_OF_DAY, 0)
                 set(Calendar.MINUTE, 0)
                 set(Calendar.SECOND, 0)
                 set(Calendar.MILLISECOND, 0)
             }
-            if (subCal.timeInMillis >= today.timeInMillis) {
-                val diffDays = ((subCal.timeInMillis - today.timeInMillis) / (1000 * 60 * 60 * 24)).toInt()
-                val dday = when {
-                    diffDays > 0 -> "D-$diffDays"
-                    diffDays == 0 -> "D-Day"
-                    else -> "D+${-diffDays}"
-                }
-                dateInfos.add(DateInfo(subDate, dday, "청약"))
-            }
+            return ((cal.timeInMillis - today.timeInMillis) / (1000 * 60 * 60 * 24)).toInt()
         }
 
-        // 환불일 확인
-        parseDate(refundDate)?.let { refDate ->
-            val refCal = Calendar.getInstance().apply {
-                time = refDate
-                set(Calendar.HOUR_OF_DAY, 0)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-            }
-            if (refCal.timeInMillis >= today.timeInMillis) {
-                val diffDays = ((refCal.timeInMillis - today.timeInMillis) / (1000 * 60 * 60 * 24)).toInt()
-                val dday = when {
-                    diffDays > 0 -> "D-$diffDays"
-                    diffDays == 0 -> "D-Day"
-                    else -> "D+${-diffDays}"
-                }
-                dateInfos.add(DateInfo(refDate, dday, "환불"))
-            }
-        }
+        data class Candidate(val status: String, val diffDays: Int)
 
-        // 상장일 확인
-        parseDate(listingDate)?.let { listDate ->
-            val listCal = Calendar.getInstance().apply {
-                time = listDate
-                set(Calendar.HOUR_OF_DAY, 0)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-            }
-            if (listCal.timeInMillis >= today.timeInMillis) {
-                val diffDays = ((listCal.timeInMillis - today.timeInMillis) / (1000 * 60 * 60 * 24)).toInt()
-                val dday = when {
-                    diffDays > 0 -> "D-$diffDays"
-                    diffDays == 0 -> "D-Day"
-                    else -> "D+${-diffDays}"
-                }
-                dateInfos.add(DateInfo(listDate, dday, "상장"))
-            }
-        }
+        val candidates = listOfNotNull(
+            parseDate(subscriptionStart)?.let { d -> Candidate("청약", diffDaysFor(d)) },
+            parseDate(refundDate)?.let { d -> Candidate("환불", diffDaysFor(d)) },
+            parseDate(listingDate)?.let { d -> Candidate("상장", diffDaysFor(d)) },
+        ).filter { it.diffDays >= 0 }
 
-        // 가장 가까운 날짜 찾기 - "타입 D-day" 형식으로 반환
-        return dateInfos.minByOrNull { it.date }?.let { "${it.type} ${it.dday}" } ?: "-"
+        val nearest = candidates.minByOrNull { it.diffDays } ?: return "-"
+        val ddayText = formatAppDday(nearest.diffDays)
+        if (ddayText == "-") return "-"
+        return "${nearest.status} $ddayText"
     }
 
     /**
@@ -451,11 +393,7 @@ class WidgetUpdateWorker(
             val diffInMillis = target.timeInMillis - today.timeInMillis
             val diffInDays = (diffInMillis / (1000 * 60 * 60 * 24)).toInt()
 
-            when {
-                diffInDays > 0 -> "D-$diffInDays"
-                diffInDays == 0 -> "D-Day"
-                else -> "D+${-diffInDays}"
-            }
+            formatAppDday(diffInDays)
         } catch (e: Exception) {
             Log.e(TAG, "디데이 계산 실패: $listingDate", e)
             "-"

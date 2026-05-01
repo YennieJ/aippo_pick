@@ -22,7 +22,6 @@ import {
 import { cn } from '../../src/lib/cn';
 import {
   DeepLinkButton,
-  getDateByStatus,
   IconSymbol,
   IpoStatusBadge,
   SectionHeader,
@@ -119,7 +118,6 @@ export default function HomeScreen() {
   };
 
   const sliderItem = ({ item }: { item: SliderItemType }) => {
-    const targetDate = getDateByStatus(item);
     const price = getPrice(item);
 
     const handlePress = () => {
@@ -138,8 +136,9 @@ export default function HomeScreen() {
         {/* 상단: status와 디데이 */}
         <View className="mb-2">
           <IpoStatusBadge
-            dateString={targetDate}
-            status={item.status as '청약' | '상장' | '환불'}
+            subscriptiondate={item.subscriptiondate}
+            listingdate={item.listingdate}
+            refunddate={item.refunddate}
           />
         </View>
 

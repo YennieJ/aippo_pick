@@ -1,6 +1,10 @@
 import { NativeModules, Platform } from 'react-native';
 import type { IpoData } from '../features/ipo/types/ipo.types';
-import { getDDayText } from '../shared/utils/dday.utils';
+import {
+  calcDDay,
+  getNearestStatusAndDate,
+  parseYmdToDate,
+} from '../shared/utils/dday.utils';
 
 const { WidgetModule } = NativeModules;
 
@@ -20,10 +24,31 @@ interface WidgetTableData {
 }
 
 /**
- * 날짜로부터 디데이 계산
+ * 앱과 동일 규칙의 디데이 텍스트
+ * - 과거: "-" (앱에서는 숨김)
+ * - 오늘: "D-Day"
+ * - 미래: "D-N"
  */
-const calculateDday = (dateString?: string): string => {
-  return getDDayText(dateString) ?? '-';
+function getAppDdayTextFromDateString(dateString?: string | null): string {
+  const date = parseYmdToDate(dateString);
+  if (!date) return '-';
+
+  const dday = calcDDay(date);
+  if (dday < 0) return '-';
+  if (dday === 0) return 'D-Day';
+  return `D-${dday}`;
+}
+
+function calculateWidgetDday(item: IpoData): string {
+  // 상세(날짜 3종) 기준으로 통일: status는 신뢰하지 않고 무조건 날짜로 상태를 추론한다
+  const nearest = getNearestStatusAndDate(
+    item.subscriptiondate ?? null,
+    item.listingdate ?? null,
+    item.refunddate ?? null
+  );
+  const fallbackText = getAppDdayTextFromDateString(nearest?.dateString ?? null);
+  if (fallbackText === '-') return '-';
+  return nearest?.status ? `${nearest.status} ${fallbackText}` : fallbackText;
 };
 
 /**
@@ -102,7 +127,7 @@ export const updateWidgetWithIpoData = async (
     const firstIpo = dataArray[0];
     const widgetData: WidgetTableData = {
       row1_name: firstIpo.company,
-      row1_dday: calculateDday(firstIpo.listingdate),
+      row1_dday: calculateWidgetDday(firstIpo),
       row1_price: firstIpo.confirmedprice || '-',
       row1_securities: formatSecurities(firstIpo.bank),
     };
@@ -111,7 +136,7 @@ export const updateWidgetWithIpoData = async (
     if (dataArray.length > 1) {
       const secondIpo = dataArray[1];
       widgetData.row2_name = secondIpo.company;
-      widgetData.row2_dday = calculateDday(secondIpo.listingdate);
+      widgetData.row2_dday = calculateWidgetDday(secondIpo);
       widgetData.row2_price = secondIpo.confirmedprice || '-';
       widgetData.row2_securities = formatSecurities(secondIpo.bank);
     } else {
@@ -125,7 +150,7 @@ export const updateWidgetWithIpoData = async (
     if (dataArray.length > 2) {
       const thirdIpo = dataArray[2];
       widgetData.row3_name = thirdIpo.company;
-      widgetData.row3_dday = calculateDday(thirdIpo.listingdate);
+      widgetData.row3_dday = calculateWidgetDday(thirdIpo);
       widgetData.row3_price = thirdIpo.confirmedprice || '-';
       widgetData.row3_securities = formatSecurities(thirdIpo.bank);
     } else {

@@ -1,8 +1,10 @@
+import { differenceInCalendarDays, startOfDay } from 'date-fns';
+
 export type IpoStatusType = '청약' | '상장' | '환불';
 
 /**
  * 날짜 문자열을 Date 객체로 변환 (YYYY.MM.DD 또는 YYYY-MM-DD)
- * 비교 안정성을 위해 정오(12:00) 기준으로 생성
+ * 날짜-only 비교를 위해 로컬 자정(00:00) 기준으로 생성
  */
 export function parseYmdToDate(value?: string | null): Date | null {
   if (!value) return null;
@@ -20,24 +22,22 @@ export function parseYmdToDate(value?: string | null): Date | null {
   const d = Number(match[3]);
   if (!y || !m || !d) return null;
 
-  return new Date(y, m - 1, d, 12, 0, 0, 0);
+  return new Date(y, m - 1, d, 0, 0, 0, 0);
 }
 
 /**
- * 오늘 정오 Date 반환
+ * 오늘 자정 Date 반환
  */
-function getTodayNoon(): Date {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0, 0);
+function getStartOfToday(): Date {
+  return startOfDay(new Date());
 }
 
 /**
- * D-day 계산 (오늘 정오 기준)
+ * D-day 계산 (오늘 자정 기준, 캘린더 day 단위)
  * 양수: 미래, 0: 오늘, 음수: 과거
  */
 export function calcDDay(target: Date): number {
-  const diffMs = target.getTime() - getTodayNoon().getTime();
-  return Math.round(diffMs / (1000 * 60 * 60 * 24));
+  return differenceInCalendarDays(startOfDay(target), getStartOfToday());
 }
 
 /**
@@ -68,7 +68,7 @@ export function pickDateFromRange(dateString?: string | null): string | null {
   if (parts.length < 2) return parts[0] || null;
 
   const startDate = parseYmdToDate(parts[0]);
-  if (startDate && getTodayNoon() >= startDate) return parts[1];
+  if (startDate && getStartOfToday() >= startDate) return parts[1];
   return parts[0];
 }
 
@@ -102,20 +102,21 @@ export function getNearestStatusAndDate(
   listingdate?: string | null,
   refunddate?: string | null,
 ): { status: IpoStatusType; dateString: string; dday: number } | null {
-  const entries: Array<{
+  const entries: {
     status: IpoStatusType;
     dateString: string;
-  }> = [
-    { status: '청약', dateString: subscriptiondate ?? '' },
+  }[] = [
+    // 상세/마이페이지 등에서도 청약 range(시작~종료)를 앱 규칙대로 해석하기 위해 선처리
+    { status: '청약', dateString: pickDateFromRange(subscriptiondate) ?? '' },
     { status: '환불', dateString: refunddate ?? '' },
     { status: '상장', dateString: listingdate ?? '' },
   ];
 
-  const candidates: Array<{
+  const candidates: {
     status: IpoStatusType;
     dateString: string;
     dday: number;
-  }> = [];
+  }[] = [];
 
   for (const entry of entries) {
     if (!entry.dateString) continue;

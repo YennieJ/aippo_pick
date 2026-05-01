@@ -140,10 +140,10 @@ struct IPOProvider: TimelineProvider {
         let today = Calendar.current.startOfDay(for: Date())
         let days = Calendar.current.dateComponents([.day], from: today, to: Calendar.current.startOfDay(for: target)).day ?? 0
         let ddayStr: String
-        if days > 0 { ddayStr = "D-\\(days)" }
-        else if days == 0 { ddayStr = "D-Day" }
-        else { ddayStr = "D+\\(abs(days))" }
-        return "\\(status) \\(ddayStr)"
+        if days < 0 { return "-" }
+        if days == 0 { ddayStr = "D-Day" }
+        else { ddayStr = "D-\\(days)" }
+        return ddayStr
     }
 
     func calculateNearestDday(subscription: String, refund: String, listing: String) -> String {
@@ -151,23 +151,21 @@ struct IPOProvider: TimelineProvider {
 
         struct DateInfo {
             let date: Date
-            let type: String
         }
 
         var candidates: [DateInfo] = []
-        if let d = parseDate(subscription), d >= today { candidates.append(DateInfo(date: d, type: "청약")) }
-        if let d = parseDate(refund), d >= today { candidates.append(DateInfo(date: d, type: "환불")) }
-        if let d = parseDate(listing), d >= today { candidates.append(DateInfo(date: d, type: "상장")) }
+        if let d = parseDate(subscription), d >= today { candidates.append(DateInfo(date: d)) }
+        if let d = parseDate(refund), d >= today { candidates.append(DateInfo(date: d)) }
+        if let d = parseDate(listing), d >= today { candidates.append(DateInfo(date: d)) }
 
         guard let nearest = candidates.min(by: { $0.date < $1.date }) else { return "-" }
 
         let days = Calendar.current.dateComponents([.day], from: today, to: Calendar.current.startOfDay(for: nearest.date)).day ?? 0
         let ddayStr: String
-        if days > 0 { ddayStr = "D-\\(days)" }
-        else if days == 0 { ddayStr = "D-Day" }
-        else { ddayStr = "D+\\(abs(days))" }
-
-        return "\\(nearest.type) \\(ddayStr)"
+        if days < 0 { return "-" }
+        if days == 0 { ddayStr = "D-Day" }
+        else { ddayStr = "D-\\(days)" }
+        return ddayStr
     }
 
     func parseDate(_ str: String) -> Date? {
@@ -213,7 +211,7 @@ struct IPOProvider: TimelineProvider {
 
     func sampleRows() -> [IPORowData] {
         return [
-            IPORowData(name: "샘플 종목", dday: "청약 D-3", price: "10,000원", securities: "NH투자증권"),
+            IPORowData(name: "샘플 종목", dday: "D-3", price: "10,000원", securities: "NH투자증권"),
             IPORowData(name: "데이터 없음", dday: "-", price: "-", securities: "-"),
             IPORowData(name: "데이터 없음", dday: "-", price: "-", securities: "-"),
         ]
