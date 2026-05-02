@@ -54,7 +54,7 @@
 // } as const;
 
 // const STORAGE_KEY = {
-//   KAKAO: "AUTH_KAKAO_V1",
+//   KAKAO: "aippopick.kakaoProfile",
 //   GOOGLE: "AUTH_GOOGLE_V1",
 // } as const;
 

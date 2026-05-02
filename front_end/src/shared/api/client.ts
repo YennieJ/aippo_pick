@@ -3,6 +3,7 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { QueryClient } from '@tanstack/react-query';
+import { AUTH_USER_STORAGE_KEY } from '../../features/auth/constants';
 import { clearAccessToken } from '../../features/auth/storage/token.storage';
 
 const PRODUCTION_API_URL = 'https://api.aippopick.shop';
@@ -94,7 +95,7 @@ api.interceptors.response.use(
       // 인터셉터가 다시 발동 → 무한 루프가 된다. setQueryData만으로 충분하다.
       try {
         await clearAccessToken();
-        await AsyncStorage.removeItem('USER');
+        await AsyncStorage.removeItem(AUTH_USER_STORAGE_KEY);
         queryClientRef?.setQueryData(['auth', 'me'], null);
       } catch {}
     }

@@ -7,6 +7,7 @@ import React, {
   useState,
 } from 'react';
 import {
+  ActivityIndicator,
   Linking,
   Modal,
   Pressable,
@@ -32,37 +33,13 @@ import {
 } from '../../src/shared/utils/storage.utils';
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useKakaoLogin, useLogout, useMe } from '../../src/features/auth';
+import {
+  useAuthGate,
+  useKakaoLogin,
+  useLogout,
+  useMe,
+} from '../../src/features/auth';
 
-/* =========================================================
-   Kakao Auth
-========================================================= */
-type KakaoMeResponse = {
-  id: number;
-  kakao_account?: {
-    profile?: {
-      nickname?: string;
-      profile_image_url?: string;
-      thumbnail_image_url?: string;
-    };
-    email?: string;
-  };
-  properties?: {
-    nickname?: string;
-    profile_image?: string;
-    thumbnail_image?: string;
-  };
-};
-
-// type GoogleProfile = {
-//   id?: string;
-//   name?: string;
-//   email?: string;
-//   photo?: string;
-// };
-
-const AUTH_KAKAO_V1 = 'AUTH_KAKAO_V1';
 // const AUTH_GOOGLE_V1 = 'AUTH_GOOGLE_V1';
 
 import {
@@ -101,97 +78,15 @@ export default function MyPageScreen() {
   const colorScheme = useColorScheme();
   const iconColor = colorScheme === 'dark' ? '#9CA3AF' : '#111827';
 
-  // ✅ 로그아웃 중복 클릭 방지
-  const isLoggingOutRef = useRef(false);
-
   // 카카오 로그인 mutation
   const kakaoLoginMutation = useKakaoLogin();
 
-  // 내 정보 조회
+  const { isAuthReady } = useAuthGate();
+  // 내 정보 조회 (세션 부트스트랩 후에만 네트워크 — 루트 AuthGateProvider 가 선행)
   const { data: me } = useMe();
 
   // 로그아웃 mutation
   const logoutMutation = useLogout();
-
-  /* =========================================================
-     ✅ 로그인 상태 (카카오) 로드 + 로그아웃
-  ========================================================= */
-  const [kakaoMe, setKakaoMe] = useState<KakaoMeResponse | null>(null);
-  // const [googleMe, setGoogleMe] = useState<GoogleProfile | null>(null);
-
-  const loadAuth = useCallback(async () => {
-    try {
-      const kakaoRaw = await AsyncStorage.getItem(AUTH_KAKAO_V1);
-      if (kakaoRaw) {
-        const parsed = JSON.parse(kakaoRaw) as {
-          profile?: KakaoMeResponse;
-          me?: KakaoMeResponse;
-        };
-        const profile = parsed.profile ?? parsed.me ?? null;
-
-        setKakaoMe(profile);
-        // setGoogleMe(null);
-        return;
-      }
-
-      // const googleRaw = await AsyncStorage.getItem(AUTH_GOOGLE_V1);
-      // if (googleRaw) {
-      //   const parsed = JSON.parse(googleRaw) as { profile?: GoogleProfile };
-      //   const profile = parsed.profile ?? null;
-      //
-      //   setGoogleMe(profile);
-      //   setKakaoMe(null);
-      //   return;
-      // }
-
-      setKakaoMe(null);
-      // setGoogleMe(null);
-    } catch (e) {
-      console.log('loadAuth error', e);
-      setKakaoMe(null);
-      // setGoogleMe(null);
-    }
-  }, []);
-
-  const onPressLogout = useCallback(async () => {
-    if (isLoggingOutRef.current) return; // ✅ 중복 실행 방지
-    isLoggingOutRef.current = true;
-
-    try {
-      await AsyncStorage.multiRemove([
-        AUTH_KAKAO_V1,
-        // AUTH_GOOGLE_V1,
-      ]);
-
-      setKakaoMe(null);
-      // setGoogleMe(null);
-    } catch (e) {
-      console.log('logout error', e);
-    } finally {
-      setTimeout(() => {
-        isLoggingOutRef.current = false;
-      }, 500);
-    }
-  }, [router]);
-
-  const kakaoNickname =
-    kakaoMe?.kakao_account?.profile?.nickname ??
-    kakaoMe?.properties?.nickname ??
-    null;
-
-  const loggedName = useMemo(() => {
-    return (
-      kakaoNickname ??
-      // googleMe?.name ??
-      null
-    );
-  }, [kakaoNickname]);
-
-  const loggedProvider = useMemo(() => {
-    if (kakaoMe) return 'KAKAO';
-    // if (googleMe) return 'GOOGLE';
-    return null;
-  }, [kakaoMe]);
 
   // 문자열("24,650", " 8,000원") → 숫자로 안전하게 변환
   const parseNumber = (value?: string | null): number | null => {
@@ -546,6 +441,16 @@ export default function MyPageScreen() {
     [parseNumber],
   );
 
+  if (!isAuthReady) {
+    return (
+      <SafeAreaView className="flex-1 bg-white dark:bg-black" edges={['top']}>
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-black" edges={['top']}>
       <View className="flex-1 bg-white dark:bg-black">
@@ -612,6 +517,7 @@ export default function MyPageScreen() {
                         </Text>
                       </Pressable>
                     </View>
+
                   </View>
                 );
               })()
@@ -963,16 +869,30 @@ export default function MyPageScreen() {
             </View>
           </View>
 
-          <View className="pb-6 px-4">
+          <View className="pb-6 px-4 flex-row items-center justify-center">
             <TouchableOpacity
               onPress={() => router.push('/termAndConditions')}
               activeOpacity={0.7}
-              className="items-center"
             >
               <Text className="text-xs text-gray-600 dark:text-gray-400 underline">
                 약관 및 개인정보 처리방침
               </Text>
             </TouchableOpacity>
+            {me && (
+              <>
+                <Text className="text-xs text-gray-300 dark:text-gray-600 mx-2">
+                  |
+                </Text>
+                <TouchableOpacity
+                  onPress={() => router.push('/withdraw')}
+                  activeOpacity={0.7}
+                >
+                  <Text className="text-xs text-gray-600 dark:text-gray-400 underline">
+                    회원 탈퇴
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </ScrollView>
       </View>
@@ -992,8 +912,9 @@ export default function MyPageScreen() {
           />
           <View className="rounded-t-[20px] bg-white px-5 pb-10 pt-8 dark:bg-gray-800">
             <TouchableOpacity
-              className="items-center rounded-lg bg-[#FEE500] py-3.5"
+              className={`items-center rounded-lg bg-[#FEE500] py-3.5 ${kakaoLoginMutation.isPending ? 'opacity-60' : ''}`}
               activeOpacity={0.8}
+              disabled={kakaoLoginMutation.isPending}
               onPress={() => {
                 kakaoLoginMutation.mutate(undefined, {
                   onSuccess: () => {
@@ -1009,7 +930,9 @@ export default function MyPageScreen() {
               }}
             >
               <Text className="text-base font-bold text-[#191919]">
-                카카오톡으로 로그인하기
+                {kakaoLoginMutation.isPending
+                  ? '로그인 중...'
+                  : '카카오톡으로 로그인하기'}
               </Text>
             </TouchableOpacity>
           </View>
