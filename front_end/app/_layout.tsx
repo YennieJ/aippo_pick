@@ -15,7 +15,7 @@ import { TouchableOpacity, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import '../global.css';
 import { AuthGateProvider } from '../src/features/auth';
-import { IconSymbol } from '../src/shared';
+import { IconSymbol, ToastProvider } from '../src/shared';
 import { registerQueryClient } from '../src/shared/api/client';
 import { useColorScheme } from '../src/shared/hooks/use-color-scheme';
 
@@ -47,14 +47,15 @@ export default function RootLayout() {
             <ThemeProvider
               value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}
             >
-              <View
-                style={{
-                  flex: 1,
-                  width: '100%',
-                  alignSelf: 'center',
-                }}
-              >
-                <Stack>
+              <ToastProvider>
+                <View
+                  style={{
+                    flex: 1,
+                    width: '100%',
+                    alignSelf: 'center',
+                  }}
+                >
+                  <Stack>
                   <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                   <Stack.Screen
                     name="ipo/ai-report"
@@ -122,8 +123,9 @@ export default function RootLayout() {
                     })}
                   />
                 </Stack>
-              </View>
-              <StatusBar style="auto" translucent={false} />
+                </View>
+                <StatusBar style="auto" translucent={false} />
+              </ToastProvider>
             </ThemeProvider>
           </AuthGateProvider>
         </QueryClientProvider>

@@ -32,14 +32,17 @@ import {
 } from '../utils/journal-ui.utils';
 import { SellDatePickerModal } from './SellDatePickerModal';
 import { StockPickerModal } from './StockPickerModal';
+import { useToast } from '../../../shared';
 
 type Mode = 'create' | 'edit';
 
 type Props = {
   visible: boolean;
   mode: Mode;
-  /** edit 모드에서 채울 초기값 */
+  /** edit 모드에서 채울 초기값. create 모드에서도 lockStock과 함께 prefill 용도로 사용 가능. */
   initial?: JournalRecordListItem;
+  /** create 모드에서 종목명을 고정(StockPicker 진입 불가)하고 싶을 때. IPO 상세에서 진입할 때 사용. */
+  lockStock?: boolean;
   onClose: () => void;
   /** 저장/삭제 성공 시 화면이 자동 펼침 등 후처리할 수 있도록 (year, monthKey, ymd) 전달 */
   onSaved?: (info: { year: number; monthKey: string }) => void;
@@ -161,6 +164,7 @@ export function JournalRecordSheet({
   visible,
   mode,
   initial,
+  lockStock = false,
   onClose,
   onSaved,
 }: Props) {
@@ -172,6 +176,7 @@ export function JournalRecordSheet({
   const updateMut = useJournalUpdateRecord();
   const deleteMut = useJournalDeleteRecord();
   const saving = createMut.isPending || updateMut.isPending;
+  const { show: showToast } = useToast();
 
   /** 시트 열릴 때마다 폼 초기화 */
   useEffect(() => {
@@ -180,9 +185,30 @@ export function JournalRecordSheet({
     }
     if (mode === 'edit' && initial) {
       setForm(fromRecord(initial));
-    } else {
-      setForm(EMPTY);
+      return;
     }
+    if (mode === 'create' && initial) {
+      // IPO 상세 등에서 prefill 진입한 경우 — onPickStock과 동일한 결과를 만든다.
+      // 종목/상장일/확정공모가만 채우고, 수량·매도가·제세금은 빈 값(사용자 입력 대기),
+      // 매도일은 오늘(상장일 이후로 clamp), 수수료는 DEFAULT_COMMISSION.
+      const minYmd = parseListingDateToYmd(initial.상장일);
+      const cap = todayYmd();
+      const sellDefault = clampYmd(cap, minYmd, cap);
+      setForm({
+        종목명: initial.종목명,
+        종목코드: initial.종목코드,
+        확정공모가: initial.확정공모가 || null,
+        상장일: initial.상장일,
+        수량: initial.수량 ? String(initial.수량) : '',
+        매도가: initial.매도가 ? String(initial.매도가) : '',
+        매도일: initial.매도일 || sellDefault,
+        수수료: initial.수수료 ? String(initial.수수료) : DEFAULT_COMMISSION,
+        제세금: initial.제세금 ? String(initial.제세금) : '',
+        메모: initial.메모 ?? '',
+      });
+      return;
+    }
+    setForm(EMPTY);
   }, [visible, mode, initial]);
 
   const stockSelected = !!form.종목코드;
@@ -261,6 +287,7 @@ export function JournalRecordSheet({
       if (groupingYearMonth) {
         onSaved?.(groupingYearMonth);
       }
+      showToast(mode === 'create' ? '저장되었습니다' : '수정되었습니다');
     };
     const onFail = (e: unknown) => {
       // axios error 형태를 강하게 가정하지 않고, 최대한 메시지를 뽑아낸다.
@@ -299,6 +326,7 @@ export function JournalRecordSheet({
               if (groupingYearMonth) {
                 onSaved?.(groupingYearMonth);
               }
+              showToast('삭제되었습니다');
             },
             onError: (e: unknown) => {
               const anyErr = e as any;
@@ -358,7 +386,7 @@ export function JournalRecordSheet({
 
               <View className="mt-1 mb-4">
                 <View className="flex-row items-center justify-between">
-                  {mode === 'create' ? (
+                  {mode === 'create' && !lockStock ? (
                     <TouchableOpacity
                       onPress={() => setPickerOpen(true)}
                       activeOpacity={0.8}
@@ -379,7 +407,7 @@ export function JournalRecordSheet({
                       </Text>
                     </View>
                   )}
-                  {mode === 'create' && stockSelected && (
+                  {mode === 'create' && !lockStock && stockSelected && (
                     <TouchableOpacity onPress={onClearStock} hitSlop={10}>
                       <Text className="text-xs text-gray-500">초기화</Text>
                     </TouchableOpacity>

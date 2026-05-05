@@ -2,12 +2,14 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   ScrollView,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useMe } from '../../src/features/auth';
 import { RelatedContentSection } from '../../src/features/ipo/components/RelatedContentSection';
 import { ScoreSection } from '../../src/features/ipo/components/ScoreSection';
 import {
@@ -15,7 +17,19 @@ import {
   useIpoScore,
 } from '../../src/features/ipo/hooks/useIpoQueries';
 import { IpoDetailData } from '../../src/features/ipo/types/ipo.types';
-import { DeepLinkButton, IconSymbol, IpoStatusBadge } from '../../src/shared';
+import {
+  fetchJournalByIpo,
+  JournalRecordSheet,
+  parseListingDateToYmd,
+  todayYmd,
+  type JournalRecordListItem,
+} from '../../src/features/journal';
+import {
+  DeepLinkButton,
+  IconSymbol,
+  IpoStatusBadge,
+  LoginBottomSheet,
+} from '../../src/shared';
 import { useColorScheme } from '../../src/shared/hooks/use-color-scheme';
 import {
   loadStringArray,
@@ -34,6 +48,16 @@ export default function IpoDetailScreen() {
   // 즐겨찾기 훅은 조건문보다 "무조건 위에"
   const [favorites, setFavorites] = useState<string[]>([]);
   const [isFavorite, setIsFavorite] = useState(false);
+
+  // 매매일지 모달 상태 (IPO 상세에서 진입 시)
+  const { data: me } = useMe();
+  const [journalSheet, setJournalSheet] = useState<
+    | { mode: 'create'; initial: JournalRecordListItem }
+    | { mode: 'edit'; initial: JournalRecordListItem }
+    | null
+  >(null);
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [journalLoading, setJournalLoading] = useState(false);
 
   // API 응답은 배열로 반환됨
   const ipoData: IpoDetailData | undefined = Array.isArray(data)
@@ -89,6 +113,75 @@ export default function IpoDetailScreen() {
     await saveStringArray(STORAGE_KEYS.FAVORITES, next);
     setFavorites(next);
     setIsFavorite(next.includes(favoriteKey));
+  };
+
+  const canOpenJournal = (() => {
+    if (!ipoData?.listingdate) return false;
+    const listingYmd = parseListingDateToYmd(ipoData.listingdate);
+    if (!listingYmd) return false;
+    if (listingYmd > todayYmd()) return false;
+    const priceDigits = (ipoData?.confirmedprice ?? '').replace(/[^\d]/g, '');
+    if (!priceDigits || Number(priceDigits) <= 0) return false;
+    return true;
+  })();
+
+  const openJournalSheet = async () => {
+    if (!canOpenJournal || !ipoData) return;
+    if (journalLoading) return;
+    setJournalLoading(true);
+    try {
+      const result = await fetchJournalByIpo({
+        code_id: ipoData.code_id,
+        company: ipoData.company,
+      });
+      if (result.exists) {
+        setJournalSheet({ mode: 'edit', initial: result.journal });
+      } else {
+        const buyPriceDigits = (ipoData.confirmedprice ?? '').replace(
+          /[^\d]/g,
+          '',
+        );
+        const buyPrice = buyPriceDigits ? Number(buyPriceDigits) : 0;
+        const prefilled: JournalRecordListItem = {
+          id: 0,
+          종목명: ipoData.company,
+          종목코드: ipoData.code_id,
+          확정공모가: buyPrice,
+          수량: 0,
+          매도가: 0,
+          매도일: '',
+          수수료: 0,
+          제세금: 0,
+          메모: '',
+          상장일: ipoData.listingdate ?? '',
+          손익금: 0,
+          수익률: 0,
+        };
+        setJournalSheet({ mode: 'create', initial: prefilled });
+      }
+    } catch (e) {
+      const anyErr = e as any;
+      const status = anyErr?.response?.status;
+      const message =
+        anyErr?.response?.data?.message ??
+        anyErr?.message ??
+        '매매일지를 불러오지 못했습니다.';
+      Alert.alert(
+        '오류',
+        status ? `(${status}) ${String(message)}` : String(message),
+      );
+    } finally {
+      setJournalLoading(false);
+    }
+  };
+
+  const onPressJournal = () => {
+    if (!canOpenJournal || !ipoData) return;
+    if (!me) {
+      setLoginOpen(true);
+      return;
+    }
+    void openJournalSheet();
   };
 
   if (isLoading) {
@@ -247,16 +340,32 @@ export default function IpoDetailScreen() {
               refunddate={ipoData.refunddate}
             />
           </View>
-          <TouchableOpacity
-            onPress={onToggleFavorite}
-            className="px-2 pt-0.5 justify-center items-center"
-          >
-            <IconSymbol
-              name={isFavorite ? 'star.fill' : 'star'}
-              size={30}
-              color="#FACC15"
-            />
-          </TouchableOpacity>
+          <View className="flex-row items-center">
+            {canOpenJournal ? (
+              <TouchableOpacity
+                onPress={onPressJournal}
+                disabled={journalLoading}
+                className="px-2 pt-0.5 justify-center items-center"
+                accessibilityLabel="매매일지 작성"
+              >
+                <IconSymbol
+                  name="square.and.pencil"
+                  size={26}
+                  color={isDark ? '#E5E7EB' : '#374151'}
+                />
+              </TouchableOpacity>
+            ) : null}
+            <TouchableOpacity
+              onPress={onToggleFavorite}
+              className="px-2 pt-0.5 justify-center items-center"
+            >
+              <IconSymbol
+                name={isFavorite ? 'star.fill' : 'star'}
+                size={30}
+                color="#FACC15"
+              />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Level 2: 주요 정보 카드 (2열) */}
@@ -552,6 +661,23 @@ export default function IpoDetailScreen() {
         {/* 연관 콘텐츠 (뉴스, 유튜브, 블로그) */}
         <RelatedContentSection company={ipoData.company} isDark={isDark} />
       </ScrollView>
+
+      <JournalRecordSheet
+        visible={journalSheet != null}
+        mode={journalSheet?.mode ?? 'create'}
+        initial={journalSheet?.initial}
+        lockStock={journalSheet?.mode === 'create'}
+        onClose={() => setJournalSheet(null)}
+      />
+
+      <LoginBottomSheet
+        visible={loginOpen}
+        onClose={() => setLoginOpen(false)}
+        onLoginSuccess={() => {
+          void openJournalSheet();
+        }}
+        message="로그인이 필요한 서비스입니다."
+      />
     </SafeAreaView>
   );
 }

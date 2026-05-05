@@ -121,6 +121,29 @@ export async function fetchJournalRecordsByYear(
   return res.data.map(toDomainRecord);
 }
 
+type ApiByIpoResponse =
+  | { exists: true; journal: ApiRecord }
+  | { exists: false; journal: null };
+
+export type JournalByIpoResult =
+  | { exists: true; journal: JournalRecordListItem }
+  | { exists: false; journal: null };
+
+export async function fetchJournalByIpo(params: {
+  code_id: string;
+  company: string;
+}): Promise<JournalByIpoResult> {
+  const headers = await authHeader();
+  const res = await api.get<ApiByIpoResponse>(`${BASE_PATH}/by-ipo`, {
+    params: { code_id: params.code_id, company: params.company },
+    headers,
+  });
+  if (res.data.exists) {
+    return { exists: true, journal: toDomainRecord(res.data.journal) };
+  }
+  return { exists: false, journal: null };
+}
+
 export async function createJournalRecord(
   body: JournalRecordWriteBody,
 ): Promise<ApiWriteResponse> {
