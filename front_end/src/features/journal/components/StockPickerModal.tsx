@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Text,
   TextInput,
   TouchableOpacity,
@@ -56,102 +58,108 @@ export function StockPickerModal({ visible, onClose, onSelect }: Props) {
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View className="flex-1 bg-black/50">
-        <TouchableOpacity
-          className="flex-1"
-          activeOpacity={1}
-          onPress={onClose}
-        />
-        <View className="rounded-t-[20px] bg-white pb-6 pt-3 dark:bg-gray-900 h-[80%]">
-          <View className="self-center mb-2 h-1 w-10 rounded-full bg-gray-300 dark:bg-gray-700" />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        className="flex-1"
+      >
+        <View className="flex-1 bg-black/50 justify-end">
+          <TouchableOpacity
+            className="flex-1"
+            activeOpacity={1}
+            onPress={onClose}
+          />
+          <View className="rounded-t-[20px] bg-white pb-6 pt-3 dark:bg-gray-900 max-h-[80%]">
+            <View className="self-center mb-2 h-1 w-10 rounded-full bg-gray-300 dark:bg-gray-700" />
 
-          <View className="px-5 pb-3">
-            <Text className="text-base font-bold text-gray-900 dark:text-white mb-2">
-              종목 검색
-            </Text>
-            <TextInput
-              value={q}
-              onChangeText={setQ}
-              placeholder="종목명 또는 종목코드"
-              placeholderTextColor="#9ca3af"
-              autoFocus
-              className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-base text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-            />
-          </View>
-
-          {isLoading ? (
-            <View className="py-10 items-center">
-              <ActivityIndicator />
+            <View className="px-5 pb-3">
+              <Text className="text-base font-bold text-gray-900 dark:text-white mb-2">
+                종목 검색
+              </Text>
+              <TextInput
+                value={q}
+                onChangeText={setQ}
+                placeholder="종목명 또는 종목코드"
+                placeholderTextColor="#9ca3af"
+                autoFocus
+                className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-base text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              />
             </View>
-          ) : (
-            <FlatList
-              data={items}
-              keyExtractor={(item, idx) => {
-                const code = item.종목코드?.trim();
-                if (code) return `code:${code}`;
-                const name = item.종목명?.trim();
-                if (name) return `company:${name}:${idx}`;
-                return `row:${idx}`;
-              }}
-              keyboardShouldPersistTaps="handled"
-              ItemSeparatorComponent={() => (
-                <View className="h-px bg-gray-100 dark:bg-gray-800 mx-5" />
-              )}
-              ListEmptyComponent={
-                !isFetching ? (
-                  <View className="py-10 items-center">
-                    <Text className="text-sm text-gray-500 dark:text-gray-400">
-                      {errorMessage ? errorMessage : '검색 결과가 없습니다.'}
-                    </Text>
-                    {!debouncedQ && !errorMessage && (
-                      <Text className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-                        최근 3개월 내 상장 종목입니다. 더 이전 종목은
-                        종목명/코드로 검색하세요.
+
+            {isLoading ? (
+              <View className="py-10 items-center">
+                <ActivityIndicator />
+              </View>
+            ) : (
+              <FlatList
+                data={items}
+                keyExtractor={(item, idx) => {
+                  const code = item.종목코드?.trim();
+                  if (code) return `code:${code}`;
+                  const name = item.종목명?.trim();
+                  if (name) return `company:${name}:${idx}`;
+                  return `row:${idx}`;
+                }}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
+                ItemSeparatorComponent={() => (
+                  <View className="h-px bg-gray-100 dark:bg-gray-800 mx-5" />
+                )}
+                ListEmptyComponent={
+                  !isFetching ? (
+                    <View className="py-10 items-center">
+                      <Text className="text-sm text-gray-500 dark:text-gray-400">
+                        {errorMessage ? errorMessage : '검색 결과가 없습니다.'}
                       </Text>
-                    )}
-                  </View>
-                ) : null
-              }
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  activeOpacity={item.이미등록됨 ? 1 : 0.7}
-                  disabled={item.이미등록됨}
-                  onPress={() => {
-                    if (item.이미등록됨) return;
-                    onSelect(item);
-                    setQ('');
-                  }}
-                  className={`px-5 py-3 flex-row justify-between items-center ${
-                    item.이미등록됨 ? 'opacity-50' : ''
-                  }`}
-                >
-                  <View className="shrink pr-3">
-                    <View className="flex-row items-center gap-2">
-                      <Text className="text-base font-semibold text-gray-900 dark:text-white">
-                        {item.종목명}
-                      </Text>
-                      {item.이미등록됨 && (
-                        <View className="rounded-full bg-gray-200 px-2 py-0.5 dark:bg-gray-800">
-                          <Text className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">
-                            등록됨
-                          </Text>
-                        </View>
+                      {!debouncedQ && !errorMessage && (
+                        <Text className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+                          최근 3개월 내 상장 종목입니다. 더 이전 종목은
+                          종목명/코드로 검색하세요.
+                        </Text>
                       )}
                     </View>
-                    <Text className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                      {item.종목코드 || '코드 없음'}
-                      {item.상장일 ? ` · 상장일 ${item.상장일}` : ''}
+                  ) : null
+                }
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    activeOpacity={item.이미등록됨 ? 1 : 0.7}
+                    disabled={item.이미등록됨}
+                    onPress={() => {
+                      if (item.이미등록됨) return;
+                      onSelect(item);
+                      setQ('');
+                    }}
+                    className={`px-5 py-3 flex-row justify-between items-center ${
+                      item.이미등록됨 ? 'opacity-50' : ''
+                    }`}
+                  >
+                    <View className="shrink pr-3">
+                      <View className="flex-row items-center gap-2">
+                        <Text className="text-base font-semibold text-gray-900 dark:text-white">
+                          {item.종목명}
+                        </Text>
+                        {item.이미등록됨 && (
+                          <View className="rounded-full bg-gray-200 px-2 py-0.5 dark:bg-gray-800">
+                            <Text className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">
+                              등록됨
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        {item.종목코드 || '코드 없음'}
+                        {item.상장일 ? ` · 상장일 ${item.상장일}` : ''}
+                      </Text>
+                    </View>
+                    <Text className="text-sm text-gray-700 dark:text-gray-300">
+                      확정공모가 {formatKrwUnsigned(item.확정공모가)}
                     </Text>
-                  </View>
-                  <Text className="text-sm text-gray-700 dark:text-gray-300">
-                    확정공모가 {formatKrwUnsigned(item.확정공모가)}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            />
-          )}
+                  </TouchableOpacity>
+                )}
+              />
+            )}
+          </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

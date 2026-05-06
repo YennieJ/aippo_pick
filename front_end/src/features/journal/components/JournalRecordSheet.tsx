@@ -395,7 +395,7 @@ export function JournalRecordSheet({
                       <Text className="text-2xl font-bold text-gray-900 dark:text-white">
                         {form.종목명 || '종목 선택'}
                       </Text>
-                      <Text className="text-gray-500 text-base">▾</Text>
+                      <Text className="text-gray-500 text-3xl">▾</Text>
                     </TouchableOpacity>
                   ) : (
                     <View className="flex-row items-center gap-3 flex-1">
