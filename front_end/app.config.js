@@ -5,7 +5,7 @@ export default ({ config }) => ({
 
   name: "아이뽀픽",
   slug: "front_end",
-  version: "1.1.2",
+  version: "1.2.1",
   orientation: "portrait",
   icon: "./assets/images/android-icon-aippopick.png",
   scheme: "frontend",
@@ -118,7 +118,17 @@ export default ({ config }) => ({
         kakaoAppKey: "6b4ad4a64e775ae17d3ffbf012e65d84",
         iosAppScheme: "kakao6b4ad4a64e775ae17d3ffbf012e65d84"
       }
-    ]
+    ],
+
+    // Google Mobile Ads (AdMob)
+    // iOS App ID는 발급 전이므로 Google 공식 테스트 ID 사용
+    [
+      "react-native-google-mobile-ads",
+      {
+        androidAppId: process.env.EXPO_PUBLIC_ADMOB_ANDROID_APP_ID,
+        iosAppId: "ca-app-pub-3940256099942544~1458002511",
+      },
+    ],
   ],
 
   experiments: {

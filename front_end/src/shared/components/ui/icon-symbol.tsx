@@ -36,6 +36,7 @@ const MAPPING = {
   'xmark.circle.fill': 'close',
   'note.text': 'receipt-long',
   'square.and.pencil': 'edit',
+  'lock.fill': 'lock',
 } as IconMapping;
 
 /**

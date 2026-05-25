@@ -13,6 +13,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import messaging from '@react-native-firebase/messaging';
 import { TouchableOpacity, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import mobileAds from 'react-native-google-mobile-ads';
 import '../global.css';
 import { AuthGateProvider } from '../src/features/auth';
 import { IconSymbol, ToastProvider } from '../src/shared';
@@ -37,6 +38,22 @@ export default function RootLayout() {
       // iOS: 포그라운드에서 알림 표시 허용
     });
     return unsubscribe;
+  }, []);
+
+  // AdMob 초기화 - 광고 요청 전 필수
+  useEffect(() => {
+    mobileAds()
+      .initialize()
+      .then(() => {
+        if (__DEV__) {
+          console.log('[ads] mobile ads initialized');
+        }
+      })
+      .catch((e) => {
+        if (__DEV__) {
+          console.log('[ads] init error', e);
+        }
+      });
   }, []);
 
   return (

@@ -12,6 +12,8 @@ export const STORAGE_KEYS = {
   RECENT_SEARCH: 'recent_search_keywords',
   /** 검색 페이지에서 클릭한 검색 결과 (전체 객체 저장) */
   RECENT_SEARCH_RESULTS: 'recent_search_results',
+  /** 보상형 광고 시청 후 AI 리포트 잠금 해제 - 마지막 시청 일자 (KST 기준 YYYY-MM-DD) */
+  AD_REWARD_LAST_DATE: 'ad_reward_last_date',
   // 필요시 추가 키들을 여기에 정의
 } as const satisfies Record<string, string>;
 

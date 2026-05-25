@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMe } from '../../src/features/auth';
+import { useRewardedAd } from '../../src/features/ads/hooks/useRewardedAd';
+import { isUnlockedToday } from '../../src/features/ads/utils/adUnlock';
 import { RelatedContentSection } from '../../src/features/ipo/components/RelatedContentSection';
 import { ScoreSection } from '../../src/features/ipo/components/ScoreSection';
 import {
@@ -65,6 +67,20 @@ export default function IpoDetailScreen() {
     : data;
 
   const { data: scoreData } = useIpoScore(ipoData?.company ?? '');
+
+  // 보상형 광고: AI 리포트 일일 잠금 해제
+  const { showAd, isLoaded: isAdLoaded } = useRewardedAd();
+  const [adUnlocked, setAdUnlocked] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    isUnlockedToday().then((ok) => {
+      if (!cancelled) setAdUnlocked(ok);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // codeId(혹은 ipoData?.code_id)를 키로 사용
   const favoriteKey = ipoData?.code_id ?? codeId ?? '';
@@ -433,11 +449,25 @@ export default function IpoDetailScreen() {
         <ScoreSection
           scoreData={scoreData ?? null}
           isDark={isDark}
+          isLocked={!adUnlocked}
           onPress={() =>
             router.push(
               `/ipo/ai-report?company=${encodeURIComponent(ipoData.company)}&codeId=${codeIdStr}`,
             )
           }
+          onUnlockPress={async () => {
+            if (!isAdLoaded) {
+              Alert.alert(
+                '광고 준비 중',
+                '잠시 후 다시 시도해주세요.',
+              );
+              return;
+            }
+            const earned = await showAd();
+            if (earned) {
+              setAdUnlocked(true);
+            }
+          }}
         />
         {/* 일정 */}
         <View className="bg-white dark:bg-gray-800 p-3.5 rounded-xl border border-gray-200 dark:border-gray-700">

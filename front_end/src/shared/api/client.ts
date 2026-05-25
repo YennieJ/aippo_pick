@@ -56,6 +56,9 @@ function resolveApiBaseUrl(): string {
 }
 
 const apiBaseUrl = resolveApiBaseUrl();
+if (__DEV__) {
+  console.log('[api] apiBaseUrl =', apiBaseUrl);
+}
 
 // 401 자동 로그아웃 시 React Query 캐시를 정리하기 위한 주입 포인트
 // _layout.tsx에서 registerQueryClient(queryClient) 호출로 세팅한다.

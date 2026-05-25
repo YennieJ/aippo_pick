@@ -14,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { NativeAdCard } from '../../src/features/ads/components/NativeAdCard';
 import {
   useAllBrokers,
   useBrokerRanking,
@@ -468,6 +469,9 @@ export default function HomeScreen() {
             />
           )}
         </View>
+
+        {/* 네이티브 광고 */}
+        <NativeAdCard />
 
         {/* 증권사별 수익률 (아코디언) */}
         <View className="pb-6">

@@ -1,4 +1,5 @@
 import { IconSymbol } from '@/src/shared/components/ui/icon-symbol';
+import { BlurView } from 'expo-blur';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Text, TouchableOpacity, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
@@ -173,12 +174,18 @@ interface ScoreSectionProps {
   isDark?: boolean;
   /** 점수 있을 때만 동작. 없으면 터치 불가 */
   onPress?: () => void;
+  /** AI 리포트가 오늘 광고 미시청으로 잠긴 상태인지 */
+  isLocked?: boolean;
+  /** 잠금 해제(광고 시청) 트리거 */
+  onUnlockPress?: () => void;
 }
 
 export function ScoreSection({
   scoreData,
   isDark = false,
   onPress,
+  isLocked = false,
+  onUnlockPress,
 }: ScoreSectionProps) {
   const totalScore = Number(scoreData?.total_score) || 0;
   const demandScore = Number(scoreData?.demand_score) || 0;
@@ -189,7 +196,32 @@ export function ScoreSection({
   const hasAiReport =
     scoreData?.ai_report != null &&
     String(scoreData.ai_report).trim().length > 0;
-  const pressable = hasData && !!onPress && hasAiReport;
+  const locked = isLocked && hasAiReport;
+  const pressable =
+    hasData && hasAiReport && (locked ? !!onUnlockPress : !!onPress);
+
+  const stars = (
+    <View className="flex-1">
+      <StarRating
+        label="투자수요분석"
+        score={demandScore}
+        max={55}
+        isDark={isDark}
+      />
+      <StarRating
+        label="시장분석"
+        score={marketScore}
+        max={20}
+        isDark={isDark}
+      />
+      <StarRating
+        label="가치분석"
+        score={valueScore}
+        max={25}
+        isDark={isDark}
+      />
+    </View>
+  );
 
   const inner = (
     <View className="p-5 rounded-xl border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
@@ -200,26 +232,28 @@ export function ScoreSection({
           isDark={isDark}
         />
         {hasData ? (
-          <View className="flex-1">
-            <StarRating
-              label="투자수요분석"
-              score={demandScore}
-              max={55}
-              isDark={isDark}
-            />
-            <StarRating
-              label="시장분석"
-              score={marketScore}
-              max={20}
-              isDark={isDark}
-            />
-            <StarRating
-              label="가치분석"
-              score={valueScore}
-              max={25}
-              isDark={isDark}
-            />
-          </View>
+          locked ? (
+            <View className="flex-1 relative overflow-hidden rounded-lg">
+              {stars}
+              <BlurView
+                intensity={15}
+                tint={isDark ? 'dark' : 'light'}
+                experimentalBlurMethod="dimezisBlurView"
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: isDark
+                    ? 'rgba(31, 41, 55, 0.55)'
+                    : 'rgba(255, 255, 255, 0.55)',
+                }}
+              />
+            </View>
+          ) : (
+            stars
+          )
         ) : (
           <View className="flex-1 items-center">
             <Text
@@ -232,10 +266,20 @@ export function ScoreSection({
       </View>
       {hasData && hasAiReport ? (
         <View className="flex-row items-center justify-center gap-1 mt-2">
-          <Text className="text-center text-gray-500 dark:text-gray-400">
-            AI 분석 결과
+          <Text
+            className={`text-center ${
+              locked
+                ? 'text-orange-500 font-semibold'
+                : 'text-gray-500 dark:text-gray-400'
+            }`}
+          >
+            {locked ? '광고 보고 오늘 하루 무료로 보기' : 'AI 분석 결과'}
           </Text>
-          <IconSymbol size={16} name="chevron.right" color="gray" />
+          <IconSymbol
+            size={16}
+            name="chevron.right"
+            color={locked ? '#F97316' : 'gray'}
+          />
         </View>
       ) : null}
     </View>
@@ -243,7 +287,10 @@ export function ScoreSection({
 
   if (pressable) {
     return (
-      <TouchableOpacity activeOpacity={0.8} onPress={onPress}>
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onPress={locked ? onUnlockPress : onPress}
+      >
         {inner}
       </TouchableOpacity>
     );
