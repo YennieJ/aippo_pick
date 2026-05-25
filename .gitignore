@@ -25,3 +25,6 @@ web-build/
 
 # Logs
 *.log
+
+# Claude Code (per-user local settings)
+.claude/settings.local.json
