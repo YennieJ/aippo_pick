@@ -566,8 +566,8 @@ function withIOSWidget(config) {
                     bs.INFOPLIST_FILE = `"${WIDGET_NAME}/Info.plist"`;
                     bs.TARGETED_DEVICE_FAMILY = `"1,2"`;
                     bs.GENERATE_INFOPLIST_FILE = "YES";
-                    bs.CURRENT_PROJECT_VERSION = "1";
-                    bs.MARKETING_VERSION = "1.0.0";
+                    bs.CURRENT_PROJECT_VERSION = "2";
+                    bs.MARKETING_VERSION = "1.2.1";
                     bs.ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = "WidgetBackground";
                     bs.PRODUCT_BUNDLE_IDENTIFIER = `"${WIDGET_BUNDLE_ID}"`;
                     bs.SKIP_INSTALL = "YES";
