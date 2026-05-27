@@ -5,7 +5,7 @@ export default ({ config }) => ({
 
   name: "아이뽀픽",
   slug: "front_end",
-  version: "1.2.1",
+  version: "1.2.2",
   orientation: "portrait",
   icon: "./assets/images/android-icon-aippopick.png",
   scheme: "frontend",
@@ -121,12 +121,13 @@ export default ({ config }) => ({
     ],
 
     // Google Mobile Ads (AdMob)
-    // iOS App ID는 발급 전이므로 Google 공식 테스트 ID 사용
     [
       "react-native-google-mobile-ads",
       {
         androidAppId: process.env.EXPO_PUBLIC_ADMOB_ANDROID_APP_ID,
-        iosAppId: "ca-app-pub-3940256099942544~1458002511",
+        iosAppId: process.env.EXPO_PUBLIC_ADMOB_IOS_APP_ID,
+        userTrackingUsageDescription:
+          "맞춤형 광고 제공을 위해 기기 광고 식별자(IDFA) 접근을 요청합니다.",
       },
     ],
   ],
