@@ -442,7 +442,7 @@ function withIOSWidget(config) {
 <plist version="1.0">
 <dict>
     <key>CFBundleDevelopmentRegion</key>
-    <string>$(DEVELOPMENT_LANGUAGE)</string>
+    <string>ko</string>
     <key>CFBundleDisplayName</key>
     <string>오늘의 공모주</string>
     <key>CFBundleExecutable</key>

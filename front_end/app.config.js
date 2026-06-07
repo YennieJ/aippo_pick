@@ -21,6 +21,7 @@ export default ({ config }) => ({
       usesNonExemptEncryption: false,
     },
     infoPlist: {
+      CFBundleDevelopmentRegion: "ko",
       NSAppTransportSecurity: {
         NSAllowsArbitraryLoads: false,
         // iOS 시뮬레이터/실기기에서 로컬 개발 서버(HTTP)와 통신 가능하게 함.
