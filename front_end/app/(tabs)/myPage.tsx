@@ -34,8 +34,8 @@ import {
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import {
+  formatDisplayEmail,
   useAuthGate,
-  useKakaoLogin,
   useLogout,
   useMe,
 } from '../../src/features/auth';
@@ -54,6 +54,7 @@ import {
   IconSymbol,
   IpoStatusBadge,
   SectionHeader,
+  SocialLoginButtons,
 } from '../../src/shared';
 import { useColorScheme } from '../../src/shared/hooks/use-color-scheme';
 import { getStableDeviceId } from '../../src/shared/utils/device-id.utils';
@@ -77,9 +78,6 @@ export default function MyPageScreen() {
 
   const colorScheme = useColorScheme();
   const iconColor = colorScheme === 'dark' ? '#9CA3AF' : '#111827';
-
-  // 카카오 로그인 mutation
-  const kakaoLoginMutation = useKakaoLogin();
 
   const { isAuthReady } = useAuthGate();
   // 내 정보 조회 (세션 부트스트랩 후에만 네트워크 — 루트 AuthGateProvider 가 선행)
@@ -480,7 +478,7 @@ export default function MyPageScreen() {
                       className="text-sm text-gray-500 dark:text-gray-400 mt-0.5"
                       numberOfLines={1}
                     >
-                      {me.email}
+                      {formatDisplayEmail(me.email)}
                     </Text>
 
                     {/* 구분선 */}
@@ -911,30 +909,15 @@ export default function MyPageScreen() {
             onPress={() => setIsLoginModalVisible(false)}
           />
           <View className="rounded-t-[20px] bg-white px-5 pb-10 pt-8 dark:bg-gray-800">
-            <TouchableOpacity
-              className={`items-center rounded-lg bg-[#FEE500] py-3.5 ${kakaoLoginMutation.isPending ? 'opacity-60' : ''}`}
-              activeOpacity={0.8}
-              disabled={kakaoLoginMutation.isPending}
-              onPress={() => {
-                kakaoLoginMutation.mutate(undefined, {
-                  onSuccess: () => {
-                    setIsLoginModalVisible(false);
-                  },
-                  onError: (e: any) => {
-                    setInfoDialog({
-                      title: '로그인 실패',
-                      message: e.message ?? '알 수 없는 에러',
-                    });
-                  },
+            <SocialLoginButtons
+              onSuccess={() => setIsLoginModalVisible(false)}
+              onError={(e) => {
+                setInfoDialog({
+                  title: '로그인 실패',
+                  message: e.message ?? '알 수 없는 에러',
                 });
               }}
-            >
-              <Text className="text-base font-bold text-[#191919]">
-                {kakaoLoginMutation.isPending
-                  ? '로그인 중...'
-                  : '카카오톡으로 로그인하기'}
-              </Text>
-            </TouchableOpacity>
+            />
           </View>
         </View>
       </Modal>

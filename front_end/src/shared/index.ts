@@ -8,6 +8,7 @@ export { DeepLinkButton } from './components/ui/deep-link-button';
 export { IconSymbol } from './components/ui/icon-symbol';
 export { IpoStatusBadge } from './components/ui/ipo-status-badge';
 export { LoginBottomSheet } from './components/ui/login-bottom-sheet';
+export { SocialLoginButtons } from './components/ui/social-login-buttons';
 export { ToastProvider, useToast } from './components/ui/toast';
 export { SectionHeader } from './components/ui/section-header';
 export { WebContainer } from './components/ui/web-container';

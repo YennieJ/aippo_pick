@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useAuthGate, useKakaoLogin, useMe } from '../../src/features/auth';
+import { useAuthGate, useMe } from '../../src/features/auth';
+import { SocialLoginButtons } from '../../src/shared';
 import {
   formatKrw,
   formatPnlText,
@@ -306,7 +307,6 @@ function YearBody({ year, openMonths, onToggleMonth, onEditRecord }: YearBodyPro
 export default function JournalScreen() {
   const { isAuthReady } = useAuthGate();
   const { data: me } = useMe();
-  const kakaoLoginMutation = useKakaoLogin();
   const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
 
   if (!isAuthReady) {
@@ -362,24 +362,9 @@ export default function JournalScreen() {
             onPress={() => setIsLoginModalVisible(false)}
           />
           <View className="rounded-t-[20px] bg-white px-5 pb-10 pt-8 dark:bg-gray-800">
-            <TouchableOpacity
-              className={`items-center rounded-lg bg-[#FEE500] py-3.5 ${kakaoLoginMutation.isPending ? 'opacity-60' : ''}`}
-              activeOpacity={0.8}
-              disabled={kakaoLoginMutation.isPending}
-              onPress={() => {
-                kakaoLoginMutation.mutate(undefined, {
-                  onSuccess: () => {
-                    setIsLoginModalVisible(false);
-                  },
-                });
-              }}
-            >
-              <Text className="text-base font-bold text-[#191919]">
-                {kakaoLoginMutation.isPending
-                  ? '로그인 중...'
-                  : '카카오톡으로 로그인하기'}
-              </Text>
-            </TouchableOpacity>
+            <SocialLoginButtons
+              onSuccess={() => setIsLoginModalVisible(false)}
+            />
           </View>
         </View>
       </Modal>

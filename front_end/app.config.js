@@ -103,6 +103,9 @@ export default ({ config }) => ({
     // 보안 토큰 저장소 (iOS Keychain / Android EncryptedSharedPreferences)
     "expo-secure-store",
 
+    // iOS Sign in with Apple
+    "expo-apple-authentication",
+
     // Firebase
     "@react-native-firebase/app",
     "@react-native-firebase/messaging",
@@ -119,6 +122,15 @@ export default ({ config }) => ({
         kakaoAppKey: "6b4ad4a64e775ae17d3ffbf012e65d84",
         iosAppScheme: "kakao6b4ad4a64e775ae17d3ffbf012e65d84"
       }
+    ],
+
+    // App Tracking Transparency (IDFA 권한 요청 - AdMob 맞춤 광고용)
+    [
+      "expo-tracking-transparency",
+      {
+        userTrackingPermission:
+          "맞춤형 광고 제공을 위해 기기 광고 식별자(IDFA) 접근을 요청합니다.",
+      },
     ],
 
     // Google Mobile Ads (AdMob)

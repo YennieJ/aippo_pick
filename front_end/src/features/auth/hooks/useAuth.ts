@@ -5,6 +5,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import {
   login as kakaoLogin,
   logout as kakaoLogout,
@@ -22,16 +23,32 @@ import {
 } from '../storage/token.storage';
 import { getStableDeviceId } from '../../../shared/utils/device-id.utils';
 import { type AuthUser, SocialLoginResponse } from '../types/auth.types';
+import { formatAppleFullName } from '../utils/apple-auth.utils';
+
+export {
+  formatDisplayEmail,
+  isAppleLoginCancelled,
+  isPrivateRelayEmail,
+} from '../utils/apple-auth.utils';
+
+async function persistSocialLoginSuccess(
+  queryClient: QueryClient,
+  data: SocialLoginResponse,
+): Promise<void> {
+  await setAccessToken(data.accessToken);
+  await AsyncStorage.setItem(
+    AUTH_USER_STORAGE_KEY,
+    JSON.stringify(data.user),
+  );
+  queryClient.setQueryData(['auth', 'me'], data.user);
+}
 
 export function useKakaoLogin() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (): Promise<SocialLoginResponse> => {
-      // 1. 카카오 로그인 → idToken 획득
       const kakaoResult = await kakaoLogin();
-
-      // 2. idToken 원본을 그대로 백엔드로 전달 (서버가 JWKS로 서명 검증)
       const deviceId = await getStableDeviceId();
       return socialLogin({
         provider: 'kakao',
@@ -39,17 +56,41 @@ export function useKakaoLogin() {
         deviceId,
       });
     },
-    onSuccess: async (data) => {
-      // 액세스 토큰은 SecureStore에, 프로필은 AsyncStorage에 저장
-      await setAccessToken(data.accessToken);
-      await AsyncStorage.setItem(
-        AUTH_USER_STORAGE_KEY,
-        JSON.stringify(data.user),
-      );
+    onSuccess: (data) => persistSocialLoginSuccess(queryClient, data),
+  });
+}
 
-      // 로그인 직후 /auth/me 캐시에 즉시 반영 → UI가 바로 업데이트
-      queryClient.setQueryData(['auth', 'me'], data.user);
+export function useAppleLogin() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (): Promise<SocialLoginResponse> => {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      if (!credential.identityToken) {
+        throw new Error('Apple identity token을 받지 못했습니다.');
+      }
+
+      const deviceId = await getStableDeviceId();
+      const nickname = formatAppleFullName(credential.fullName);
+
+      return socialLogin({
+        provider: 'apple',
+        idToken: credential.identityToken,
+        deviceId,
+        ...(nickname ? { nickname } : {}),
+        // 탈퇴 시 Apple 토큰 폐기에 필요 (백엔드가 refresh_token으로 교환·저장)
+        ...(credential.authorizationCode
+          ? { authorizationCode: credential.authorizationCode }
+          : {}),
+      });
     },
+    onSuccess: (data) => persistSocialLoginSuccess(queryClient, data),
   });
 }
 

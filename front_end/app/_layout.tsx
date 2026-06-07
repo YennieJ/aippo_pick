@@ -11,7 +11,12 @@ import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import messaging from '@react-native-firebase/messaging';
-import { TouchableOpacity, View } from 'react-native';
+import {
+  getTrackingPermissionsAsync,
+  PermissionStatus,
+  requestTrackingPermissionsAsync,
+} from 'expo-tracking-transparency';
+import { AppState, Platform, TouchableOpacity, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import mobileAds from 'react-native-google-mobile-ads';
 import '../global.css';
@@ -40,20 +45,59 @@ export default function RootLayout() {
     return unsubscribe;
   }, []);
 
-  // AdMob 초기화 - 광고 요청 전 필수
+  // ATT(App Tracking Transparency) 권한 요청 후 AdMob 초기화
+  // iOS: requestTrackingPermissionsAsync는 init보다 먼저 호출해야 IDFA 기반 맞춤 광고가 동작.
+  //      ATT 팝업은 앱이 active 상태일 때만 표시되므로 active를 보장한 뒤 호출.
   useEffect(() => {
-    mobileAds()
-      .initialize()
-      .then(() => {
+    let cancelled = false;
+
+    const waitUntilActive = () =>
+      new Promise<void>((resolve) => {
+        if (AppState.currentState === 'active') {
+          resolve();
+          return;
+        }
+        const sub = AppState.addEventListener('change', (state) => {
+          if (state === 'active') {
+            sub.remove();
+            resolve();
+          }
+        });
+      });
+
+    const run = async () => {
+      try {
+        // iOS에서만 ATT 요청 (Android는 해당 없음)
+        if (Platform.OS === 'ios') {
+          await waitUntilActive();
+          if (cancelled) return;
+
+          const { status } = await getTrackingPermissionsAsync();
+          // 아직 미결정일 때만 팝업 표시 (이미 응답했으면 시스템이 팝업을 띄우지 않음)
+          if (status === PermissionStatus.UNDETERMINED) {
+            const result = await requestTrackingPermissionsAsync();
+            if (__DEV__) {
+              console.log('[att] tracking status:', result.status);
+            }
+          }
+          if (cancelled) return;
+        }
+
+        await mobileAds().initialize();
         if (__DEV__) {
           console.log('[ads] mobile ads initialized');
         }
-      })
-      .catch((e) => {
+      } catch (e) {
         if (__DEV__) {
-          console.log('[ads] init error', e);
+          console.log('[att/ads] error', e);
         }
-      });
+      }
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (

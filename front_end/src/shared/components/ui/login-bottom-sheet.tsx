@@ -1,11 +1,12 @@
 import React from 'react';
 import { Modal, Text, TouchableOpacity, View } from 'react-native';
-import { useKakaoLogin } from '../../../features/auth';
+
+import { SocialLoginButtons } from './social-login-buttons';
 
 type Props = {
   visible: boolean;
   onClose: () => void;
-  /** 카카오 로그인 버튼 위에 노출되는 안내 문구 */
+  /** 로그인 버튼 위에 노출되는 안내 문구 */
   message?: string;
   /** 로그인 성공 시 호출 (onClose 직후). 사용자가 직접 닫은 경우에는 호출되지 않는다. */
   onLoginSuccess?: () => void;
@@ -17,8 +18,6 @@ export function LoginBottomSheet({
   message,
   onLoginSuccess,
 }: Props) {
-  const kakaoLoginMutation = useKakaoLogin();
-
   return (
     <Modal
       visible={visible}
@@ -38,25 +37,12 @@ export function LoginBottomSheet({
               {message}
             </Text>
           ) : null}
-          <TouchableOpacity
-            className={`items-center rounded-lg bg-[#FEE500] py-3.5 ${kakaoLoginMutation.isPending ? 'opacity-60' : ''}`}
-            activeOpacity={0.8}
-            disabled={kakaoLoginMutation.isPending}
-            onPress={() => {
-              kakaoLoginMutation.mutate(undefined, {
-                onSuccess: () => {
-                  onClose();
-                  onLoginSuccess?.();
-                },
-              });
+          <SocialLoginButtons
+            onSuccess={() => {
+              onClose();
+              onLoginSuccess?.();
             }}
-          >
-            <Text className="text-base font-bold text-[#191919]">
-              {kakaoLoginMutation.isPending
-                ? '로그인 중...'
-                : '카카오톡으로 로그인하기'}
-            </Text>
-          </TouchableOpacity>
+          />
         </View>
       </View>
     </Modal>
