@@ -372,8 +372,14 @@ export default function HomeScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-white dark:bg-black">
-        <ActivityIndicator size="large" color="#666" />
+      <SafeAreaView
+        className="flex-1 items-center justify-center"
+        style={{ backgroundColor: colorScheme === 'dark' ? '#141416' : '#FFFFFF' }}
+      >
+        <ActivityIndicator
+          size="large"
+          color={colorScheme === 'dark' ? '#FFC400' : '#666'}
+        />
       </SafeAreaView>
     );
   }

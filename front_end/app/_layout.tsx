@@ -5,8 +5,9 @@ import {
 } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -20,8 +21,13 @@ import { AppState, Platform, TouchableOpacity, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import mobileAds from 'react-native-google-mobile-ads';
 import '../global.css';
-import { AuthGateProvider } from '../src/features/auth';
-import { IconSymbol, ToastProvider } from '../src/shared';
+import { AuthGateProvider, useAuthGate } from '../src/features/auth';
+import {
+  useAllBrokers,
+  useBrokerRankingRecentYear,
+  useTodayIpo,
+} from '../src/features/ipo/hooks/useIpoQueries';
+import { AnimatedSplash, IconSymbol, ToastProvider } from '../src/shared';
 import { registerQueryClient } from '../src/shared/api/client';
 import { useColorScheme } from '../src/shared/hooks/use-color-scheme';
 
@@ -29,9 +35,53 @@ const queryClient = new QueryClient();
 // axios 인터셉터에서 401 발생 시 React Query 캐시를 정리할 수 있도록 주입
 registerQueryClient(queryClient);
 
+// 네이티브 스플래시를 수동으로 내릴 때까지 유지 (JS 애니메이션 스플래시로 자연스럽게 인계)
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
 export const unstable_settings = {
   anchor: '(tabs)',
 };
+
+// 데이터가 느리거나 실패해도 스플래시가 무한 대기하지 않도록 하는 폴백(ms)
+const SPLASH_MAX_WAIT_MS = 5000;
+
+/**
+ * 스플래시 게이트.
+ * - 인증 부트스트랩(useAuthGate.isAuthReady) + 홈 첫 데이터(오늘의 공모주·증권사 순위·전체 증권사)가
+ *   모두 준비될 때까지 애니메이션 스플래시를 덮어준다.
+ * - 여기서 홈 쿼리를 미리 구독(prefetch)하므로, 스플래시가 사라질 때 홈은 캐시를 재사용 → 추가 로딩 없음.
+ * - 최대 5초 폴백: API가 느리거나 죽어도 스플래시가 멈추지 않게 한다.
+ * AuthGateProvider/QueryClientProvider 내부에서만 동작하므로 별도 컴포넌트로 분리.
+ */
+function SplashOverlay() {
+  const { isAuthReady } = useAuthGate();
+  // 홈과 동일한 queryKey로 미리 로딩 → 캐시 공유
+  const { data: todayIpo } = useTodayIpo();
+  const { data: brokerRanking } = useBrokerRankingRecentYear();
+  const { data: allBrokers } = useAllBrokers();
+
+  const [hidden, setHidden] = useState(false);
+  const [timedOut, setTimedOut] = useState(false);
+
+  // JS 스플래시가 첫 페인트된 뒤 네이티브 스플래시를 내림 → 흰 플래시 방지
+  useEffect(() => {
+    SplashScreen.hideAsync().catch(() => {});
+  }, []);
+
+  // 최대 대기 시간 폴백
+  useEffect(() => {
+    const t = setTimeout(() => setTimedOut(true), SPLASH_MAX_WAIT_MS);
+    return () => clearTimeout(t);
+  }, []);
+
+  const dataReady = !!todayIpo && !!brokerRanking && !!allBrokers;
+  const loading = !isAuthReady || (!dataReady && !timedOut);
+
+  if (hidden) return null;
+  return (
+    <AnimatedSplash loading={loading} onHidden={() => setHidden(true)} />
+  );
+}
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -186,6 +236,7 @@ export default function RootLayout() {
                 </Stack>
                 </View>
                 <StatusBar style="auto" translucent={false} />
+                <SplashOverlay />
               </ToastProvider>
             </ThemeProvider>
           </AuthGateProvider>

@@ -30,6 +30,29 @@ export function useBrokerRanking(startDate: string, endDate: string) {
   });
 }
 
+/**
+ * 홈 화면과 동일한 "최근 1년" 범위로 증권사 순위를 조회.
+ * 홈(app/(tabs)/index.tsx)의 날짜 포맷(YYYY.MM.DD)과 일치 → 같은 queryKey.
+ * 스플래시에서 prefetch하면 홈이 캐시를 그대로 재사용해 추가 로딩이 사라진다.
+ */
+function getRecentYearRange() {
+  const today = new Date();
+  const oneYearAgo = new Date(today);
+  oneYearAgo.setFullYear(today.getFullYear() - 1);
+  const fmt = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}.${month}.${day}`;
+  };
+  return { startDate: fmt(oneYearAgo), endDate: fmt(today) };
+}
+
+export function useBrokerRankingRecentYear() {
+  const { startDate, endDate } = getRecentYearRange();
+  return useBrokerRanking(startDate, endDate);
+}
+
 export function useAllBrokers() {
   return useQuery({
     queryKey: ['ipo', 'broker', 'all'],

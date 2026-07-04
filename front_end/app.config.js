@@ -87,7 +87,7 @@ export default ({ config }) => ({
         imageWidth: 200,
         resizeMode: "contain",
         backgroundColor: "#ffffff",
-        dark: { backgroundColor: "#000000" },
+        dark: { backgroundColor: "#141416" },
       },
     ],
 
