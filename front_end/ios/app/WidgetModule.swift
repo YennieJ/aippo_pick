@@ -11,7 +11,7 @@ class WidgetModule: NSObject {
             reject("UPDATE_ERROR", "Cannot access App Group UserDefaults", nil)
             return
         }
-        for i in 1...3 {
+        for i in 1...6 {
             if let name = data["row\(i)_name"] as? String { defaults.set(name, forKey: "row\(i)_name") }
             if let dday = data["row\(i)_dday"] as? String { defaults.set(dday, forKey: "row\(i)_dday") }
             if let price = data["row\(i)_price"] as? String { defaults.set(price, forKey: "row\(i)_price") }
@@ -31,7 +31,7 @@ class WidgetModule: NSObject {
             return
         }
         var result: [String: String] = [:]
-        for i in 1...3 {
+        for i in 1...6 {
             result["row\(i)_name"] = defaults.string(forKey: "row\(i)_name") ?? ""
             result["row\(i)_dday"] = defaults.string(forKey: "row\(i)_dday") ?? ""
             result["row\(i)_price"] = defaults.string(forKey: "row\(i)_price") ?? ""

@@ -33,7 +33,15 @@ class WidgetUpdateWorker(
             "https://api.aippopick.shop"
         }
         private const val PREFS_NAME = "widget_data"
+        private const val MAX_ROWS = 6
     }
+
+    private data class WidgetRow(
+        val name: String,
+        val dday: String,
+        val price: String,
+        val securities: String
+    )
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         try {
@@ -44,97 +52,31 @@ class WidgetUpdateWorker(
             
             if (ipoData == null) {
                 Log.e(TAG, "공모주 데이터를 가져오지 못함")
-                // 데이터가 없어도 기본 메시지로 업데이트
-                updateWidgetData(
-                    "오늘 공모주가 없습니다", "-", "-", "-",
-                    "데이터 없음", "-", "-", "-",
-                    "데이터 없음", "-", "-", "-"
-                )
+                // 데이터가 없으면 빈 상태로 업데이트
+                updateWidgetData(emptyList())
                 return@withContext Result.success()
             }
 
-            // 데이터 파싱 및 위젯 업데이트
-            if (ipoData.length() > 0) {
-                // 첫 번째 행 데이터
-                val firstItem = ipoData.getJSONObject(0)
-                val row1Name = firstItem.optString("title", "데이터 없음")
-                val status1 = firstItem.optString("status", "")
-                val subRaw1 = firstItem.optString("subscriptiondate", "")
-                val refundDate1 = firstItem.optString("refunddate", "")
-                val listingDate1 = firstItem.optString("listingdate", "")
-
-                Log.d(TAG, "Row1 - 종목: $row1Name, status: $status1")
-
-                val row1Dday = ddayByStatus(status1, subRaw1, refundDate1, listingDate1)
-
-                Log.d(TAG, "Row1 - D-day: $row1Dday")
-                val confirmedPrice = firstItem.optString("confirmedprice", "")
-                val row1Price = if (confirmedPrice.isNotEmpty() && confirmedPrice != "-원") confirmedPrice else "-"
-                val row1Securities = formatSecurities(firstItem.optJSONArray("brokers"))
-
-                // 두 번째 행 데이터 (있는 경우)
-                val row2Name: String
-                val row2Dday: String
-                val row2Price: String
-                val row2Securities: String
-                if (ipoData.length() > 1) {
-                    val secondItem = ipoData.getJSONObject(1)
-                    row2Name = secondItem.optString("title", "데이터 없음")
-                    row2Dday = ddayByStatus(
-                        secondItem.optString("status", ""),
-                        secondItem.optString("subscriptiondate", ""),
-                        secondItem.optString("refunddate", ""),
-                        secondItem.optString("listingdate", "")
-                    )
-                    val confirmedPrice2 = secondItem.optString("confirmedprice", "")
-                    row2Price = if (confirmedPrice2.isNotEmpty() && confirmedPrice2 != "-원") confirmedPrice2 else "-"
-                    row2Securities = formatSecurities(secondItem.optJSONArray("brokers"))
-                } else {
-                    row2Name = "데이터 없음"
-                    row2Dday = "-"
-                    row2Price = "-"
-                    row2Securities = "-"
-                }
-
-                // 세 번째 행 데이터 (있는 경우)
-                val row3Name: String
-                val row3Dday: String
-                val row3Price: String
-                val row3Securities: String
-                if (ipoData.length() > 2) {
-                    val thirdItem = ipoData.getJSONObject(2)
-                    row3Name = thirdItem.optString("title", "데이터 없음")
-                    row3Dday = ddayByStatus(
-                        thirdItem.optString("status", ""),
-                        thirdItem.optString("subscriptiondate", ""),
-                        thirdItem.optString("refunddate", ""),
-                        thirdItem.optString("listingdate", "")
-                    )
-                    val confirmedPrice3 = thirdItem.optString("confirmedprice", "")
-                    row3Price = if (confirmedPrice3.isNotEmpty() && confirmedPrice3 != "-원") confirmedPrice3 else "-"
-                    row3Securities = formatSecurities(thirdItem.optJSONArray("brokers"))
-                } else {
-                    row3Name = "데이터 없음"
-                    row3Dday = "-"
-                    row3Price = "-"
-                    row3Securities = "-"
-                }
-
-                updateWidgetData(
-                    row1Name, row1Dday, row1Price, row1Securities,
-                    row2Name, row2Dday, row2Price, row2Securities,
-                    row3Name, row3Dday, row3Price, row3Securities
+            // 데이터 파싱 (최대 6종목) 및 위젯 업데이트
+            val rows = mutableListOf<WidgetRow>()
+            val count = minOf(ipoData.length(), MAX_ROWS)
+            for (i in 0 until count) {
+                val item = ipoData.getJSONObject(i)
+                val name = item.optString("title", "데이터 없음")
+                val dday = ddayByStatus(
+                    item.optString("status", ""),
+                    item.optString("subscriptiondate", ""),
+                    item.optString("refunddate", ""),
+                    item.optString("listingdate", "")
                 )
-                Log.d(TAG, "위젯 업데이트 완료: $row1Name, $row2Name, $row3Name")
-            } else {
-                // 데이터가 없는 경우
-                updateWidgetData(
-                    "오늘 공모주가 없습니다", "-", "-", "-",
-                    "데이터 없음", "-", "-", "-",
-                    "데이터 없음", "-", "-", "-"
-                )
-                Log.d(TAG, "위젯 업데이트 완료: 데이터 없음")
+                val confirmedPrice = item.optString("confirmedprice", "")
+                val price = if (confirmedPrice.isNotEmpty() && confirmedPrice != "-원") confirmedPrice else "-"
+                val securities = formatSecurities(item.optJSONArray("brokers"))
+                rows.add(WidgetRow(name, dday, price, securities))
             }
+
+            updateWidgetData(rows)
+            Log.d(TAG, "위젯 업데이트 완료: ${rows.size}종목")
 
             Result.success()
         } catch (e: Exception) {
@@ -186,27 +128,26 @@ class WidgetUpdateWorker(
     /**
      * SharedPreferences에 데이터 저장 및 위젯 업데이트
      */
-    private fun updateWidgetData(
-        row1Name: String, row1Dday: String, row1Price: String, row1Securities: String,
-        row2Name: String, row2Dday: String, row2Price: String, row2Securities: String,
-        row3Name: String, row3Dday: String, row3Price: String, row3Securities: String
-    ) {
-        Log.d(TAG, "위젯 데이터 저장 시작: row1=$row1Name, row2=$row2Name, row3=$row3Name")
+    private fun updateWidgetData(rows: List<WidgetRow>) {
+        Log.d(TAG, "위젯 데이터 저장 시작: ${rows.size}종목")
 
         val prefs = applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val editor = prefs.edit()
-        editor.putString("row1_name", row1Name)
-        editor.putString("row1_dday", row1Dday)
-        editor.putString("row1_price", row1Price)
-        editor.putString("row1_securities", row1Securities)
-        editor.putString("row2_name", row2Name)
-        editor.putString("row2_dday", row2Dday)
-        editor.putString("row2_price", row2Price)
-        editor.putString("row2_securities", row2Securities)
-        editor.putString("row3_name", row3Name)
-        editor.putString("row3_dday", row3Dday)
-        editor.putString("row3_price", row3Price)
-        editor.putString("row3_securities", row3Securities)
+        // row1~row6: 데이터가 있으면 저장, 없으면 이전 잔존 데이터 제거
+        for (i in 1..MAX_ROWS) {
+            val r = rows.getOrNull(i - 1)
+            if (r != null) {
+                editor.putString("row${i}_name", r.name)
+                editor.putString("row${i}_dday", r.dday)
+                editor.putString("row${i}_price", r.price)
+                editor.putString("row${i}_securities", r.securities)
+            } else {
+                editor.remove("row${i}_name")
+                editor.remove("row${i}_dday")
+                editor.remove("row${i}_price")
+                editor.remove("row${i}_securities")
+            }
+        }
         val saved = editor.commit() // 동기적으로 저장
 
         Log.d(TAG, "SharedPreferences 저장 완료: $saved")

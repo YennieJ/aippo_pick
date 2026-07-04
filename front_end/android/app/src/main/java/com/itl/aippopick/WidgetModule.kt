@@ -22,23 +22,13 @@ class WidgetModule(reactContext: ReactApplicationContext) : ReactContextBaseJava
             val prefs = context.getSharedPreferences("widget_data", Context.MODE_PRIVATE)
             val editor = prefs.edit()
 
-            // 행 1 데이터
-            data.getString("row1_name")?.let { editor.putString("row1_name", it) }
-            data.getString("row1_dday")?.let { editor.putString("row1_dday", it) }
-            data.getString("row1_price")?.let { editor.putString("row1_price", it) }
-            data.getString("row1_securities")?.let { editor.putString("row1_securities", it) }
-
-            // 행 2 데이터
-            data.getString("row2_name")?.let { editor.putString("row2_name", it) }
-            data.getString("row2_dday")?.let { editor.putString("row2_dday", it) }
-            data.getString("row2_price")?.let { editor.putString("row2_price", it) }
-            data.getString("row2_securities")?.let { editor.putString("row2_securities", it) }
-
-            // 행 3 데이터
-            data.getString("row3_name")?.let { editor.putString("row3_name", it) }
-            data.getString("row3_dday")?.let { editor.putString("row3_dday", it) }
-            data.getString("row3_price")?.let { editor.putString("row3_price", it) }
-            data.getString("row3_securities")?.let { editor.putString("row3_securities", it) }
+            // 행 1~6 데이터 (medium=3, large=6)
+            for (i in 1..6) {
+                data.getString("row${i}_name")?.let { editor.putString("row${i}_name", it) }
+                data.getString("row${i}_dday")?.let { editor.putString("row${i}_dday", it) }
+                data.getString("row${i}_price")?.let { editor.putString("row${i}_price", it) }
+                data.getString("row${i}_securities")?.let { editor.putString("row${i}_securities", it) }
+            }
 
             editor.apply()
 
@@ -63,23 +53,13 @@ class WidgetModule(reactContext: ReactApplicationContext) : ReactContextBaseJava
             val prefs = reactApplicationContext.getSharedPreferences("widget_data", Context.MODE_PRIVATE)
             val result = Arguments.createMap()
 
-            // 행 1 데이터
-            result.putString("row1_name", prefs.getString("row1_name", "") ?: "")
-            result.putString("row1_dday", prefs.getString("row1_dday", "") ?: "")
-            result.putString("row1_price", prefs.getString("row1_price", "") ?: "")
-            result.putString("row1_securities", prefs.getString("row1_securities", "") ?: "")
-
-            // 행 2 데이터
-            result.putString("row2_name", prefs.getString("row2_name", "") ?: "")
-            result.putString("row2_dday", prefs.getString("row2_dday", "") ?: "")
-            result.putString("row2_price", prefs.getString("row2_price", "") ?: "")
-            result.putString("row2_securities", prefs.getString("row2_securities", "") ?: "")
-
-            // 행 3 데이터
-            result.putString("row3_name", prefs.getString("row3_name", "") ?: "")
-            result.putString("row3_dday", prefs.getString("row3_dday", "") ?: "")
-            result.putString("row3_price", prefs.getString("row3_price", "") ?: "")
-            result.putString("row3_securities", prefs.getString("row3_securities", "") ?: "")
+            // 행 1~6 데이터
+            for (i in 1..6) {
+                result.putString("row${i}_name", prefs.getString("row${i}_name", "") ?: "")
+                result.putString("row${i}_dday", prefs.getString("row${i}_dday", "") ?: "")
+                result.putString("row${i}_price", prefs.getString("row${i}_price", "") ?: "")
+                result.putString("row${i}_securities", prefs.getString("row${i}_securities", "") ?: "")
+            }
 
             promise.resolve(result)
         } catch (e: Exception) {

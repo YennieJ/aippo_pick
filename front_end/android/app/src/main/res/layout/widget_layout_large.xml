@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- large : 최대 6종목 카드형 (compact과 동일 id 체계, row1~row6) -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@color/widget_background">
+
+    <TextView
+        android:id="@+id/widget_loading_image"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:text="오늘 공모 일정이 없어요"
+        android:textColor="@color/widget_empty_text"
+        android:textSize="15sp"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/widget_content_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <!-- 제목 (앱 아이콘 + 텍스트) -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_marginEnd="6dp"
+                android:src="@mipmap/ic_launcher"
+                android:contentDescription="@null" />
+            <TextView
+                android:id="@+id/widget_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="오늘의 공모주"
+                android:textSize="17sp"
+                android:textStyle="bold"
+                android:textColor="@color/widget_title_text" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/row1_container"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+            <LinearLayout
+                android:layout_width="match_parent" android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="horizontal" android:gravity="center_vertical"
+                android:paddingHorizontal="2dp">
+                <LinearLayout
+                    android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:orientation="vertical">
+                    <TextView android:id="@+id/row1_name"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:textSize="15sp" android:textStyle="bold"
+                        android:textColor="@color/widget_content_text"
+                        android:maxLines="1" android:ellipsize="end" />
+                    <TextView android:id="@+id/row1_meta"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:textSize="11sp" android:textColor="@color/widget_meta_text"
+                        android:maxLines="1" android:ellipsize="end" />
+                </LinearLayout>
+                <TextView android:id="@+id/row1_badge"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:paddingHorizontal="10dp" android:paddingVertical="4dp"
+                    android:textSize="12sp" android:textStyle="bold"
+                    android:textColor="@color/widget_badge_sub"
+                    android:background="@drawable/widget_badge_sub" />
+            </LinearLayout>
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/row2_container"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+            <View android:layout_width="match_parent" android:layout_height="1dp"
+                android:background="@color/widget_divider" />
+            <LinearLayout
+                android:layout_width="match_parent" android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="horizontal" android:gravity="center_vertical"
+                android:paddingHorizontal="2dp">
+                <LinearLayout
+                    android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:orientation="vertical">
+                    <TextView android:id="@+id/row2_name"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:textSize="15sp" android:textStyle="bold"
+                        android:textColor="@color/widget_content_text"
+                        android:maxLines="1" android:ellipsize="end" />
+                    <TextView android:id="@+id/row2_meta"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:textSize="11sp" android:textColor="@color/widget_meta_text"
+                        android:maxLines="1" android:ellipsize="end" />
+                </LinearLayout>
+                <TextView android:id="@+id/row2_badge"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:paddingHorizontal="10dp" android:paddingVertical="4dp"
+                    android:textSize="12sp" android:textStyle="bold"
+                    android:textColor="@color/widget_badge_sub"
+                    android:background="@drawable/widget_badge_sub" />
+            </LinearLayout>
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/row3_container"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+            <View android:layout_width="match_parent" android:layout_height="1dp"
+                android:background="@color/widget_divider" />
+            <LinearLayout
+                android:layout_width="match_parent" android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="horizontal" android:gravity="center_vertical"
+                android:paddingHorizontal="2dp">
+                <LinearLayout
+                    android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:orientation="vertical">
+                    <TextView android:id="@+id/row3_name"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:textSize="15sp" android:textStyle="bold"
+                        android:textColor="@color/widget_content_text"
+                        android:maxLines="1" android:ellipsize="end" />
+                    <TextView android:id="@+id/row3_meta"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:textSize="11sp" android:textColor="@color/widget_meta_text"
+                        android:maxLines="1" android:ellipsize="end" />
+                </LinearLayout>
+                <TextView android:id="@+id/row3_badge"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:paddingHorizontal="10dp" android:paddingVertical="4dp"
+                    android:textSize="12sp" android:textStyle="bold"
+                    android:textColor="@color/widget_badge_sub"
+                    android:background="@drawable/widget_badge_sub" />
+            </LinearLayout>
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/row4_container"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+            <View android:layout_width="match_parent" android:layout_height="1dp"
+                android:background="@color/widget_divider" />
+            <LinearLayout
+                android:layout_width="match_parent" android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="horizontal" android:gravity="center_vertical"
+                android:paddingHorizontal="2dp">
+                <LinearLayout
+                    android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:orientation="vertical">
+                    <TextView android:id="@+id/row4_name"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:textSize="15sp" android:textStyle="bold"
+                        android:textColor="@color/widget_content_text"
+                        android:maxLines="1" android:ellipsize="end" />
+                    <TextView android:id="@+id/row4_meta"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:textSize="11sp" android:textColor="@color/widget_meta_text"
+                        android:maxLines="1" android:ellipsize="end" />
+                </LinearLayout>
+                <TextView android:id="@+id/row4_badge"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:paddingHorizontal="10dp" android:paddingVertical="4dp"
+                    android:textSize="12sp" android:textStyle="bold"
+                    android:textColor="@color/widget_badge_sub"
+                    android:background="@drawable/widget_badge_sub" />
+            </LinearLayout>
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/row5_container"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+            <View android:layout_width="match_parent" android:layout_height="1dp"
+                android:background="@color/widget_divider" />
+            <LinearLayout
+                android:layout_width="match_parent" android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="horizontal" android:gravity="center_vertical"
+                android:paddingHorizontal="2dp">
+                <LinearLayout
+                    android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:orientation="vertical">
+                    <TextView android:id="@+id/row5_name"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:textSize="15sp" android:textStyle="bold"
+                        android:textColor="@color/widget_content_text"
+                        android:maxLines="1" android:ellipsize="end" />
+                    <TextView android:id="@+id/row5_meta"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:textSize="11sp" android:textColor="@color/widget_meta_text"
+                        android:maxLines="1" android:ellipsize="end" />
+                </LinearLayout>
+                <TextView android:id="@+id/row5_badge"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:paddingHorizontal="10dp" android:paddingVertical="4dp"
+                    android:textSize="12sp" android:textStyle="bold"
+                    android:textColor="@color/widget_badge_sub"
+                    android:background="@drawable/widget_badge_sub" />
+            </LinearLayout>
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/row6_container"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+            <View android:layout_width="match_parent" android:layout_height="1dp"
+                android:background="@color/widget_divider" />
+            <LinearLayout
+                android:layout_width="match_parent" android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="horizontal" android:gravity="center_vertical"
+                android:paddingHorizontal="2dp">
+                <LinearLayout
+                    android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:orientation="vertical">
+                    <TextView android:id="@+id/row6_name"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:textSize="15sp" android:textStyle="bold"
+                        android:textColor="@color/widget_content_text"
+                        android:maxLines="1" android:ellipsize="end" />
+                    <TextView android:id="@+id/row6_meta"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:textSize="11sp" android:textColor="@color/widget_meta_text"
+                        android:maxLines="1" android:ellipsize="end" />
+                </LinearLayout>
+                <TextView android:id="@+id/row6_badge"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:paddingHorizontal="10dp" android:paddingVertical="4dp"
+                    android:textSize="12sp" android:textStyle="bold"
+                    android:textColor="@color/widget_badge_sub"
+                    android:background="@drawable/widget_badge_sub" />
+            </LinearLayout>
+        </LinearLayout>
+
+    </LinearLayout>
+</LinearLayout>

@@ -1,5 +1,5 @@
 <resources>
-  <color name="splashscreen_background">#000000</color>
+  <color name="splashscreen_background">#141416</color>
 
   <!-- Widget colors (Dark Mode) -->
   <color name="widget_background">#1F2937</color>
@@ -8,4 +8,15 @@
   <color name="widget_header_text">#E5E7EB</color>
   <color name="widget_content_text">#F9FAFB</color>
   <color name="widget_empty_text">#6B7280</color>
+
+  <!-- Widget card / meta / divider -->
+  <color name="widget_meta_text">#9CA3AF</color>
+  <color name="widget_divider">#374151</color>
+
+  <!-- Widget D-Day badges (상태별, 아웃라인 스타일: 카드 배경 + 색 테두리/글자) -->
+  <color name="widget_badge_bg">#1F2937</color>
+  <color name="widget_badge_sub">#5B9FFF</color>
+  <color name="widget_badge_refund">#34D399</color>
+  <color name="widget_badge_list">#F87171</color>
+  <color name="widget_badge_none">#9CA3AF</color>
 </resources>

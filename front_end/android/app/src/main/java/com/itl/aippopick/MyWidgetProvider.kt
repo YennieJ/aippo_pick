@@ -5,8 +5,12 @@ import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.content.Intent
-import android.widget.RemoteViews
+import android.os.Build
 import android.util.Log
+import android.util.SizeF
+import android.view.View
+import android.widget.RemoteViews
+import androidx.core.content.ContextCompat
 import androidx.work.Constraints
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
@@ -16,44 +20,99 @@ class MyWidgetProvider : AppWidgetProvider() {
 
     companion object {
         private const val TAG = "MyWidgetProvider"
+        private const val MAX_ROWS = 6
+        private const val PREFS_NAME = "widget_data"
 
-        fun updateAppWidget(
+        // 실제 데이터가 아닌 상태(로딩/없음) 표시용 sentinel
+        private val EMPTY_SENTINELS = setOf(
+            "", "데이터 없음", "데이터 로딩 중...", "잠시만 기다려주세요", "오늘 공모주가 없습니다"
+        )
+
+        private data class Row(
+            val name: String,
+            val dday: String,
+            val price: String,
+            val securities: String
+        )
+
+        // ---- prefs → 실제 종목 행 목록 (최대 6) ----
+        private fun loadRows(context: Context): List<Row> {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val rows = mutableListOf<Row>()
+            for (i in 1..MAX_ROWS) {
+                val name = prefs.getString("row${i}_name", "") ?: ""
+                if (name in EMPTY_SENTINELS) continue
+                rows.add(
+                    Row(
+                        name = name,
+                        dday = prefs.getString("row${i}_dday", "-") ?: "-",
+                        price = prefs.getString("row${i}_price", "-") ?: "-",
+                        securities = prefs.getString("row${i}_securities", "-") ?: "-"
+                    )
+                )
+            }
+            return rows
+        }
+
+        // A안: 공모가 없으면 "공모가 미정"
+        private fun buildMeta(row: Row): String {
+            val priceText = if (row.price.isBlank() || row.price == "-") "공모가 미정" else row.price
+            return if (row.securities.isBlank() || row.securities == "-") priceText
+            else "$priceText · ${row.securities}"
+        }
+
+        private fun statusOf(dday: String): String = dday.trim().substringBefore(" ")
+
+        private fun badgeBgRes(status: String): Int = when (status) {
+            "청약" -> R.drawable.widget_badge_sub
+            "환불" -> R.drawable.widget_badge_refund
+            "상장" -> R.drawable.widget_badge_list
+            else -> R.drawable.widget_badge_none
+        }
+
+        // 아웃라인 스타일: 글자색 = 테두리와 동일한 상태별 hue (달력과 통일)
+        private fun badgeTextColor(context: Context, status: String): Int {
+            val res = when (status) {
+                "청약" -> R.color.widget_badge_sub
+                "환불" -> R.color.widget_badge_refund
+                "상장" -> R.color.widget_badge_list
+                else -> R.color.widget_badge_none
+            }
+            return ContextCompat.getColor(context, res)
+        }
+
+        // row index → view id
+        private fun containerId(i: Int) = when (i) {
+            1 -> R.id.row1_container; 2 -> R.id.row2_container; 3 -> R.id.row3_container
+            4 -> R.id.row4_container; 5 -> R.id.row5_container; else -> R.id.row6_container
+        }
+        private fun nameId(i: Int) = when (i) {
+            1 -> R.id.row1_name; 2 -> R.id.row2_name; 3 -> R.id.row3_name
+            4 -> R.id.row4_name; 5 -> R.id.row5_name; else -> R.id.row6_name
+        }
+        private fun metaId(i: Int) = when (i) {
+            1 -> R.id.row1_meta; 2 -> R.id.row2_meta; 3 -> R.id.row3_meta
+            4 -> R.id.row4_meta; 5 -> R.id.row5_meta; else -> R.id.row6_meta
+        }
+        private fun badgeId(i: Int) = when (i) {
+            1 -> R.id.row1_badge; 2 -> R.id.row2_badge; 3 -> R.id.row3_badge
+            4 -> R.id.row4_badge; 5 -> R.id.row5_badge; else -> R.id.row6_badge
+        }
+
+        /**
+         * 하나의 레이아웃(compact=3행 / large=6행)에 대해 RemoteViews 생성.
+         * maxRows 만큼만 view id를 건드리므로, compact 레이아웃에 large용 id는 참조하지 않음.
+         */
+        private fun buildViews(
             context: Context,
-            appWidgetManager: AppWidgetManager,
+            layoutRes: Int,
+            maxRows: Int,
+            rows: List<Row>,
             appWidgetId: Int
-        ) {
-            val prefs = context.getSharedPreferences("widget_data", Context.MODE_PRIVATE)
+        ): RemoteViews {
+            val views = RemoteViews(context.packageName, layoutRes)
 
-            // 행 1 데이터
-            val row1Name = prefs.getString("row1_name", "") ?: ""
-            val row1Dday = prefs.getString("row1_dday", "") ?: ""
-            val row1Price = prefs.getString("row1_price", "") ?: ""
-            val row1Securities = prefs.getString("row1_securities", "") ?: ""
-
-            // 행 2 데이터
-            val row2Name = prefs.getString("row2_name", "") ?: ""
-            val row2Dday = prefs.getString("row2_dday", "") ?: ""
-            val row2Price = prefs.getString("row2_price", "") ?: ""
-            val row2Securities = prefs.getString("row2_securities", "") ?: ""
-
-            // 행 3 데이터
-            val row3Name = prefs.getString("row3_name", "") ?: ""
-            val row3Dday = prefs.getString("row3_dday", "") ?: ""
-            val row3Price = prefs.getString("row3_price", "") ?: ""
-            val row3Securities = prefs.getString("row3_securities", "") ?: ""
-
-            Log.d(TAG, "위젯 업데이트 - row1_name: $row1Name, row1_dday: $row1Dday")
-
-            val isLoading = row1Name.isEmpty() || 
-                           row1Name == "데이터 없음" || 
-                           row1Name == "데이터 로딩 중..." ||
-                           row1Name == "오늘 공모주가 없습니다"
-            
-            Log.d(TAG, "로딩 상태: $isLoading")
-
-            val views = RemoteViews(context.packageName, R.layout.widget_layout)
-
-            // 위젯 클릭 시 앱 실행
+            // 위젯 클릭 → 앱 실행
             val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
             if (launchIntent != null) {
                 launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
@@ -66,50 +125,59 @@ class MyWidgetProvider : AppWidgetProvider() {
                 views.setOnClickPendingIntent(R.id.widget_root, pendingIntent)
             }
 
-            if (isLoading) {
-                // 로딩 중: 이미지 표시, 테이블 숨김
-                views.setViewVisibility(R.id.widget_loading_image, android.view.View.VISIBLE)
-                views.setViewVisibility(R.id.widget_content_layout, android.view.View.GONE)
+            val visible = rows.take(maxRows)
+
+            if (visible.isEmpty()) {
+                views.setViewVisibility(R.id.widget_loading_image, View.VISIBLE)
+                views.setViewVisibility(R.id.widget_content_layout, View.GONE)
+                return views
+            }
+
+            views.setViewVisibility(R.id.widget_loading_image, View.GONE)
+            views.setViewVisibility(R.id.widget_content_layout, View.VISIBLE)
+
+            for (i in 1..maxRows) {
+                if (i <= visible.size) {
+                    val r = visible[i - 1]
+                    val status = statusOf(r.dday)
+                    views.setViewVisibility(containerId(i), View.VISIBLE)
+                    views.setTextViewText(nameId(i), r.name)
+                    views.setTextViewText(metaId(i), buildMeta(r))
+                    views.setTextViewText(badgeId(i), r.dday)
+                    views.setInt(badgeId(i), "setBackgroundResource", badgeBgRes(status))
+                    views.setTextColor(badgeId(i), badgeTextColor(context, status))
+                } else {
+                    views.setViewVisibility(containerId(i), View.GONE)
+                }
+            }
+            return views
+        }
+
+        fun updateAppWidget(
+            context: Context,
+            appWidgetManager: AppWidgetManager,
+            appWidgetId: Int
+        ) {
+            val rows = loadRows(context)
+            Log.d(TAG, "위젯 업데이트 - 종목 수: ${rows.size}")
+
+            val compact = buildViews(context, R.layout.widget_layout, 3, rows, appWidgetId)
+
+            // API 31+: 위젯 크기에 따라 compact(3) / large(6) 자동 전환
+            val views = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val large = buildViews(context, R.layout.widget_layout_large, MAX_ROWS, rows, appWidgetId)
+                RemoteViews(
+                    mapOf(
+                        SizeF(250f, 110f) to compact,
+                        SizeF(250f, 270f) to large
+                    )
+                )
             } else {
-                // 데이터 로드 완료: 테이블 표시, 이미지 숨김
-                views.setViewVisibility(R.id.widget_loading_image, android.view.View.GONE)
-                views.setViewVisibility(R.id.widget_content_layout, android.view.View.VISIBLE)
-
-                // 행 1 업데이트
-                views.setTextViewText(R.id.row1_name, row1Name)
-                views.setTextViewText(R.id.row1_dday, row1Dday)
-                views.setTextViewText(R.id.row1_price, row1Price)
-                views.setTextViewText(R.id.row1_securities, row1Securities)
-
-                // 행 2 업데이트
-                if (row2Name.isNotEmpty() && row2Name != "데이터 없음") {
-                    views.setTextViewText(R.id.row2_name, row2Name)
-                    views.setTextViewText(R.id.row2_dday, row2Dday)
-                    views.setTextViewText(R.id.row2_price, row2Price)
-                    views.setTextViewText(R.id.row2_securities, row2Securities)
-                } else {
-                    views.setTextViewText(R.id.row2_name, "데이터 없음")
-                    views.setTextViewText(R.id.row2_dday, "-")
-                    views.setTextViewText(R.id.row2_price, "-")
-                    views.setTextViewText(R.id.row2_securities, "-")
-                }
-
-                // 행 3 업데이트
-                if (row3Name.isNotEmpty() && row3Name != "데이터 없음") {
-                    views.setTextViewText(R.id.row3_name, row3Name)
-                    views.setTextViewText(R.id.row3_dday, row3Dday)
-                    views.setTextViewText(R.id.row3_price, row3Price)
-                    views.setTextViewText(R.id.row3_securities, row3Securities)
-                } else {
-                    views.setTextViewText(R.id.row3_name, "데이터 없음")
-                    views.setTextViewText(R.id.row3_dday, "-")
-                    views.setTextViewText(R.id.row3_price, "-")
-                    views.setTextViewText(R.id.row3_securities, "-")
-                }
+                compact
             }
 
             appWidgetManager.updateAppWidget(appWidgetId, views)
-            Log.d(TAG, "Widget updated: $appWidgetId (loading: $isLoading)")
+            Log.d(TAG, "Widget updated: $appWidgetId")
         }
 
         fun updateAllWidgets(
@@ -129,29 +197,13 @@ class MyWidgetProvider : AppWidgetProvider() {
         appWidgetIds: IntArray
     ) {
         // 위젯이 생성될 때 데이터가 없으면 즉시 업데이트 시도
-        val prefs = context.getSharedPreferences("widget_data", Context.MODE_PRIVATE)
-        val hasData = prefs.contains("row1_name") && prefs.getString("row1_name", "")?.isNotEmpty() == true
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val hasData = prefs.contains("row1_name") &&
+            (prefs.getString("row1_name", "") ?: "").let { it.isNotEmpty() && it !in EMPTY_SENTINELS }
 
         if (!hasData) {
-            Log.d(TAG, "위젯 데이터가 없어서 테스트 데이터 설정 및 업데이트 시작")
+            Log.d(TAG, "위젯 데이터가 없어서 업데이트 작업 시작")
 
-            // 테스트 데이터 설정
-            val editor = prefs.edit()
-            editor.putString("row1_name", "데이터 로딩 중...")
-            editor.putString("row1_dday", "-")
-            editor.putString("row1_price", "-")
-            editor.putString("row1_securities", "-")
-            editor.putString("row2_name", "잠시만 기다려주세요")
-            editor.putString("row2_dday", "-")
-            editor.putString("row2_price", "-")
-            editor.putString("row2_securities", "-")
-            editor.putString("row3_name", "데이터 없음")
-            editor.putString("row3_dday", "-")
-            editor.putString("row3_price", "-")
-            editor.putString("row3_securities", "-")
-            editor.apply()
-
-            // 백그라운드에서 실제 데이터 가져오기
             val constraints = Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)
                 .build()

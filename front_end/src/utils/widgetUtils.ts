@@ -8,19 +8,11 @@ import {
 
 const { WidgetModule } = NativeModules;
 
+// 위젯은 최대 6종목(medium=3, large=6)을 표시
+const WIDGET_MAX_ROWS = 6;
+
 interface WidgetTableData {
-  row1_name?: string;
-  row1_dday?: string;
-  row1_price?: string;
-  row1_securities?: string;
-  row2_name?: string;
-  row2_dday?: string;
-  row2_price?: string;
-  row2_securities?: string;
-  row3_name?: string;
-  row3_dday?: string;
-  row3_price?: string;
-  row3_securities?: string;
+  [key: string]: string | undefined;
 }
 
 /**
@@ -106,58 +98,22 @@ export const updateWidgetWithIpoData = async (
   try {
     const dataArray = Array.isArray(ipoData) ? ipoData : [ipoData];
 
-    if (dataArray.length === 0) {
-      return await updateWidget({
-        row1_name: '오늘 공모주가 없습니다',
-        row1_dday: '-',
-        row1_price: '-',
-        row1_securities: '-',
-        row2_name: '데이터 없음',
-        row2_dday: '-',
-        row2_price: '-',
-        row2_securities: '-',
-        row3_name: '데이터 없음',
-        row3_dday: '-',
-        row3_price: '-',
-        row3_securities: '-',
-      });
-    }
-
-    // 첫 번째 행 데이터
-    const firstIpo = dataArray[0];
-    const widgetData: WidgetTableData = {
-      row1_name: firstIpo.company,
-      row1_dday: calculateWidgetDday(firstIpo),
-      row1_price: firstIpo.confirmedprice || '-',
-      row1_securities: formatSecurities(firstIpo.bank),
-    };
-
-    // 두 번째 행 데이터 (있는 경우)
-    if (dataArray.length > 1) {
-      const secondIpo = dataArray[1];
-      widgetData.row2_name = secondIpo.company;
-      widgetData.row2_dday = calculateWidgetDday(secondIpo);
-      widgetData.row2_price = secondIpo.confirmedprice || '-';
-      widgetData.row2_securities = formatSecurities(secondIpo.bank);
-    } else {
-      widgetData.row2_name = '데이터 없음';
-      widgetData.row2_dday = '-';
-      widgetData.row2_price = '-';
-      widgetData.row2_securities = '-';
-    }
-
-    // 세 번째 행 데이터 (있는 경우)
-    if (dataArray.length > 2) {
-      const thirdIpo = dataArray[2];
-      widgetData.row3_name = thirdIpo.company;
-      widgetData.row3_dday = calculateWidgetDday(thirdIpo);
-      widgetData.row3_price = thirdIpo.confirmedprice || '-';
-      widgetData.row3_securities = formatSecurities(thirdIpo.bank);
-    } else {
-      widgetData.row3_name = '데이터 없음';
-      widgetData.row3_dday = '-';
-      widgetData.row3_price = '-';
-      widgetData.row3_securities = '-';
+    // row1~row6 전부 채워서 보냄 (빈 슬롯은 sentinel로 덮어 이전 잔존 데이터 제거)
+    const widgetData: WidgetTableData = {};
+    for (let i = 0; i < WIDGET_MAX_ROWS; i++) {
+      const idx = i + 1;
+      const ipo = dataArray[i];
+      if (ipo) {
+        widgetData[`row${idx}_name`] = ipo.company;
+        widgetData[`row${idx}_dday`] = calculateWidgetDday(ipo);
+        widgetData[`row${idx}_price`] = ipo.confirmedprice || '-';
+        widgetData[`row${idx}_securities`] = formatSecurities(ipo.bank);
+      } else {
+        widgetData[`row${idx}_name`] = '데이터 없음';
+        widgetData[`row${idx}_dday`] = '-';
+        widgetData[`row${idx}_price`] = '-';
+        widgetData[`row${idx}_securities`] = '-';
+      }
     }
 
     return await updateWidget(widgetData);
