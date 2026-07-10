@@ -1007,6 +1007,7 @@ export default function MyPageScreen() {
             <SocialLoginButtons
               onSuccess={() => setIsLoginModalVisible(false)}
               onError={(e) => {
+                setIsLoginModalVisible(false);
                 setInfoDialog({
                   title: '로그인 실패',
                   message: e.message ?? '알 수 없는 에러',
