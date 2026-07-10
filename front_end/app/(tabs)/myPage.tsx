@@ -44,7 +44,9 @@ import {
 
 import {
   convert24To12,
-  NotificationSettingModal,
+  NotificationFilterSheet,
+  NotificationToggleRow,
+  TimePickerSheet,
   useNotificationSetting,
   useUpdateNotificationSetting,
 } from '../../src/features/myPage';
@@ -108,17 +110,25 @@ export default function MyPageScreen() {
   const [notifyAll, setNotifyAll] = useState(false);
   const [notifySpac, setNotifySpac] = useState(true);
   const [notifyReits, setNotifyReits] = useState(true);
-  const [alarmTime, setAlarmTime] = useState('08:00');
   const [selectedBrokers, setSelectedBrokers] = useState<string[]>([]);
 
-  // 🔔 알림 설정 모달 상태
-  const [isNotificationModalVisible, setIsNotificationModalVisible] =
-    useState(false);
-  // 모달 내 임시 상태
-  const [tempNotifySpac, setTempNotifySpac] = useState(true);
-  const [tempNotifyReits, setTempNotifyReits] = useState(true);
-  const [tempAlarmTime, setTempAlarmTime] = useState('08:00');
-  const [tempSelectedBrokers, setTempSelectedBrokers] = useState<string[]>([]);
+  // 🔔 설정 가능한 알람 시각 3종
+  const [morningAlarmTime, setMorningAlarmTime] = useState('08:00');
+  const [aiReportAlarmTime, setAiReportAlarmTime] = useState('08:00');
+  const [weeklyAlarmTime, setWeeklyAlarmTime] = useState('08:00');
+
+  // 🔔 알림 종류별 개별 On/Off (기본값 true)
+  const [notifyMorning, setNotifyMorning] = useState(true);
+  const [notifySubStart, setNotifySubStart] = useState(true);
+  const [notifySubEnd, setNotifySubEnd] = useState(true);
+  const [notifyAiReport, setNotifyAiReport] = useState(true);
+  const [notifyWeekly, setNotifyWeekly] = useState(true);
+
+  // 🔔 포커스드 시트 상태 — 시간 시트는 어느 알림을 편집 중인지 타깃으로 관리
+  const [timeSheetTarget, setTimeSheetTarget] = useState<
+    'morning' | 'aiReport' | 'weekly' | null
+  >(null);
+  const [isFilterSheetVisible, setIsFilterSheetVisible] = useState(false);
 
   // 증권사 목록
   const { data: allBrokers = [] } = useAllBrokers();
@@ -155,8 +165,15 @@ export default function MyPageScreen() {
       notifyAll?: boolean;
       spac?: boolean;
       reits?: boolean;
-      alarmTime?: string;
+      morningAlarmTime?: string;
+      aiReportAlarmTime?: string;
+      weeklyAlarmTime?: string;
       broker?: string;
+      notifyMorning?: boolean;
+      notifySubStart?: boolean;
+      notifySubEnd?: boolean;
+      notifyAiReport?: boolean;
+      notifyWeekly?: boolean;
     }) => {
       const deviceId = await getStableDeviceId();
       const currentSetting = notificationSetting;
@@ -167,81 +184,90 @@ export default function MyPageScreen() {
         broker: updates.broker ?? currentSetting?.broker ?? '',
         spac: updates.spac ?? currentSetting?.spac ?? true,
         reits: updates.reits ?? currentSetting?.reits ?? true,
-        alarmTime: updates.alarmTime ?? currentSetting?.alarmTime ?? '08:00',
+        morningAlarmTime:
+          updates.morningAlarmTime ??
+          currentSetting?.morningAlarmTime ??
+          '08:00',
+        aiReportAlarmTime:
+          updates.aiReportAlarmTime ??
+          currentSetting?.aiReportAlarmTime ??
+          '08:00',
+        weeklyAlarmTime:
+          updates.weeklyAlarmTime ??
+          currentSetting?.weeklyAlarmTime ??
+          '08:00',
+        notifyMorning:
+          updates.notifyMorning ?? currentSetting?.notifyMorning ?? true,
+        notifySubStart:
+          updates.notifySubStart ?? currentSetting?.notifySubStart ?? true,
+        notifySubEnd:
+          updates.notifySubEnd ?? currentSetting?.notifySubEnd ?? true,
+        notifyAiReport:
+          updates.notifyAiReport ?? currentSetting?.notifyAiReport ?? true,
+        notifyWeekly:
+          updates.notifyWeekly ?? currentSetting?.notifyWeekly ?? true,
       };
       await updateNotificationMutation.mutateAsync(requestBody);
     },
     [notificationSetting, updateNotificationMutation],
   );
 
-  // 🔔 모달 열기 (모달이 열릴 때마다 현재 시간을 12시간 형식으로 변환하여 초기화)
-  const openNotificationModal = useCallback(() => {
-    setTempNotifySpac(notifySpac);
-    setTempNotifyReits(notifyReits);
-    setTempAlarmTime(alarmTime);
-    setTempSelectedBrokers([...selectedBrokers]);
-    setIsNotificationModalVisible(true);
-  }, [notifySpac, notifyReits, alarmTime, selectedBrokers]);
-
-  // 🔔 모달 닫기
-  const closeNotificationModal = useCallback(() => {
-    setIsNotificationModalVisible(false);
-  }, []);
-
-  // 🔔 모달 내 증권사 토글
-  const toggleBroker = useCallback((brokerName: string) => {
-    setTempSelectedBrokers((prev) => {
-      if (prev.includes(brokerName)) {
-        return prev.filter((name) => name !== brokerName);
-      } else {
-        return [...prev, brokerName];
-      }
-    });
-  }, []);
-
-  // 🔔 모달 내 전체 선택 리셋
-  const resetToAll = useCallback(() => {
-    setTempSelectedBrokers([]);
-  }, []);
-
-  // 🔔 모달 적용
-  const applyNotificationSettings = useCallback(async () => {
-    const deviceId = await getStableDeviceId();
-    const brokerString =
-      tempSelectedBrokers.length === 0 ? '' : tempSelectedBrokers.join(',');
-
-    const requestBody = {
-      deviceId,
-      notifyAll: notifyAll,
-      broker: brokerString,
-      spac: tempNotifySpac,
-      reits: tempNotifyReits,
-      alarmTime: tempAlarmTime,
-    };
-    try {
-      await updateNotificationMutation.mutateAsync(requestBody);
-
-      setNotifySpac(tempNotifySpac);
-      setNotifyReits(tempNotifyReits);
-      setAlarmTime(tempAlarmTime);
-      setSelectedBrokers([...tempSelectedBrokers]);
-      setIsNotificationModalVisible(false);
-    } catch (err) {
-      console.error('[알림] 상세 설정 적용 → 실패 ❌', err);
-      setInfoDialog({
-        title: '알림 설정 실패',
-        message: '설정 저장에 실패했습니다. 다시 시도해주세요.',
+  // 🔔 통합 필터 시트 "적용" → 종목(포함값)·증권사 한번에 저장
+  const handleApplyFilter = useCallback(
+    async (spac: boolean, reits: boolean, brokers: string[]) => {
+      setNotifySpac(spac);
+      setNotifyReits(reits);
+      setSelectedBrokers(brokers);
+      await handleUpdateNotification({
+        spac,
+        reits,
+        broker: brokers.length === 0 ? '' : brokers.join(','),
       });
-    }
-  }, [
-    tempNotifySpac,
-    tempNotifyReits,
-    tempAlarmTime,
-    tempSelectedBrokers,
-    notifyAll,
-    updateNotificationMutation,
-  ]);
+    },
+    [handleUpdateNotification],
+  );
 
+  // 🔔 시간 시트 "완료" → 편집 중인 타깃 필드에 즉시 저장
+  const handleConfirmTime = useCallback(
+    async (time24: string) => {
+      if (timeSheetTarget === 'morning') {
+        setMorningAlarmTime(time24);
+        await handleUpdateNotification({ morningAlarmTime: time24 });
+      } else if (timeSheetTarget === 'aiReport') {
+        setAiReportAlarmTime(time24);
+        await handleUpdateNotification({ aiReportAlarmTime: time24 });
+      } else if (timeSheetTarget === 'weekly') {
+        setWeeklyAlarmTime(time24);
+        await handleUpdateNotification({ weeklyAlarmTime: time24 });
+      }
+    },
+    [timeSheetTarget, handleUpdateNotification],
+  );
+
+  // 🔔 시간 칩 렌더 (오늘의 공모주 / AI 리포트 / 이번 주 요약 공통)
+  const renderTimeChip = useCallback(
+    (timeValue: string, target: 'morning' | 'aiReport' | 'weekly') => (
+      <TouchableOpacity
+        className="flex-row items-center gap-1 mr-2.5 px-3 py-1.5 rounded-[10px] bg-gray-100 dark:bg-gray-700"
+        activeOpacity={notifyAll ? 0.7 : 1}
+        disabled={!notifyAll}
+        onPress={notifyAll ? () => setTimeSheetTarget(target) : undefined}
+      >
+        <MaterialIcons name="schedule" size={15} color={iconColor} />
+        <Text className="text-[13px] font-bold text-gray-700 dark:text-gray-200">
+          {(() => {
+            const t = convert24To12(timeValue);
+            return `${t.period === 'AM' ? '오전' : '오후'} ${t.hour}:${t.minute
+              .toString()
+              .padStart(2, '0')}`;
+          })()}
+        </Text>
+      </TouchableOpacity>
+    ),
+    [notifyAll, iconColor],
+  );
+
+  // 🔔 증권사 시트 "완료" → 즉시 저장 (빈 배열 = 전체 = '')
   // ⭐⭐⭐ 그 다음이 기존 Hook들 시작 영역
   const [favorites, setFavorites] = useState<string[]>([]);
   const [recentIds, setRecentIds] = useState<string[]>([]);
@@ -353,8 +379,14 @@ export default function MyPageScreen() {
       if (typeof notificationSetting.reits === 'boolean') {
         setNotifyReits(notificationSetting.reits);
       }
-      if (notificationSetting.alarmTime) {
-        setAlarmTime(notificationSetting.alarmTime);
+      if (notificationSetting.morningAlarmTime) {
+        setMorningAlarmTime(notificationSetting.morningAlarmTime);
+      }
+      if (notificationSetting.aiReportAlarmTime) {
+        setAiReportAlarmTime(notificationSetting.aiReportAlarmTime);
+      }
+      if (notificationSetting.weeklyAlarmTime) {
+        setWeeklyAlarmTime(notificationSetting.weeklyAlarmTime);
       }
       if (notificationSetting.broker) {
         setSelectedBrokers(
@@ -362,6 +394,21 @@ export default function MyPageScreen() {
             .split(',')
             .filter((b) => b.trim().length > 0),
         );
+      }
+      if (typeof notificationSetting.notifyMorning === 'boolean') {
+        setNotifyMorning(notificationSetting.notifyMorning);
+      }
+      if (typeof notificationSetting.notifySubStart === 'boolean') {
+        setNotifySubStart(notificationSetting.notifySubStart);
+      }
+      if (typeof notificationSetting.notifySubEnd === 'boolean') {
+        setNotifySubEnd(notificationSetting.notifySubEnd);
+      }
+      if (typeof notificationSetting.notifyAiReport === 'boolean') {
+        setNotifyAiReport(notificationSetting.notifyAiReport);
+      }
+      if (typeof notificationSetting.notifyWeekly === 'boolean') {
+        setNotifyWeekly(notificationSetting.notifyWeekly);
       }
     }
   }, [notificationSetting]);
@@ -547,7 +594,7 @@ export default function MyPageScreen() {
               {/* 전체 알림 */}
               <View className="min-h-[54px] px-4 py-3 flex-row justify-between items-center border-b border-gray-200 dark:border-gray-700">
                 <View className="flex-row items-center flex-1">
-                  <Text className="text-sm text-gray-900 dark:text-white font-medium">
+                  <Text className="text-[15px] text-gray-900 dark:text-white font-bold">
                     전체 알림
                   </Text>
                 </View>
@@ -568,57 +615,105 @@ export default function MyPageScreen() {
                 />
               </View>
 
-              {/* 상세 설정 */}
+              {/* 1·2 청약 이벤트 — 행동 가능·최상단, 시간 고정 */}
+              <NotificationToggleRow
+                title="청약 시작"
+                subtitle="청약일 오전 10:00"
+                value={notifySubStart}
+                disabled={!notifyAll}
+                onValueChange={async (v) => {
+                  setNotifySubStart(v);
+                  await handleUpdateNotification({ notifySubStart: v });
+                }}
+              />
+              <NotificationToggleRow
+                title="청약 마감"
+                subtitle="마감일 오후 3:30"
+                value={notifySubEnd}
+                disabled={!notifyAll}
+                onValueChange={async (v) => {
+                  setNotifySubEnd(v);
+                  await handleUpdateNotification({ notifySubEnd: v });
+                }}
+              />
+              {/* 3 오늘의 공모주 — 평일 브리핑, 시각 지정 */}
+              <NotificationToggleRow
+                title="오늘의 공모주"
+                subtitle="평일 브리핑"
+                value={notifyMorning}
+                disabled={!notifyAll}
+                onValueChange={async (v) => {
+                  setNotifyMorning(v);
+                  await handleUpdateNotification({ notifyMorning: v });
+                }}
+                rightAccessory={renderTimeChip(morningAlarmTime, 'morning')}
+              />
+              {/* 4 AI 리포트 — 매일, 시각 지정 */}
+              <NotificationToggleRow
+                title="AI 리포트 완성"
+                subtitle="매일"
+                value={notifyAiReport}
+                disabled={!notifyAll}
+                onValueChange={async (v) => {
+                  setNotifyAiReport(v);
+                  await handleUpdateNotification({ notifyAiReport: v });
+                }}
+                rightAccessory={renderTimeChip(aiReportAlarmTime, 'aiReport')}
+              />
+              {/* 5 이번 주 요약 — 매주 월요일, 시각 지정 */}
+              <NotificationToggleRow
+                title="이번 주 요약"
+                subtitle="매주 월요일"
+                value={notifyWeekly}
+                disabled={!notifyAll}
+                onValueChange={async (v) => {
+                  setNotifyWeekly(v);
+                  await handleUpdateNotification({ notifyWeekly: v });
+                }}
+                rightAccessory={renderTimeChip(weeklyAlarmTime, 'weekly')}
+              />
+
+              {/* 필터 — 달력과 동일한 통합 바텀시트(조회 종목 제외 + 증권사) */}
               <TouchableOpacity
                 className={`min-h-[54px] px-4 py-3 flex-row justify-between items-center ${
                   !notifyAll ? 'opacity-50' : ''
                 }`}
-                activeOpacity={notifyAll ? 0.8 : 1}
-                onPress={notifyAll ? openNotificationModal : undefined}
+                activeOpacity={notifyAll ? 0.7 : 1}
                 disabled={!notifyAll}
+                onPress={
+                  notifyAll ? () => setIsFilterSheetVisible(true) : undefined
+                }
               >
-                <View className="flex-1">
-                  <Text
-                    className={`text-sm font-medium mb-1 ${
-                      notifyAll
-                        ? 'text-gray-900 dark:text-white'
-                        : 'text-gray-500 dark:text-gray-300'
-                    }`}
-                  >
-                    상세 설정
+                <Text
+                  className={`text-sm font-medium ${
+                    notifyAll
+                      ? 'text-gray-900 dark:text-white'
+                      : 'text-gray-500 dark:text-gray-300'
+                  }`}
+                >
+                  필터
+                </Text>
+                <View className="flex-row items-center gap-1">
+                  <Text className="text-sm text-gray-600 dark:text-gray-400">
+                    {(() => {
+                      const brokerPart =
+                        selectedBrokers.length === 0
+                          ? '전체 증권사'
+                          : `증권사 ${selectedBrokers.length}개`;
+                      const ex: string[] = [];
+                      if (!notifySpac) ex.push('스펙');
+                      if (!notifyReits) ex.push('리츠');
+                      return ex.length
+                        ? `${brokerPart} · ${ex.join('·')} 제외`
+                        : brokerPart;
+                    })()}
                   </Text>
-                  {notifyAll ? (
-                    <View className="flex-row items-center gap-2">
-                      <Text className="text-xs text-gray-600 dark:text-gray-400">
-                        시간:{' '}
-                        {(() => {
-                          const time12 = convert24To12(alarmTime);
-                          return `${time12.period === 'AM' ? '오전' : '오후'} ${time12.hour}:${time12.minute.toString().padStart(2, '0')}`;
-                        })()}
-                      </Text>
-                      <Text className="text-xs text-gray-600 dark:text-gray-400">
-                        •
-                      </Text>
-                      <Text className="text-xs text-gray-600 dark:text-gray-400">
-                        {selectedBrokers.length === 0
-                          ? '증권사: 전체'
-                          : `증권사: ${selectedBrokers.length}개`}
-                      </Text>
-                    </View>
-                  ) : (
-                    <Text className="text-xs text-gray-500 dark:text-gray-300">
-                      전체 알림을 켜야 설정할 수 있습니다
-                    </Text>
-                  )}
-                </View>
-
-                {notifyAll && (
                   <MaterialIcons
                     name="chevron-right"
-                    size={22}
+                    size={20}
                     color={iconColor}
                   />
-                )}
+                </View>
               </TouchableOpacity>
             </View>
           </View>
@@ -923,20 +1018,34 @@ export default function MyPageScreen() {
       </Modal>
 
       {/* 알림 설정 모달 */}
-      <NotificationSettingModal
-        visible={isNotificationModalVisible}
-        onClose={closeNotificationModal}
+      <TimePickerSheet
+        visible={timeSheetTarget !== null}
+        title={
+          timeSheetTarget === 'morning'
+            ? '오늘의 공모주 · 알림 시각'
+            : timeSheetTarget === 'aiReport'
+              ? 'AI 리포트 · 알림 시각'
+              : '이번 주 요약 · 알림 시각'
+        }
+        initialTime={
+          timeSheetTarget === 'aiReport'
+            ? aiReportAlarmTime
+            : timeSheetTarget === 'weekly'
+              ? weeklyAlarmTime
+              : morningAlarmTime
+        }
+        onClose={() => setTimeSheetTarget(null)}
+        onConfirm={handleConfirmTime}
+      />
+
+      <NotificationFilterSheet
+        visible={isFilterSheetVisible}
         allBrokers={allBrokers}
-        tempNotifySpac={tempNotifySpac}
-        tempNotifyReits={tempNotifyReits}
-        tempAlarmTime={tempAlarmTime}
-        tempSelectedBrokers={tempSelectedBrokers}
-        onToggleSpac={() => setTempNotifySpac(!tempNotifySpac)}
-        onToggleReits={() => setTempNotifyReits(!tempNotifyReits)}
-        onAlarmTimeChange={setTempAlarmTime}
-        onToggleBroker={toggleBroker}
-        onResetToAll={resetToAll}
-        onApply={applyNotificationSettings}
+        initialSpac={notifySpac}
+        initialReits={notifyReits}
+        initialBrokers={selectedBrokers}
+        onClose={() => setIsFilterSheetVisible(false)}
+        onApply={handleApplyFilter}
       />
 
       {/* 로그아웃 확인 다이얼로그 */}
