@@ -22,7 +22,6 @@ import {
   useJournalYears,
   type JournalRecordListItem,
 } from '../../src/features/journal';
-import { SectionHeader } from '../../src/shared';
 
 type SheetState =
   | { mode: 'create' }
@@ -81,13 +80,14 @@ function JournalLoggedInBody() {
 
   return (
     <View className="flex-1">
-      <View className="flex-row items-center justify-between px-4 pb-2">
-        <SectionHeader title="공모주 매매일지" />
+      <View className="flex-row items-center justify-between px-4 pt-1 pb-4">
+        <Text className="text-xl font-bold text-gray-900 dark:text-white">
+          공모주 매매일지
+        </Text>
         <TouchableOpacity
           onPress={() => setSheet({ mode: 'create' })}
           activeOpacity={0.85}
           className="flex-row items-center gap-1 rounded-full bg-gray-900 px-3.5 py-2 dark:bg-white"
-          style={{ marginBottom: 16 }}
         >
           <Text className="text-sm font-bold text-white dark:text-gray-900">
             + 기록 추가
