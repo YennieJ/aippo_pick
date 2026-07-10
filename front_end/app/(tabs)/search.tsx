@@ -346,9 +346,12 @@ export default function SearchScreen() {
                 !searchError &&
                 searchResults.length === 0 &&
                 debouncedSearchQuery.length > 0 && (
-                  <View className="items-center justify-center px-4 py-8">
+                  <View className="items-center justify-center px-4 py-8 gap-1">
                     <Text className="text-sm text-gray-600 dark:text-gray-400 text-center">
-                      검색 결과가 없어요.
+                      일치하는 공모주가 없습니다
+                    </Text>
+                    <Text className="text-xs text-gray-400 dark:text-gray-500 text-center">
+                      종목명 또는 종목코드로 다시 검색해 보세요
                     </Text>
                   </View>
                 )}
