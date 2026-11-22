@@ -1,0 +1,55 @@
+# 앱 점검 — PR을 올리거나 main에 합칠 때마다 자동 실행 (비밀값 필요 없음, 무료)
+# 화면·로직을 깨는 변경이 스토어로 나가기 전에 걸러내는 1차 안전망.
+name: 앱 점검
+
+on:
+  pull_request:
+    paths: ['front_end/**', '.github/workflows/**']
+  push:
+    branches: [main]
+    paths: ['front_end/**', '.github/workflows/**']
+  workflow_dispatch:
+
+concurrency:
+  group: app-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: front_end
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: front_end/package-lock.json
+
+      - name: 의존성 설치
+        run: npm ci --no-audit --no-fund
+
+      - name: 타입 검사 (TypeScript)
+        run: npx tsc --noEmit
+
+      - name: 스토어 요건 검사 (Play API 36 / Xcode 26 / 버전 일치)
+        run: node scripts/check-store-requirements.js
+
+      - name: JS 번들 만들기 (Android · iOS)
+        # 앱을 실제로 묶어 보면서 import 누락·문법 오류를 잡는다. 네이티브 빌드는 하지 않음.
+        run: |
+          npx expo export --platform android --output-dir /tmp/export-android
+          npx expo export --platform ios --output-dir /tmp/export-ios
+
+      - name: Expo 설정 점검 (expo-doctor, 참고용)
+        continue-on-error: true
+        run: npx expo-doctor
+
+      - name: 린트 (참고용)
+        # 기존 코드에 린트 오류 4건이 있어 지금은 실패로 막지 않는다. 고친 뒤 continue-on-error 를 지운다.
+        continue-on-error: true
+        run: npx expo lint
