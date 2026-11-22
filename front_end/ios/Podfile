@@ -20,6 +20,9 @@ platform :ios, podfile_properties['ios.deploymentTarget'] || '15.1'
 
 prepare_react_native_project!
 
+# Firebase Analytics: 광고 ID(IDFA) 없이 화면 조회만 기록
+$RNFirebaseAnalyticsWithoutAdIdSupport = true
+
 target 'app' do
   use_expo_modules!
 
@@ -31,6 +34,8 @@ target 'app' do
   pod 'GoogleDataTransport', :modular_headers => true
   pod 'nanopb', :modular_headers => true
   pod 'FirebaseMessaging', :modular_headers => true
+  pod 'FirebaseAnalytics', :modular_headers => true
+  pod 'GoogleAppMeasurement', :modular_headers => true
 
   if ENV['EXPO_USE_COMMUNITY_AUTOLINKING'] == '1'
     config_command = ['node', '-e', "process.argv=['', '', 'config'];require('@react-native-community/cli').run()"];

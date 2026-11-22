@@ -29,6 +29,7 @@ import {
 } from '../src/features/ipo/hooks/useIpoQueries';
 import { AnimatedSplash, IconSymbol, ToastProvider } from '../src/shared';
 import { registerQueryClient } from '../src/shared/api/client';
+import { useScreenTracking } from '../src/shared/analytics/screen-tracking';
 import { useColorScheme } from '../src/shared/hooks/use-color-scheme';
 
 const queryClient = new QueryClient();
@@ -85,6 +86,9 @@ function SplashOverlay() {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+
+  // 화면 조회 기록(Firebase Analytics) — 어느 화면까지 보는지 확인용, 실패해도 앱 동작엔 영향 없음
+  useScreenTracking();
 
   // 포그라운드에서 FCM 메시지 수신 시 알림 표시 (iOS)
   useEffect(() => {
