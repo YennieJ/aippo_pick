@@ -5,7 +5,8 @@
 #   - Actions 탭 > "월간 업데이트" > Run workflow 로 언제든 수동 실행.
 #
 # 어디까지 하나:
-#   - EAS(Expo 클라우드)에서 Android·iOS 빌드 → Google Play "내부 테스트" / iOS "TestFlight" 업로드.
+#   - EAS(Expo 클라우드)에서 Android 빌드 → Google Play "내부 테스트" 업로드. (iOS는 보류 중, 수동 실행 때만)
+#   - EAS 무료 플랜 빌드 한도를 아끼려고 한 달에 한 번만, 버전이 바뀐 달에만 빌드한다.
 #   - 공개 출시(프로덕션 승격, App Store 심사 제출)는 하지 않는다. 테스트해 본 뒤 콘솔에서 직접.
 #
 # 필요한 비밀값: GitHub 저장소 Settings > Secrets > Actions 에 EXPO_TOKEN 하나.
@@ -21,8 +22,8 @@ on:
       platform:
         description: '빌드할 플랫폼'
         type: choice
-        options: [all, android, ios]
-        default: all
+        options: [android, ios, all]
+        default: android
       force:
         description: '같은 버전 태그가 있어도 다시 빌드 (빌드 번호만 올라감)'
         type: boolean
@@ -93,7 +94,8 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
           PLATFORM="${{ inputs.platform }}"
-          PLATFORM="${PLATFORM:-all}"
+          # 자동(매달 1일) 실행은 Android만. iOS는 보류 중(2026-11-22 코린이) — 필요하면 수동 실행에서 ios/all 선택
+          PLATFORM="${PLATFORM:-android}"
           npx --yes eas-cli@latest build \
             --platform "$PLATFORM" \
             --profile production \

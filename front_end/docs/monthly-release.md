@@ -9,7 +9,7 @@
 |---|---|---|
 | 매달 20일쯤 | Claude | "월간 업데이트 vX.Y.Z" PR 생성 (작은 수정 + 버전 올리기). PR마다 **앱 점검** 자동 실행 |
 | PR 점검 통과 후 | 코린이(또는 yennie) | PR 확인하고 merge |
-| 매달 1일 10:00 (KST) | GitHub Actions | **월간 업데이트** 실행: EAS 클라우드 빌드 → Play 내부 테스트 · TestFlight 업로드 |
+| 매달 1일 10:00 (KST) | GitHub Actions | **월간 업데이트** 실행: EAS 클라우드 빌드 → Play 내부 테스트 업로드 (iOS는 보류 중) |
 | 업로드 후 1~2일 | 코린이 | 폰에 테스트 버전 설치 → 아래 "5가지 확인" → 콘솔에서 공개 |
 | 매달 말 | Claude + 코린이 | Firebase Analytics 화면 조회 숫자 보고 다음 달 수정 거리 정하기 |
 
@@ -49,7 +49,7 @@
    - 저장소 주인(yennie) 권한이 필요할 수 있다.
 3. **Play 자동 업로드 키 확인**: expo.dev → 프로젝트(front_end) → Credentials → Android → `com.itl.aippopick` → "Google Service Account Key" 가 있는지 본다.
    없으면: Play Console → 설정 → API 액세스 안내대로 서비스 계정 JSON 키를 만들고(권한: 출시 관리), 그 파일을 여기에 업로드.
-4. **App Store 자동 업로드 키 확인**: expo.dev → Credentials → iOS → "App Store Connect API Key" 가 있는지 본다.
+4. **(iOS 보류 중이라 지금은 건너뜀) App Store 자동 업로드 키 확인**: expo.dev → Credentials → iOS → "App Store Connect API Key" 가 있는지 본다.
    없으면: App Store Connect → 사용자 및 액세스 → 통합 → 키 → 생성(역할: 앱 관리) → `.p8` 내려받기 → 여기에 업로드.
 5. **Firebase Analytics 켜기(무료)**: console.firebase.google.com → 아이뽀픽 프로젝트 → 프로젝트 설정 → 통합 → Google Analytics → 사용 설정.
 6. **스토어 개인정보 표시 고치기(공개 출시 전에)**: 이번 버전부터 화면 조회 기록을 모은다.
