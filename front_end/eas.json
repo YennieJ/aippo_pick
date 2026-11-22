@@ -45,13 +45,21 @@
         // app-bundle은 프로덕션 빌드에서만 사용되므로 개발 빌드에서는 apk로 빌드해야 함
         // "buildType": "apk",
         // "gradleCommand": ":app:assembleRelease"
-      },
-      "ios": {
-        "image": "macos-sequoia-15.4-xcode-16.3"
       }
+      // iOS 빌드 이미지는 고정하지 않는다: Expo SDK 54 기본 이미지가 Xcode 26 이라
+      // App Store Connect 요건(2026-04-28부터 Xcode 26 / iOS 26 SDK)을 만족한다.
     }
   },
   "submit": {
-    "production": {}
+    // 자동 제출은 "테스트 트랙"까지만: 공개(프로덕션 출시·심사 제출)는 사람이 콘솔에서 직접 한다.
+    "production": {
+      "android": {
+        "track": "internal",
+        "releaseStatus": "completed"
+      },
+      "ios": {
+        "ascAppId": "6759453387"
+      }
+    }
   }
 }
