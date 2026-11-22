@@ -1,0 +1,116 @@
+# 월간 업데이트 — 빌드 + "테스트 트랙"까지 자동 제출
+#
+# 언제 돌까:
+#   - 매달 1일 10:00 (KST) 자동. 단, main 의 표시 버전(app.config.js)이 이미 올린 버전이면 건너뜀.
+#   - Actions 탭 > "월간 업데이트" > Run workflow 로 언제든 수동 실행.
+#
+# 어디까지 하나:
+#   - EAS(Expo 클라우드)에서 Android·iOS 빌드 → Google Play "내부 테스트" / iOS "TestFlight" 업로드.
+#   - 공개 출시(프로덕션 승격, App Store 심사 제출)는 하지 않는다. 테스트해 본 뒤 콘솔에서 직접.
+#
+# 필요한 비밀값: GitHub 저장소 Settings > Secrets > Actions 에 EXPO_TOKEN 하나.
+#   (Play 서비스 계정 키·App Store Connect API 키는 expo.dev 프로젝트 Credentials 에 저장)
+#   자세한 순서: front_end/docs/monthly-release.md
+name: 월간 업데이트
+
+on:
+  schedule:
+    - cron: '0 1 1 * *' # UTC 01:00 = KST 10:00, 매달 1일
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: '빌드할 플랫폼'
+        type: choice
+        options: [all, android, ios]
+        default: all
+      force:
+        description: '같은 버전 태그가 있어도 다시 빌드 (빌드 번호만 올라감)'
+        type: boolean
+        default: false
+
+concurrency:
+  group: monthly-release
+  cancel-in-progress: false
+
+permissions:
+  contents: write # 버전 태그(v1.2.3) 남기기
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: front_end
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: front_end/package-lock.json
+
+      - name: 이번 버전 확인
+        id: ver
+        run: |
+          VERSION=$(node scripts/bump-version.js --print)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null && [ "${{ inputs.force }}" != "true" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "### v$VERSION 은 이미 올렸어요. 이번 달 새 버전이 없어 건너뜁니다." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: EXPO_TOKEN 확인
+        if: steps.ver.outputs.skip == 'false'
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::EXPO_TOKEN 비밀값이 없어요. front_end/docs/monthly-release.md 의 '처음 한 번' 순서대로 넣어 주세요."
+            exit 1
+          fi
+
+      - name: 의존성 설치
+        if: steps.ver.outputs.skip == 'false'
+        run: npm ci --no-audit --no-fund
+
+      - name: 점검 (타입·스토어 요건·번들)
+        if: steps.ver.outputs.skip == 'false'
+        run: |
+          npx tsc --noEmit
+          node scripts/check-store-requirements.js
+          npx expo export --platform android --output-dir /tmp/export-android
+          npx expo export --platform ios --output-dir /tmp/export-ios
+
+      - name: EAS 빌드 + 테스트 트랙 제출
+        if: steps.ver.outputs.skip == 'false'
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          PLATFORM="${{ inputs.platform }}"
+          PLATFORM="${PLATFORM:-all}"
+          npx --yes eas-cli@latest build \
+            --platform "$PLATFORM" \
+            --profile production \
+            --non-interactive \
+            --no-wait \
+            --auto-submit
+          {
+            echo "### v${{ steps.ver.outputs.version }} 빌드를 시작했어요 ($PLATFORM)"
+            echo "- 진행 상황: https://expo.dev 의 프로젝트 > Builds / Submissions"
+            echo "- 끝나면 Play Console 내부 테스트 / TestFlight 에서 설치해 확인한 뒤, 공개는 콘솔에서 직접 눌러 주세요."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 버전 태그 남기기
+        if: steps.ver.outputs.skip == 'false'
+        run: |
+          TAG="v${{ steps.ver.outputs.version }}"
+          if ! git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            git tag "$TAG"
+            git push origin "$TAG"
+          fi
