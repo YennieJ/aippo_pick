@@ -84,6 +84,32 @@ git commit -am "chore: bump version to X.Y.Z"
 
 ---
 
+## 4-A. 검증용 APK 만들기 (내부 공유 · Play Store 제출 아님)
+
+풍길이 등 **테스터에게 전달해 먼저 검증**할 때 사용. Play Store 제출용 AAB가 아니라
+**직접 설치 가능한 APK**를 만든다. → `preview` 프로필 사용.
+
+- `preview` 프로필 특성: `buildType: apk`, `distribution: internal`,
+  **실서버(`api.aippopick.shop`) + 실 AdMob ID** 적용 → 프로덕션과 동일 동작으로 검증 가능.
+- `production`(AAB)·`development`(dev client 필요)는 이 용도에 부적합.
+
+```bash
+# 검증용 APK 빌드 (내부 배포)
+eas build --platform android --profile preview
+```
+> EAS 로그인이 필요하므로 사용자가 터미널에서 직접 실행한다.
+> (세션 안에서 실행하려면 프롬프트에 `! eas build --platform android --profile preview` 입력)
+
+빌드 완료 후:
+1. EAS가 출력하는 **다운로드 링크/QR**를 확인한다. (`eas build:list` 로도 재확인 가능)
+2. 그 링크를 풍길이에게 전달 → 안드로이드 기기에서 APK 다운로드·설치.
+3. **본인이 먼저 설치해 핵심 플로우를 검증한 뒤** 전달한다.
+
+> 전달 전 검증 포인트: 앱 실행/스플래시 → 캘린더·홈(증권사 순위) → AI 웹툰 리포트(광고 시청) →
+> 매매일지 → 알림 설정 → 로그인. 실서버 연동이므로 데이터가 정상적으로 뜨는지 확인.
+
+---
+
 ## 4. 배포 요청 시 Claude 진행 순서
 
 1. 이 문서를 읽는다.
