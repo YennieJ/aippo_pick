@@ -1,0 +1,846 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>아이뽀픽 앱스토어 스크린샷 목업</title>
+<style>
+  :root{
+    --bg:#121212; --bg2:#1b1b1d;
+    --yellow:#FFC400; --blue:#3B82F6;
+    --profit:#E5484D; --loss:#1A5CB0;
+    --card:#1F1F1F; --card2:#2a2a2c; --line:#333;
+    --txt:#FFFFFF; --txt2:#A3A3A3;
+    --st-sub:#5B9FFF; --st-refund:#34D399; --st-list:#F87171;
+    --amber:#F59E0B;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased;}
+  body{
+    background:#0a0a0a;
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Segoe UI",Roboto,sans-serif;
+    color:#fff;padding:40px;
+  }
+  .toolbar{position:sticky;top:0;z-index:99;background:#000;padding:14px 18px;border-radius:12px;margin-bottom:28px;font-size:14px;color:#bbb;line-height:1.7}
+  .toolbar b{color:var(--yellow)}
+  .toolbar code{background:#1d1d1d;padding:2px 7px;border-radius:5px;color:#9ecbff}
+  .gallery{display:flex;flex-wrap:wrap;gap:36px;justify-content:center}
+
+  /* App Store canvas: 1290 x 2796 (iPhone 6.9"). Preview-scaled with zoom. */
+  .shot{
+    width:1290px;height:2796px;flex:0 0 auto;
+    zoom:.34; /* 미리보기 축소 — 캡처 시 0.34 → 1 로 바꾸거나 devtools 노드 캡처 */
+    border-radius:54px;overflow:hidden;position:relative;
+    background:radial-gradient(120% 80% at 50% 0%, #232327 0%, var(--bg) 55%, #0c0c0d 100%);
+    display:flex;flex-direction:column;align-items:center;
+  }
+  .copy{padding:150px 110px 0;text-align:center;width:100%}
+  .copy h1{font-size:108px;line-height:1.22;font-weight:800;letter-spacing:-2px}
+  .copy h1 .hl{color:var(--yellow)}
+  .copy p{margin-top:38px;font-size:46px;color:var(--txt2);line-height:1.45;font-weight:500}
+  .badge{display:inline-block;margin-top:40px;background:var(--yellow);color:#111;
+    font-weight:800;font-size:42px;padding:20px 40px;border-radius:999px}
+
+  /* device */
+  .device{margin-top:90px;width:760px;height:1640px;position:relative;
+    border-radius:96px;background:#000;padding:20px;
+    box-shadow:0 60px 120px rgba(0,0,0,.6), 0 0 0 6px #2a2a2c;}
+  .screen{width:100%;height:100%;border-radius:78px;overflow:hidden;
+    background:#000;display:flex;flex-direction:column;position:relative}
+  /* if a real capture exists, it covers the mock */
+  .screen .capture{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:5}
+
+  .statusbar{display:flex;justify-content:space-between;align-items:center;
+    padding:34px 56px 0;font-size:34px;font-weight:700;color:#fff}
+  .statusbar .icons{display:flex;gap:10px;align-items:center;font-size:26px}
+
+  .appbar{padding:30px 44px 24px;display:flex;align-items:center;gap:16px;font-size:38px;font-weight:800}
+  .appbar img{width:56px;height:56px;border-radius:14px}
+
+  .body{flex:1;padding:8px 44px 44px;overflow:hidden}
+  .sectiontitle{font-size:34px;font-weight:800;margin:26px 4px 18px;color:#fff}
+  .muted{color:var(--txt2)}
+
+  .chips{display:flex;gap:14px;flex-wrap:wrap;margin:6px 0 10px}
+  .chip{font-size:30px;padding:14px 26px;border-radius:999px;background:#262628;color:#ddd;border:2px solid transparent}
+  .chip.on{border-color:var(--yellow);color:var(--yellow);font-weight:700}
+
+  .ipo{background:var(--card);border:1px solid var(--line);border-radius:30px;padding:30px 32px;margin-bottom:22px}
+  .ipo .top{display:flex;align-items:center;gap:16px;margin-bottom:16px}
+  .st{font-size:28px;font-weight:800;padding:8px 22px;border-radius:999px;color:#fff}
+  .st.sub{background:var(--st-sub)} .st.refund{background:var(--st-refund);color:#063} .st.list{background:var(--st-list)}
+  .dday{font-size:28px;color:var(--yellow);font-weight:800}
+  .ipo .name{font-size:46px;font-weight:800}
+  .ipo .meta{font-size:32px;color:var(--txt2);margin-top:10px}
+  .ipo .price{font-size:34px;font-weight:700;margin-top:6px}
+
+  /* ranking rows */
+  .rankrow{display:flex;align-items:center;justify-content:space-between;
+    background:var(--card);border:1px solid var(--line);border-radius:26px;padding:28px 32px;margin-bottom:18px}
+  .rankrow .l{display:flex;align-items:center;gap:22px}
+  .rankrow .medal{font-size:46px;width:64px;text-align:center}
+  .rankrow .nm{font-size:40px;font-weight:700}
+  .rankrow .sub{font-size:28px;color:var(--txt2);margin-top:4px}
+  .rankrow .ret{font-size:46px;font-weight:800;color:var(--profit)}
+  .tabbar{display:flex;gap:14px;margin:8px 0 22px}
+  .tab{font-size:30px;padding:14px 28px;border-radius:999px;background:#262628;color:#bbb}
+  .tab.on{background:var(--yellow);color:#111;font-weight:800}
+
+  /* AI report */
+  .ai{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:34px;padding:40px}
+  .bubble{position:relative;background:#fff;color:#111;border-radius:36px;padding:34px 40px;font-size:40px;font-weight:700;max-width:600px;text-align:center;line-height:1.4}
+  .chickrow{display:flex;align-items:center;gap:20px}
+  .chickrow img{width:120px;height:120px}
+  .scorebox{background:var(--card);border:2px solid var(--amber);border-radius:40px;padding:50px 80px;text-align:center;
+    box-shadow:0 0 80px rgba(245,158,11,.35)}
+  .scorebox .lab{font-size:34px;color:var(--txt2)}
+  .scorebox .num{font-size:180px;font-weight:900;color:var(--amber);line-height:1}
+  .scorebox .cmt{font-size:34px;color:var(--amber);font-weight:700;margin-top:8px}
+  .dots{display:flex;gap:14px}.dots i{width:22px;height:22px;border-radius:50%;background:#444}.dots i.on{background:var(--yellow)}
+
+  /* AI webtoon report (cut2 redesign) */
+  .aitabs{display:flex;gap:14px;padding:4px 44px 16px}
+  .aitab{font-size:30px;padding:13px 32px;border-radius:999px;background:#262628;color:#bbb;font-weight:700}
+  .aitab.on{background:var(--yellow);color:#111;font-weight:800}
+  .toon{position:relative;border-radius:28px;overflow:hidden;border:1px solid var(--line);margin-bottom:18px}
+  .toon img{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 0}
+  .toon .cap{position:absolute;left:0;right:0;color:#1a1a1a;font-weight:800;text-align:center;
+    line-height:1.32;display:flex;align-items:center;justify-content:center;padding:0 12%}
+  .toon .fade{position:absolute;left:0;right:0;bottom:0;height:120px;
+    background:linear-gradient(180deg,rgba(31,31,31,0) 0%,var(--bg) 100%)}
+  .toon .more{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);
+    font-size:26px;color:var(--txt2);font-weight:700}
+  /* AI score summary card */
+  .aiscore{display:flex;align-items:center;gap:38px;background:var(--card);border:2px solid var(--amber);
+    border-radius:32px;padding:30px 40px;box-shadow:0 0 70px rgba(245,158,11,.28)}
+  .aiscore .ring{width:188px;height:188px;border-radius:50%;flex:0 0 auto;position:relative;
+    background:conic-gradient(var(--amber) 0 87%, #3a3a3c 87% 100%);
+    display:flex;align-items:center;justify-content:center}
+  .aiscore .ring::before{content:"";position:absolute;inset:18px;border-radius:50%;background:var(--card)}
+  .aiscore .ring b{position:relative;font-size:92px;font-weight:900;color:var(--amber);line-height:1}
+  .aiscore .ring b small{font-size:34px;font-weight:800}
+  .aiscore .sc{flex:1}
+  .aiscore .sc .t{font-size:36px;font-weight:800;color:var(--amber);margin-bottom:12px}
+  .aiscore .sc .row{display:flex;justify-content:space-between;align-items:center;margin:9px 0;font-size:30px}
+  .aiscore .sc .row .lab{color:var(--txt2)}
+  .aiscore .sc .row .star{color:var(--amber);letter-spacing:3px}
+  .aiscore .sc .row .star .off{color:#3a3a3c}
+
+  /* journal */
+  .total{background:var(--card);border:1px solid var(--line);border-radius:30px;padding:36px;text-align:center;margin-bottom:22px}
+  .total .lab{font-size:32px;color:var(--txt2)}
+  .total .v{font-size:78px;font-weight:900;color:var(--profit);margin-top:8px}
+  .mrow{background:var(--card);border:1px solid var(--line);border-radius:26px;padding:28px 32px;margin-bottom:18px}
+  .mrow .h{display:flex;justify-content:space-between;font-size:40px;font-weight:800}
+  .mrow .h .p{color:var(--profit)}
+  .mrow .tx{font-size:30px;color:var(--txt2);margin-top:14px;display:flex;justify-content:space-between}
+  .mrow .tx b{color:var(--profit)}
+
+  /* calendar */
+  .cal{background:var(--card);border:1px solid var(--line);border-radius:30px;padding:32px}
+  .cal .mh{font-size:44px;font-weight:800;text-align:center;margin-bottom:20px}
+  .cal table{width:100%;border-collapse:collapse}
+  .cal td{height:120px;text-align:center;font-size:34px;vertical-align:top;padding-top:14px;color:#ddd;position:relative}
+  .cal td .ev{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);width:18px;height:18px;border-radius:50%}
+  .ev.sub{background:var(--st-sub)} .ev.refund{background:var(--st-refund)} .ev.list{background:var(--st-list)}
+  .cal th{font-size:28px;color:var(--txt2);padding-bottom:12px}
+  .legend{display:flex;gap:28px;justify-content:center;margin-top:22px;font-size:28px;color:var(--txt2)}
+  .legend span{display:flex;align-items:center;gap:10px}.legend i{width:18px;height:18px;border-radius:50%}
+
+  /* lockscreen (cut4 option) */
+  .lock{position:absolute;inset:0;background:linear-gradient(160deg,#1b2735,#0a0f17);display:flex;flex-direction:column;align-items:center;z-index:6}
+  .lock .time{font-size:150px;font-weight:300;margin-top:140px}
+  .lock .date{font-size:40px;color:#cfd6df;margin-top:-10px}
+  .lock .notif{margin-top:90px;width:86%;background:rgba(255,255,255,.16);backdrop-filter:blur(20px);border-radius:36px;padding:34px 38px;display:flex;gap:24px;align-items:flex-start}
+  .lock .notif img{width:80px;height:80px;border-radius:18px}
+  .lock .notif .t{font-size:36px;font-weight:800}
+  .lock .notif .s{font-size:32px;color:#dfe5ec;margin-top:6px;line-height:1.4}
+
+  /* widget (cut6) */
+  .home{position:absolute;inset:0;background:linear-gradient(160deg,#2b3a67,#10162b);z-index:6;padding-top:120px;display:flex;flex-direction:column;align-items:center}
+  .widget{width:78%;background:#1c1c1e;border-radius:44px;padding:40px;box-shadow:0 30px 60px rgba(0,0,0,.4)}
+  .widget .wh{display:flex;align-items:center;gap:16px;font-size:34px;font-weight:800}
+  .widget .wh img{width:52px;height:52px;border-radius:12px}
+  .widget .wn{font-size:54px;font-weight:900;margin:24px 0 12px}
+  .iconrow{display:flex;gap:40px;margin-top:80px}
+  .iconrow .ic{width:120px;height:120px;border-radius:30px;background:#2c2c2e;display:flex;align-items:center;justify-content:center;font-size:30px;color:#888}
+  .iconrow .ic.app{background:var(--yellow);overflow:hidden}.iconrow .ic.app img{width:100%;height:100%}
+
+  /* calendar header + filter (cut1) */
+  .calhead{display:flex;align-items:center;justify-content:space-between;padding:30px 44px 10px}
+  .calhead .ti{font-size:40px;font-weight:800}
+  .calhead .fbtn{width:74px;height:74px;border-radius:18px;background:#262628;display:flex;align-items:center;justify-content:center;font-size:38px;color:var(--blue);border:2px solid var(--blue)}
+  .evtypes{display:flex;gap:12px;padding:0 44px 6px}
+  .evtype{font-size:26px;padding:10px 22px;border-radius:999px;background:#262628}
+  .evtype.s{color:var(--st-sub)} .evtype.r{color:var(--st-refund)} .evtype.l{color:var(--st-list)}
+  /* filter bottom sheet */
+  .sheet{position:absolute;left:0;right:0;bottom:0;z-index:7;background:#1c1c1e;border-radius:48px 48px 0 0;
+    padding:40px 44px 48px;box-shadow:0 -30px 60px rgba(0,0,0,.5)}
+  .sheet .grab{width:120px;height:10px;border-radius:999px;background:#555;margin:0 auto 28px}
+  .sheet .sh{font-size:40px;font-weight:800;margin-bottom:24px}
+  .ckrow{display:flex;align-items:center;justify-content:space-between;padding:26px 6px;border-bottom:1px solid var(--line)}
+  .ckrow .nm{font-size:38px}
+  .ck{width:52px;height:52px;border-radius:12px;border:3px solid #555;display:flex;align-items:center;justify-content:center;font-size:34px;color:#fff}
+  .ck.on{background:var(--blue);border-color:var(--blue)}
+  .applybtn{margin-top:34px;background:var(--blue);color:#fff;font-size:40px;font-weight:800;text-align:center;padding:30px;border-radius:20px}
+  .dim{position:absolute;inset:0;background:rgba(0,0,0,.45);z-index:6}
+  .footnote{position:absolute;bottom:60px;left:0;right:0;text-align:center;font-size:26px;color:#666;padding:0 80px}
+  .mascot{position:absolute;bottom:44px;right:60px;width:150px;z-index:8;opacity:.95}
+  .label{position:absolute;top:20px;left:24px;background:#000;color:var(--yellow);font-size:30px;font-weight:800;padding:8px 20px;border-radius:10px;z-index:9}
+
+  /* ===== 위젯 리디자인 프리뷰 (카드형 3종목, medium) ===== */
+  .wpreview{margin-top:60px;border-top:1px solid #2a2a2c;padding-top:40px}
+  .wpreview h2{font-size:22px;font-weight:800;color:#fff;margin-bottom:6px}
+  .wpreview .desc{font-size:14px;color:#888;margin-bottom:28px;line-height:1.6}
+  .wcompare{display:flex;gap:40px;flex-wrap:wrap;align-items:flex-start}
+  .wcol{display:flex;flex-direction:column;gap:14px}
+  .wcol .tag{font-size:13px;color:#888;font-weight:700}
+  .wcol .tag.bad{color:#F87171}.wcol .tag.good{color:#34D399}
+  /* iOS medium widget: 329x155 비율을 2배로 (658x310) */
+  .mwidget{width:658px;height:310px;border-radius:42px;padding:28px 30px;
+    background:#1c1c1e;box-shadow:0 30px 60px rgba(0,0,0,.5);display:flex;flex-direction:column;
+    font-family:-apple-system,"Apple SD Gothic Neo","Pretendard",sans-serif}
+  /* before: 4열 표 */
+  .mwidget.before .wtitle{font-size:30px;font-weight:800;color:#fff;margin-bottom:14px}
+  .tbl{display:flex;flex-direction:column;flex:1}
+  .tbl .hd,.tbl .tr{display:flex;align-items:center}
+  .tbl .hd{background:rgba(255,255,255,.08);border-radius:8px;padding:10px 12px;
+    font-size:21px;font-weight:700;color:#9a9a9f;margin-bottom:6px}
+  .tbl .tr{padding:8px 12px;font-size:22px;color:#e5e5e7;flex:1}
+  .tbl .c1{flex:2;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  .tbl .c2,.tbl .c3,.tbl .c4{flex:1.5;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  /* after: 카드형 */
+  .mwidget.after .whd{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+  .mwidget.after .whd img{width:38px;height:38px;border-radius:9px}
+  .mwidget.after .whd .t{font-size:28px;font-weight:800;color:#fff}
+  .mwidget.after .whd .sp{flex:1}
+  .mwidget.after .whd .more{font-size:20px;color:#6b6b70;font-weight:700}
+  .wrow{display:flex;align-items:center;gap:14px;flex:1;border-top:1px solid #2c2c2e;padding:0 2px}
+  .wrow:first-of-type{border-top:0}
+  .wrow .info{flex:1;min-width:0}
+  .wrow .info .nm{font-size:28px;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .wrow .info .mt{font-size:20px;color:#8e8e93;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .wbadge{flex:0 0 auto;font-size:22px;font-weight:800;color:#fff;padding:9px 20px;border-radius:999px;min-width:140px;text-align:center}
+  .wbadge.sub{background:#5B9FFF}.wbadge.refund{background:#34D399;color:#06402b}.wbadge.list{background:#F87171}.wbadge.none{background:#3a3a3c;color:#8e8e93}
+  /* large(6개) : medium 높이의 약 2.2배 */
+  .mwidget.large{height:680px}
+  .wrow .info .mt .nop{color:#6b6b70}
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <b>아이뽀픽 앱스토어 스크린샷 목업 · 6컷</b><br>
+  • 미리보기는 <code>zoom:.34</code>로 축소돼 있음. <b>캡처</b>: 크롬 DevTools에서 해당 <code>.shot</code> 노드 우클릭 → "Capture node screenshot" (1290×2796 원본 해상도로 저장됨).<br>
+  • 실제 앱 캡처가 생기면 각 <code>.screen</code> 안 첫 줄에 <code>&lt;img class="capture" src="captures/cut1.png"&gt;</code>를 넣으면 그림 위에 덮어써짐. 없으면 아래 HTML 더미 화면이 그대로 보임.<br>
+  • 폰트는 시스템 기본. Pretendard 깔려있으면 자동 적용.
+</div>
+
+<div class="gallery">
+
+  <!-- ① 캘린더 + 증권사 필터 (실제: 캘린더 화면 우상단 필터 아이콘 → 바텀시트 체크박스) -->
+  <div class="shot">
+    <div class="label">①</div>
+    <div class="copy">
+      <h1><span class="hl">내 증권사</span>로<br>청약 가능한 공모주만</h1>
+      <p>증권사만 골라두면<br>캘린더에 그 종목만 쏙</p>
+    </div>
+    <div class="device"><div class="screen">
+      <!-- <img class="capture" src="captures/cut1.png"> -->
+      <div class="statusbar"><span>9:41</span><span class="icons">●●● 􀙇 100%</span></div>
+      <div class="calhead">
+        <span class="ti">공모주 캘린더</span>
+        <span class="fbtn">􀌈</span>
+      </div>
+      <div class="evtypes"><span class="evtype s">● 청약</span><span class="evtype r">● 환불</span><span class="evtype l">● 상장</span></div>
+      <div class="body" style="padding-top:6px">
+        <div class="cal">
+          <div class="mh">2026년 6월</div>
+          <table>
+            <tr><th>일</th><th>월</th><th>화</th><th>수</th><th>목</th><th>금</th><th>토</th></tr>
+            <tr><td></td><td>1</td><td>2</td><td>3</td><td>4</td><td>5<i class="ev sub"></i></td><td>6</td></tr>
+            <tr><td>7</td><td>8<i class="ev list"></i></td><td>9</td><td>10</td><td>11<i class="ev sub"></i></td><td>12</td><td>13</td></tr>
+            <tr><td>14</td><td>15</td><td>16<i class="ev refund"></i></td><td>17</td><td>18<i class="ev sub"></i></td><td>19</td><td>20</td></tr>
+          </table>
+        </div>
+      </div>
+      <!-- 필터 바텀시트 (열린 상태) -->
+      <div class="dim"></div>
+      <div class="sheet">
+        <div class="grab"></div>
+        <div class="sh">증권사 선택</div>
+        <div class="ckrow"><span class="nm">미래에셋증권</span><span class="ck on">✓</span></div>
+        <div class="ckrow"><span class="nm">키움증권</span><span class="ck on">✓</span></div>
+        <div class="ckrow"><span class="nm">삼성증권</span><span class="ck"></span></div>
+        <div class="ckrow"><span class="nm">NH투자증권</span><span class="ck"></span></div>
+        <div class="ckrow" style="border:0"><span class="nm">한국투자증권</span><span class="ck"></span></div>
+        <div class="applybtn">적용</div>
+      </div>
+    </div></div>
+    <img class="mascot" src="assets/images/android-icon-aippopick.png" alt="">
+  </div>
+
+  <!-- ② AI 웹툰 리포트 -->
+  <div class="shot">
+    <div class="label">②</div>
+    <div class="copy">
+      <h1>AI가 <span class="hl">웹툰</span>으로<br>쉽게 풀어주는 분석</h1>
+      <p>투자포인트·리스크·AI 점수까지</p>
+      <span class="badge">광고 한 번이면 하루 종일 무료</span>
+    </div>
+    <div class="device"><div class="screen">
+      <div class="statusbar"><span>9:41</span><span class="icons">●●● 􀙇 100%</span></div>
+      <div class="appbar">← AI 분석 리포트</div>
+      <div class="aitabs"><span class="aitab on">웹툰</span><span class="aitab">리포트</span></div>
+      <div class="body" style="padding-top:0;overflow:hidden;display:flex;flex-direction:column">
+        <!-- 웹툰 ①장면: 투자매력 포인트 -->
+        <div class="toon" style="height:740px">
+          <img src="assets/images/webtoon/scene2.png" alt="">
+          <div class="cap" style="top:5%;height:23%;font-size:35px">한빛로보틱스, 로봇 AI 분야 1위!<br>투자매력 포인트부터 짚어볼게요</div>
+        </div>
+        <!-- 웹툰 ②장면: 리스크 체크 (이어서 스크롤) -->
+        <div class="toon" style="height:248px">
+          <img src="assets/images/webtoon/scene4.png" alt="">
+          <div class="cap" style="top:13%;height:46%;font-size:33px">하지만 리스크도 꼭 체크하세요 ⚠️</div>
+          <div class="fade"></div>
+          <div class="more">아래로 스크롤 · 6장면</div>
+        </div>
+        <!-- AI 점수 요약 -->
+        <div class="aiscore">
+          <div class="ring"><b>87<small>점</small></b></div>
+          <div class="sc">
+            <div class="t">투자매력 높음</div>
+            <div class="row"><span class="lab">투자수요분석</span><span class="star">★★★★★</span></div>
+            <div class="row"><span class="lab">시장분석</span><span class="star">★★★★<span class="off">★</span></span></div>
+            <div class="row"><span class="lab">가치분석</span><span class="star">★★★★<span class="off">★</span></span></div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+    <img class="mascot" src="assets/images/android-icon-aippopick.png" alt="">
+  </div>
+
+  <!-- ③ 증권사 순위 -->
+  <div class="shot">
+    <div class="label">③</div>
+    <div class="copy">
+      <h1>수익률 높은 증권사,<br><span class="hl">데이터</span>로 비교</h1>
+      <p>평균 수익률·상장 건수 순위 · 최근 1년 기준</p>
+    </div>
+    <div class="device"><div class="screen">
+      <div class="statusbar"><span>9:41</span><span class="icons">●●● 􀙇 100%</span></div>
+      <div class="appbar">증권사별 순위</div>
+      <div class="body">
+        <div class="tabbar"><span class="tab on">평균 수익률</span><span class="tab">최대</span><span class="tab">상장 건수</span></div>
+        <div class="rankrow"><div class="l"><span class="medal">🥇</span><div><div class="nm">미래에셋증권</div><div class="sub">상장 38건</div></div></div><div class="ret">+42.3%</div></div>
+        <div class="rankrow"><div class="l"><span class="medal">🥈</span><div><div class="nm">NH투자증권</div><div class="sub">상장 41건</div></div></div><div class="ret">+38.7%</div></div>
+        <div class="rankrow"><div class="l"><span class="medal">🥉</span><div><div class="nm">한국투자증권</div><div class="sub">상장 36건</div></div></div><div class="ret">+35.1%</div></div>
+        <div class="rankrow"><div class="l"><span class="medal">4</span><div><div class="nm">키움증권</div><div class="sub">상장 44건</div></div></div><div class="ret">+31.9%</div></div>
+        <div class="rankrow"><div class="l"><span class="medal">5</span><div><div class="nm">삼성증권</div><div class="sub">상장 29건</div></div></div><div class="ret">+29.4%</div></div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- ▼ 하단 3컷(④⑤⑥) — 현재 앱 구조 반영 (2026 재구성) -->
+  <style>
+    /* 컷 ④ 알림 설정 */
+    .appbar .add{font-size:30px;color:var(--yellow);font-weight:700}
+    .nset{background:var(--card);border:1px solid var(--line);border-radius:34px;overflow:hidden;margin-top:8px}
+    .nrow{display:flex;justify-content:space-between;align-items:center;padding:28px 34px;border-bottom:1px solid var(--line)}
+    .nrow:last-child{border-bottom:0}
+    .nrow .l{flex:1;min-width:0;padding-right:16px}
+    .nrow .l .t{font-size:40px;font-weight:700;color:#fff;white-space:nowrap}
+    .nrow .l .t.master{font-size:42px;font-weight:800}
+    .nrow .l .s{font-size:27px;color:var(--txt2);margin-top:8px}
+    .nrow .r{display:flex;align-items:center;flex:0 0 auto}
+    .ntg{width:98px;height:56px;border-radius:99px;background:var(--st-sub);position:relative;flex:0 0 auto}
+    .ntg::after{content:"";position:absolute;top:6px;left:48px;width:44px;height:44px;border-radius:50%;background:#fff}
+    .ntchip{display:flex;align-items:center;gap:9px;background:var(--card2);border-radius:16px;padding:12px 20px;margin-right:20px}
+    .ntchip svg{width:30px;height:30px;flex:0 0 auto}
+    .ntchip .tx{font-size:28px;font-weight:700;color:#e6e6e6}
+    .nval{font-size:32px;color:var(--txt2);font-weight:600}
+    .nchev{font-size:40px;color:#666;margin-left:10px}
+    /* 컷 ⑤ 매매일지(연도 → 월 → 종목 3단 아코디언) */
+    .jcard{background:var(--card);border:1px solid var(--line);border-radius:30px;overflow:hidden;margin-bottom:22px}
+    .jyh{display:flex;justify-content:space-between;align-items:center;padding:28px 28px}
+    .jyh .l{display:flex;align-items:center;gap:14px;flex:0 0 auto}
+    .jyh .ar{font-size:30px;color:#777}
+    .jyh .yr{font-size:38px;font-weight:800;color:#fff;white-space:nowrap}
+    .jyh .cnt{font-size:25px;color:var(--txt2);white-space:nowrap}
+    .jyh .r{display:flex;align-items:center;gap:10px;flex:0 0 auto}
+    .jyh .r .lab{font-size:24px;color:var(--txt2);white-space:nowrap}
+    .jyh .r .amt{font-size:34px;font-weight:800;color:var(--profit);white-space:nowrap}
+    .jbody{border-top:1px solid var(--line)}
+    .jmonth{display:flex;justify-content:space-between;align-items:center;padding:26px 34px;border-top:1px solid var(--line)}
+    .jmonth:first-child{border-top:0}
+    .jmonth .l{display:flex;align-items:center;gap:14px}
+    .jmonth .ar{font-size:28px;color:#777}
+    .jmonth .mo{font-size:36px;font-weight:700;color:#fff;white-space:nowrap}
+    .jmonth .cnt{font-size:26px;color:var(--txt2);white-space:nowrap}
+    .jmonth .amt{font-size:34px;font-weight:700;color:var(--profit);white-space:nowrap}
+    .jrec{display:flex;justify-content:space-between;align-items:center;padding:20px 34px 20px 62px;border-top:1px solid #2a2a2c;background:rgba(255,255,255,.03)}
+    .jrec .nm{font-size:31px;font-weight:600;color:#fff;white-space:nowrap}
+    .jrec .amt{font-size:31px;font-weight:700;color:var(--profit);white-space:nowrap}
+    /* 컷 ⑥ 위젯(아웃라인 뱃지) */
+    .swhome{position:absolute;inset:0;background:linear-gradient(160deg,#2b3a67,#10162b);padding-top:150px;display:flex;flex-direction:column;align-items:center}
+    .swidget{width:82%;background:#1c1c1e;border-radius:48px;padding:44px 46px;box-shadow:0 30px 60px rgba(0,0,0,.4)}
+    .swh{display:flex;align-items:center;gap:18px;font-size:36px;font-weight:800;margin-bottom:14px}
+    .swh img{width:56px;height:56px;border-radius:14px}
+    .swrow{display:flex;justify-content:space-between;align-items:center;padding:24px 0;border-bottom:1px solid #2c2c2e}
+    .swrow:last-child{border-bottom:0}
+    .swrow .nm{font-size:36px;font-weight:800;color:#fff}
+    .swrow .mt{font-size:27px;color:#9a9a9a;margin-top:8px}
+    .swbadge{border:3px solid;border-radius:999px;padding:10px 24px;font-size:28px;font-weight:800;background:transparent;flex:0 0 auto}
+    .swbadge.sub{color:var(--st-sub);border-color:var(--st-sub)}
+    .swbadge.refund{color:var(--st-refund);border-color:var(--st-refund)}
+    .swbadge.list{color:var(--st-list);border-color:var(--st-list)}
+    .swiconrow{display:flex;gap:44px;margin-top:90px}
+    .swic{width:130px;height:130px;border-radius:32px;background:#2c2c2e;overflow:hidden}
+    .swic.app{background:var(--yellow)}.swic.app img{width:100%;height:100%}
+  </style>
+
+  <!-- ④ 알림 설정 -->
+  <div class="shot">
+    <div class="label">④</div>
+    <div class="copy">
+      <h1>받고 싶은 <span class="hl">알림</span>만<br>골라서 딱 맞게</h1>
+      <p>종류별 On/Off · 시각 지정 · 스펙/리츠 필터</p>
+    </div>
+    <div class="device"><div class="screen">
+      <div class="statusbar"><span>9:41</span><span class="icons">●●● 100%</span></div>
+      <div class="appbar"><span>알림 설정</span></div>
+      <div class="body">
+        <div class="nset">
+          <div class="nrow"><div class="l"><div class="t master">전체 알림</div></div><div class="r"><div class="ntg"></div></div></div>
+          <div class="nrow"><div class="l"><div class="t">청약 시작</div><div class="s">청약일 오전 10:00</div></div><div class="r"><div class="ntg"></div></div></div>
+          <div class="nrow"><div class="l"><div class="t">청약 마감</div><div class="s">마감일 오후 3:30</div></div><div class="r"><div class="ntg"></div></div></div>
+          <div class="nrow"><div class="l"><div class="t">오늘의 공모주</div><div class="s">평일 브리핑</div></div><div class="r"><span class="ntchip"><svg viewBox="0 0 24 24" fill="none" stroke="#cfcfcf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/></svg><span class="tx">오전 8:00</span></span><div class="ntg"></div></div></div>
+          <div class="nrow"><div class="l"><div class="t">AI 리포트 완성</div><div class="s">매일</div></div><div class="r"><span class="ntchip"><svg viewBox="0 0 24 24" fill="none" stroke="#cfcfcf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/></svg><span class="tx">오전 8:00</span></span><div class="ntg"></div></div></div>
+          <div class="nrow"><div class="l"><div class="t">이번 주 요약</div><div class="s">매주 월요일</div></div><div class="r"><span class="ntchip"><svg viewBox="0 0 24 24" fill="none" stroke="#cfcfcf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/></svg><span class="tx">오전 8:00</span></span><div class="ntg"></div></div></div>
+          <div class="nrow"><div class="l"><div class="t">필터</div></div><div class="r"><span class="nval">전체 증권사</span><span class="nchev">›</span></div></div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- ⑤ 매매일지 (연도별) -->
+  <div class="shot">
+    <div class="label">⑤</div>
+    <div class="copy">
+      <h1>매매를 기록하면<br>손익은 <span class="hl">자동 정산</span></h1>
+      <p>연도·월별 손익을 한눈에</p>
+    </div>
+    <div class="device"><div class="screen">
+      <div class="statusbar"><span>9:41</span><span class="icons">●●● 100%</span></div>
+      <div class="appbar" style="justify-content:space-between"><span>공모주 매매일지</span><span class="add">+ 기록 추가</span></div>
+      <div class="body">
+        <div class="jcard">
+          <div class="jyh"><div class="l"><span class="ar">▼</span><span class="yr">2026년</span><span class="cnt">8종목</span></div><div class="r"><span class="lab">수익금</span><span class="amt">+4,820,000원</span></div></div>
+          <div class="jbody">
+            <div class="jmonth"><div class="l"><span class="ar">▼</span><span class="mo">6월</span><span class="cnt">2종목</span></div><span class="amt">+1,240,000원</span></div>
+            <div class="jrec"><span class="nm">레몬헬스케어</span><span class="amt">+950,000 (+29.7%)</span></div>
+            <div class="jrec"><span class="nm">세종에너지</span><span class="amt">+290,000 (+12.9%)</span></div>
+            <div class="jmonth"><div class="l"><span class="ar">▶</span><span class="mo">5월</span><span class="cnt">3종목</span></div><span class="amt">+2,080,000원</span></div>
+            <div class="jmonth"><div class="l"><span class="ar">▶</span><span class="mo">4월</span><span class="cnt">3종목</span></div><span class="amt">+1,500,000원</span></div>
+          </div>
+        </div>
+        <div class="jcard">
+          <div class="jyh"><div class="l"><span class="ar">▶</span><span class="yr">2025년</span><span class="cnt">5종목</span></div><div class="r"><span class="lab">수익금</span><span class="amt">+2,190,000원</span></div></div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- ⑥ 위젯 (아웃라인 D-Day 뱃지) -->
+  <div class="shot">
+    <div class="label">⑥</div>
+    <div class="copy">
+      <h1>홈 화면 <span class="hl">위젯</span>으로<br>열지 않아도 확인</h1>
+      <p>오늘의 청약·환불·상장을 한눈에</p>
+    </div>
+    <div class="device"><div class="screen">
+      <div class="swhome">
+        <div class="swidget">
+          <div class="swh"><img src="assets/images/android-icon-aippopick.png" alt="">오늘의 공모주</div>
+          <div class="swrow"><div><div class="nm">레몬헬스케어</div><div class="mt">공모가 10,000원 · KB증권</div></div><span class="swbadge list">상장 D-2</span></div>
+          <div class="swrow"><div><div class="nm">세종에너지</div><div class="mt">45,000원 · 미래에셋</div></div><span class="swbadge refund">환불 D-3</span></div>
+          <div class="swrow"><div><div class="nm">한빛로보틱스</div><div class="mt">32,000원 · NH투자</div></div><span class="swbadge sub">청약 D-1</span></div>
+        </div>
+        <div class="swiconrow">
+          <div class="swic"></div><div class="swic"></div>
+          <div class="swic app"><img src="assets/images/android-icon-aippopick.png" alt=""></div>
+          <div class="swic"></div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+</div>
+
+<!-- ===== 위젯 리디자인 프리뷰 (확인용 / 캡처 대상 아님) ===== -->
+<div class="wpreview">
+  <h2>위젯 리디자인 프리뷰 — medium / 3종목 카드형</h2>
+  <div class="desc">
+    4개 데이터(종목명·D-Day·공모가·증권사) 전부 유지. 4열 표 → 좌2단(종목명+보조라인) + 우측 D-Day 컬러 뱃지 구조로만 변경.<br>
+    아래 좌/우를 비교하세요. (실제 위젯 329×155pt 비율을 2배 스케일로 렌더)
+  </div>
+
+  <div class="wcompare">
+
+    <!-- BEFORE: 현재 4열 표 -->
+    <div class="wcol">
+      <span class="tag bad">BEFORE · 4열 표 (현재)</span>
+      <div class="mwidget before">
+        <div class="wtitle">오늘의 공모주</div>
+        <div class="tbl">
+          <div class="hd"><span class="c1">종목명</span><span class="c2">D-Day</span><span class="c3">공모가</span><span class="c4">증권사</span></div>
+          <div class="tr"><span class="c1">한빛로보틱스</span><span class="c2">청약 D-1</span><span class="c3">32,000원</span><span class="c4">NH투자증…</span></div>
+          <div class="tr"><span class="c1">세종에너지</span><span class="c2">환불 D-3</span><span class="c3">45,000원</span><span class="c4">미래에셋…</span></div>
+          <div class="tr"><span class="c1">대성그린에너지</span><span class="c2">상장 D-5</span><span class="c3">18,000원</span><span class="c4">한국투자…</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AFTER: 카드형 -->
+    <div class="wcol">
+      <span class="tag good">AFTER · 카드형 (제안)</span>
+      <div class="mwidget after">
+        <div class="whd">
+          <img src="assets/images/android-icon-aippopick.png" alt="">
+          <span class="t">오늘의 공모주</span>
+          <span class="sp"></span>
+          <span class="more">3건</span>
+        </div>
+        <div class="wrow">
+          <div class="info">
+            <div class="nm">한빛로보틱스</div>
+            <div class="mt">32,000원 · NH투자증권</div>
+          </div>
+          <span class="wbadge sub">청약 D-1</span>
+        </div>
+        <div class="wrow">
+          <div class="info">
+            <div class="nm">세종에너지</div>
+            <div class="mt">45,000원 · 미래에셋증권</div>
+          </div>
+          <span class="wbadge refund">환불 D-3</span>
+        </div>
+        <div class="wrow">
+          <div class="info">
+            <div class="nm">대성그린에너지</div>
+            <div class="mt">18,000원 · 한국투자증권</div>
+          </div>
+          <span class="wbadge list">상장 D-5</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- large(6개) -->
+  <h2 style="margin-top:50px">large 사이즈 — 6종목</h2>
+  <div class="desc">supportedFamilies에 <code style="background:#1d1d1d;padding:2px 6px;border-radius:4px;color:#9ecbff">.systemLarge</code> 추가 시. 사용자가 위젯 추가할 때 medium(3) / large(6) 선택.</div>
+  <div class="wcompare">
+    <div class="wcol">
+      <span class="tag good">AFTER · large 카드형 (6종목)</span>
+      <div class="mwidget after large">
+        <div class="whd">
+          <img src="assets/images/android-icon-aippopick.png" alt="">
+          <span class="t">오늘의 공모주</span>
+          <span class="sp"></span>
+          <span class="more">6건</span>
+        </div>
+        <div class="wrow"><div class="info"><div class="nm">한빛로보틱스</div><div class="mt">32,000원 · NH투자증권</div></div><span class="wbadge sub">청약 D-1</span></div>
+        <div class="wrow"><div class="info"><div class="nm">세종에너지</div><div class="mt">45,000원 · 미래에셋증권</div></div><span class="wbadge refund">환불 D-3</span></div>
+        <div class="wrow"><div class="info"><div class="nm">대성그린에너지</div><div class="mt">18,000원 · 한국투자증권</div></div><span class="wbadge list">상장 D-5</span></div>
+        <div class="wrow"><div class="info"><div class="nm">미래반도체</div><div class="mt">28,500원 · 키움증권</div></div><span class="wbadge sub">청약 D-7</span></div>
+        <div class="wrow"><div class="info"><div class="nm">엔바이오</div><div class="mt">12,000원 · 삼성증권</div></div><span class="wbadge sub">청약 D-9</span></div>
+        <div class="wrow"><div class="info"><div class="nm">케이팜스</div><div class="mt">9,800원 · 신한투자증권</div></div><span class="wbadge refund">환불 D-12</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 가격 없는 경우 -->
+  <h2 style="margin-top:50px">공모가가 없는 경우 (확정 전 / "-원")</h2>
+  <div class="desc">
+    청약 전이라 공모가가 아직 안 정해진 종목은 보조라인 처리 방식이 3가지. 원하는 안을 고르세요.
+  </div>
+  <div class="wcompare">
+
+    <div class="wcol">
+      <span class="tag">A안 · "미정" 표기 (추천)</span>
+      <div class="mwidget after" style="height:auto">
+        <div class="wrow"><div class="info"><div class="nm">한빛로보틱스</div><div class="mt"><span class="nop">공모가 미정</span> · NH투자증권</div></div><span class="wbadge sub">청약 D-1</span></div>
+        <div class="wrow"><div class="info"><div class="nm">세종에너지</div><div class="mt">45,000원 · 미래에셋증권</div></div><span class="wbadge refund">환불 D-3</span></div>
+      </div>
+    </div>
+
+    <div class="wcol">
+      <span class="tag">B안 · 증권사만 표기</span>
+      <div class="mwidget after" style="height:auto">
+        <div class="wrow"><div class="info"><div class="nm">한빛로보틱스</div><div class="mt">NH투자증권</div></div><span class="wbadge sub">청약 D-1</span></div>
+        <div class="wrow"><div class="info"><div class="nm">세종에너지</div><div class="mt">45,000원 · 미래에셋증권</div></div><span class="wbadge refund">환불 D-3</span></div>
+      </div>
+    </div>
+
+    <div class="wcol">
+      <span class="tag">C안 · "-" 그대로 (현재 로직)</span>
+      <div class="mwidget after" style="height:auto">
+        <div class="wrow"><div class="info"><div class="nm">한빛로보틱스</div><div class="mt"><span class="nop">-</span> · NH투자증권</div></div><span class="wbadge sub">청약 D-1</span></div>
+        <div class="wrow"><div class="info"><div class="nm">세종에너지</div><div class="mt">45,000원 · 미래에셋증권</div></div><span class="wbadge refund">환불 D-3</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== 로딩(스플래시) 화면 리디자인 — 베스트 3 (확인용) ===== -->
+<style>
+  .splashsec{margin-top:80px}
+  .splashsec h2{font-size:26px;margin-bottom:6px}
+  .splashsec .lead{color:var(--txt2);font-size:15px;margin-bottom:30px;line-height:1.6}
+  .splashrow{display:flex;gap:48px;flex-wrap:wrap;justify-content:center;align-items:flex-start}
+  .scol{width:320px}
+  .scol .label{display:block;text-align:center;font-weight:800;font-size:18px;margin-bottom:6px}
+  .scol .why{text-align:center;color:var(--txt2);font-size:13px;line-height:1.55;margin-top:18px;min-height:60px}
+  .scol .why b{color:var(--yellow)}
+  /* phone frame */
+  .phone{width:320px;height:680px;border-radius:54px;background:#000;padding:12px;
+    box-shadow:0 30px 70px rgba(0,0,0,.55),0 0 0 4px #2a2a2c;position:relative}
+  .pscreen{width:100%;height:100%;border-radius:44px;overflow:hidden;position:relative;
+    display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .pscreen .pbar{position:absolute;top:18px;left:0;right:0;display:flex;justify-content:space-between;
+    padding:0 34px;font-size:15px;font-weight:700;color:#fff;opacity:.85}
+  .logoimg{width:108px;height:108px;border-radius:28px;box-shadow:0 14px 36px rgba(0,0,0,.4)}
+  .brand{font-size:30px;font-weight:900;letter-spacing:-.5px;color:#fff}
+  .tagline{font-size:15px;color:var(--txt2);font-weight:600}
+
+  /* spinner */
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spinner{width:34px;height:34px;border-radius:50%;border:4px solid rgba(255,255,255,.16);
+    border-top-color:var(--yellow);animation:spin .9s linear infinite}
+  /* progress bar */
+  @keyframes load{0%{width:8%}70%{width:82%}100%{width:96%}}
+  .prog{width:62%;height:7px;border-radius:99px;background:rgba(255,255,255,.14);overflow:hidden}
+  .prog i{display:block;height:100%;border-radius:99px;background:var(--yellow);
+    width:60%;animation:load 2.2s ease-in-out infinite alternate}
+  .cap{font-size:14px;color:var(--txt2);font-weight:600}
+
+  /* B안 — 인사이트 로테이션 */
+  .splashB{background:radial-gradient(120% 80% at 50% 16%,#2a2620 0%,#16140f 55%,#0b0a07 100%);gap:26px}
+  .tipcard{width:78%;background:#fff;color:#15171c;border-radius:26px;padding:26px 24px;text-align:center;
+    box-shadow:0 22px 50px rgba(0,0,0,.4);position:relative}
+  .tipcard .k{font-size:13px;font-weight:800;color:#F59E0B;letter-spacing:1px}
+  .tipcard .t{font-size:19px;font-weight:800;line-height:1.45;margin-top:10px}
+  .dotsB{display:flex;gap:9px}.dotsB i{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.22)}
+  .dotsB i.on{background:var(--yellow);width:24px;border-radius:99px}
+
+  /* C안 — 마스코트 + 일정 컬러 (중립 다크) */
+  .splashC{background:radial-gradient(120% 80% at 50% 18%,#202024 0%,#141416 55%,#0b0b0d 100%);gap:26px}
+  /* 말풍선은 고정, 마스코트만 바운스 (간격을 넉넉히 줘 겹침 방지) */
+  @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+  .mascotwrap{position:relative;display:flex;flex-direction:column;align-items:center;gap:30px}
+  .mascotwrap .logoimg{animation:bounce 1.6s ease-in-out infinite}
+  .bubbleC{background:#fff;color:#15171c;font-weight:800;font-size:16px;padding:14px 22px;border-radius:22px}
+  @keyframes pulse{0%,100%{transform:scale(.7);opacity:.4}50%{transform:scale(1);opacity:1}}
+  .caldots{display:flex;gap:16px}
+  .caldots i{width:16px;height:16px;border-radius:50%;animation:pulse 1.2s ease-in-out infinite}
+  .caldots i.s{background:var(--st-sub)} .caldots i.r{background:var(--st-refund);animation-delay:.2s} .caldots i.l{background:var(--st-list);animation-delay:.4s}
+</style>
+
+<div class="splashsec">
+  <h2>로딩(스플래시) 화면 리디자인 — <span style="color:var(--yellow)">후보안</span></h2>
+  <div class="lead">
+    핵심 = "오늘의 공모주 일정". 단순 로고 노출 대신 로딩 시간을 활용하는 방향.<br>
+    (※ 실데이터가 필요한 'A·오늘 일정 미리보기'안은 콜드스타트 때 카운트가 없어 제외. 아래 두 안은 <b style="color:#fff">데이터 없이도</b> 동작.)
+  </div>
+
+  <div class="splashrow">
+
+    <!-- B안: 인사이트 로테이션 -->
+    <div class="scol">
+      <span class="label">B · 공모주 팁 로테이션</span>
+      <div class="phone"><div class="pscreen splashB">
+        <div class="pbar"><span>9:41</span><span>●●● 􀙇 100%</span></div>
+        <img class="logoimg" src="assets/images/android-icon-aippopick.png" alt="">
+        <div class="tipcard">
+          <div class="k">💡 오늘의 공모주 팁</div>
+          <div class="t">환불일은 보통 청약 마감<br>2영업일 뒤에 들어와요.</div>
+        </div>
+        <div class="dotsB"><i></i><i class="on"></i><i></i><i></i></div>
+        <div class="spinner"></div>
+        <div class="cap">잠시만요, 거의 다 됐어요</div>
+      </div></div>
+      <div class="why">대기 시간을 <b>교육 콘텐츠</b>로 전환. 팁이 매번 바뀌어 체감 대기↓, 재방문마다 새로운 인상.</div>
+    </div>
+
+    <!-- C안: 마스코트 -->
+    <div class="scol">
+      <span class="label">C · 마스코트 + 일정 컬러</span>
+      <div class="phone"><div class="pscreen splashC">
+        <div class="pbar"><span>9:41</span><span>●●● 􀙇 100%</span></div>
+        <div class="mascotwrap">
+          <div class="bubbleC">곧 시작해요!</div>
+          <img class="logoimg" src="assets/images/android-icon-aippopick.png" alt="">
+        </div>
+        <div class="brand">아이뽀픽</div>
+        <div class="tagline">공모주, 놓치지 마세요</div>
+        <div class="caldots"><i class="s"></i><i class="r"></i><i class="l"></i></div>
+      </div></div>
+      <div class="why"><b>말풍선 고정 + 마스코트만 바운스</b>(간격 넉넉히 줘 겹침 없음) + 청약·환불·상장 3색 점 깜빡임. 중립 다크 배경으로 로고·컬러를 강조.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== 알림 설정 리디자인 — 평면·역할순 최종안 + 설정 흐름 (확인용) ===== -->
+<style>
+  .nssec{margin-top:80px}
+  .nssec h2{font-size:26px;margin-bottom:6px}
+  .nssec .lead{color:var(--txt2);font-size:15px;margin-bottom:30px;line-height:1.6}
+  .nssec .lead b{color:#fff}
+  .nsrow{display:flex;gap:44px;flex-wrap:wrap;justify-content:center;align-items:flex-start}
+  .nscol{width:344px}
+  .nscol .label{display:block;text-align:center;font-weight:800;font-size:18px;margin-bottom:4px}
+  .nscol .cap{text-align:center;color:var(--txt2);font-size:12.5px;margin-top:14px;line-height:1.55}
+  .nscol .cap b{color:#fff}
+  .nsphone{width:344px;height:718px;border-radius:48px;background:#000;padding:11px;
+    box-shadow:0 30px 70px rgba(0,0,0,.55),0 0 0 4px #2a2a2c}
+  .nsscreen{width:100%;height:100%;border-radius:38px;overflow:hidden;background:#F2F3F5;position:relative;display:flex;flex-direction:column}
+  .nsbar{display:flex;justify-content:space-between;align-items:center;padding:14px 24px 4px;font-size:13px;font-weight:700;color:#111}
+  .nsbody{flex:1;overflow:hidden;padding:2px 15px 14px}
+  .nstitle{font-size:24px;font-weight:800;color:#111;margin:8px 4px 14px}
+  .nscard{background:#fff;border-radius:14px;border:1px solid #ECECEE;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.04);margin-bottom:14px}
+  .nsitem{display:flex;align-items:center;justify-content:space-between;padding:13px 15px;border-bottom:1px solid #F1F1F3}
+  .nsitem:last-child{border-bottom:0}
+  .nsitem .l{flex:1;min-width:0;padding-right:8px}
+  .nsitem .tt{font-size:15px;font-weight:600;color:#111}
+  .nsitem .sub{font-size:12px;color:#8E8E93;margin-top:2px}
+  .nshero .tt{font-size:16px;font-weight:800}
+  .tg{width:44px;height:26px;border-radius:99px;background:#E5E7EB;position:relative;flex:0 0 auto}
+  .tg::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+  .tg.on{background:#5B9FFF}.tg.on::after{left:21px}
+  .timechip{display:flex;align-items:center;gap:3px;font-size:12.5px;font-weight:700;color:#2b6fd6;background:#EEF5FF;border:1px solid #D6E6FF;border-radius:99px;padding:4px 10px;margin-right:9px;flex:0 0 auto}
+  .timechip .cv{font-size:9px;margin-top:1px}
+  .val{display:flex;align-items:center;gap:3px;color:#8E8E93;font-size:13.5px;font-weight:600;flex:0 0 auto}
+  .val .c{color:#C4C4C6;font-size:18px;font-weight:700}
+  .schip{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:600;padding:5px 11px;border-radius:99px;border:1.5px solid #ddd;color:#777;background:#fff}
+  .schip.on{border-color:#4A90E2;background:#4A90E2;color:#fff}
+  .schips{display:flex;gap:7px;flex:0 0 auto}
+  .dim{position:absolute;inset:0;background:rgba(0,0,0,.45);z-index:5}
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:22px 22px 0 0;z-index:6;padding-bottom:14px}
+  .shead{display:flex;justify-content:space-between;align-items:center;padding:16px 16px 8px}
+  .shead .t{font-size:17px;font-weight:800;color:#111}
+  .shead .x{color:#B0B0B4;font-size:20px;font-weight:700}
+  .done{margin:10px 16px 4px;padding:13px;background:#4A90E2;border-radius:12px;text-align:center;color:#fff;font-weight:800;font-size:15px}
+  .shint{font-size:12px;color:#8E8E93;padding:0 18px 4px}
+  .wheel{position:relative;display:flex;justify-content:center;gap:2px;height:150px;align-items:center;margin:4px 0}
+  .wsel{position:absolute;left:34px;right:34px;top:50%;transform:translateY(-50%);height:42px;background:#F2F3F5;border-radius:11px}
+  .wcol{display:flex;flex-direction:column;align-items:center;gap:12px;z-index:1;width:66px}
+  .wcol .o{font-size:16px;color:#C7C7CC;font-weight:600}
+  .wcol .o.c{font-size:21px;color:#111;font-weight:800}
+  .wsep{z-index:1;font-size:21px;font-weight:800;color:#111;align-self:center}
+  .brow{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid #F4F4F6}
+  .brow .nm{font-size:15px;font-weight:600;color:#111}
+  .cbox{width:23px;height:23px;border-radius:6px;border:2px solid #DADADD;display:flex;align-items:center;justify-content:center;flex:0 0 auto;color:#fff;font-size:14px;font-weight:800}
+  .cbox.on{background:#4A90E2;border-color:#4A90E2}
+  .allbtn{font-size:13px;font-weight:800;color:#2b6fd6;background:#EEF5FF;border-radius:8px;padding:6px 12px}
+</style>
+
+<div class="nssec">
+  <h2>알림 설정 — <span style="color:var(--yellow)">평면·역할순 최종안</span></h2>
+  <div class="lead">
+    카테고리 나눔 제거. 순서는 시간이 아니라 <b>역할·행동가능성·빈도</b> 기준(오늘의 공모주 시각은 가변이라 정렬 키가 아님).<br>
+    ② 시간 칩 탭 → 시간 시트 · ③ 증권사 행 탭 → 다중선택 시트.
+  </div>
+
+  <div class="nsrow">
+
+    <!-- ① 메인 -->
+    <div class="nscol">
+      <span class="label">① 알림 (평면·역할순)</span>
+      <div class="nsphone"><div class="nsscreen">
+        <div class="nsbar"><span>9:41</span><span>●●● 100%</span></div>
+        <div class="nsbody">
+          <div class="nstitle">알림</div>
+          <div class="nscard">
+            <div class="nsitem nshero"><div class="l"><div class="tt">전체 알림</div></div><div class="tg on"></div></div>
+            <div class="nsitem"><div class="l"><div class="tt">오늘의 공모주</div><div class="sub">매일 브리핑</div></div><span class="timechip">오전 8:00 <span class="cv">▾</span></span><div class="tg on"></div></div>
+            <div class="nsitem"><div class="l"><div class="tt">청약 시작</div><div class="sub">청약일 오전 10:00</div></div><div class="tg on"></div></div>
+            <div class="nsitem"><div class="l"><div class="tt">청약 마감</div><div class="sub">마감일 오후 3:30</div></div><div class="tg on"></div></div>
+            <div class="nsitem"><div class="l"><div class="tt">AI 리포트 완성</div><div class="sub">준비되면 오전 8:50</div></div><div class="tg on"></div></div>
+            <div class="nsitem"><div class="l"><div class="tt">주간 요약</div><div class="sub">매주 일요일 오후 8:30</div></div><div class="tg on"></div></div>
+          </div>
+          <div class="nscard">
+            <div class="nsitem"><div class="l"><div class="tt">증권사</div></div><span class="val">미래에셋 외 2 <span class="c">›</span></span></div>
+            <div class="nsitem"><div class="l"><div class="tt">종목 유형</div></div><div class="schips"><span class="schip on">✓ SPAC</span><span class="schip on">✓ REITs</span></div></div>
+          </div>
+        </div>
+      </div></div>
+      <div class="cap"><b>역할순</b>: 매일 브리핑 → 청약 이벤트 쌍 → AI → 주간.<br>알림 vs 필터, 딱 한 번만 분리.</div>
+    </div>
+
+    <!-- ② 시간 시트 -->
+    <div class="nscol">
+      <span class="label">② 시간 설정 (칩 탭)</span>
+      <div class="nsphone"><div class="nsscreen">
+        <div class="nsbar"><span>9:41</span><span>●●● 100%</span></div>
+        <div class="nsbody">
+          <div class="nstitle">알림</div>
+          <div class="nscard">
+            <div class="nsitem nshero"><div class="l"><div class="tt">전체 알림</div></div><div class="tg on"></div></div>
+            <div class="nsitem"><div class="l"><div class="tt">오늘의 공모주</div><div class="sub">매일 브리핑</div></div><span class="timechip">오전 8:00 <span class="cv">▾</span></span><div class="tg on"></div></div>
+            <div class="nsitem"><div class="l"><div class="tt">청약 시작</div><div class="sub">청약일 오전 10:00</div></div><div class="tg on"></div></div>
+          </div>
+        </div>
+        <div class="dim"></div>
+        <div class="sheet">
+          <div class="shead"><span class="t">오늘의 공모주 · 알림 시각</span><span class="x">✕</span></div>
+          <div class="wheel">
+            <div class="wsel"></div>
+            <div class="wcol"><span class="o">　</span><span class="o c">오전</span><span class="o">오후</span></div>
+            <div class="wcol"><span class="o">7</span><span class="o c">8</span><span class="o">9</span></div>
+            <span class="wsep">:</span>
+            <div class="wcol"><span class="o">59</span><span class="o c">00</span><span class="o">01</span></div>
+          </div>
+          <div class="done">완료</div>
+        </div>
+      </div></div>
+      <div class="cap">파란 <b>시간 칩</b> 탭 → 휠 시트.<br>오늘의 공모주만 시각 지정 가능.</div>
+    </div>
+
+    <!-- ③ 증권사 시트 -->
+    <div class="nscol">
+      <span class="label">③ 증권사 선택 (필터 탭)</span>
+      <div class="nsphone"><div class="nsscreen">
+        <div class="nsbar"><span>9:41</span><span>●●● 100%</span></div>
+        <div class="nsbody">
+          <div class="nstitle">알림</div>
+          <div class="nscard">
+            <div class="nsitem nshero"><div class="l"><div class="tt">전체 알림</div></div><div class="tg on"></div></div>
+            <div class="nsitem"><div class="l"><div class="tt">주간 요약</div><div class="sub">매주 일요일 오후 8:30</div></div><div class="tg on"></div></div>
+          </div>
+          <div class="nscard">
+            <div class="nsitem"><div class="l"><div class="tt">증권사</div></div><span class="val">미래에셋 외 2 <span class="c">›</span></span></div>
+          </div>
+        </div>
+        <div class="dim"></div>
+        <div class="sheet">
+          <div class="shead"><span class="t">증권사 선택</span><span class="allbtn">전체</span></div>
+          <div class="shint">미선택 시 전체 증권사 알림</div>
+          <div class="brow"><span class="nm">미래에셋증권</span><span class="cbox on">✓</span></div>
+          <div class="brow"><span class="nm">한국투자증권</span><span class="cbox on">✓</span></div>
+          <div class="brow"><span class="nm">삼성증권</span><span class="cbox on">✓</span></div>
+          <div class="brow"><span class="nm">NH투자증권</span><span class="cbox"></span></div>
+          <div class="brow"><span class="nm">키움증권</span><span class="cbox"></span></div>
+          <div class="done">완료</div>
+        </div>
+      </div></div>
+      <div class="cap"><b>증권사</b> 행 탭 → 다중선택 시트.<br>미선택 = 전체 수신.</div>
+    </div>
+
+  </div>
+</div>
+
+
+</body>
+</html>
