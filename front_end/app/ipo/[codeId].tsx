@@ -19,6 +19,7 @@ import {
   useIpoScore,
 } from '../../src/features/ipo/hooks/useIpoQueries';
 import { IpoDetailData } from '../../src/features/ipo/types/ipo.types';
+import { shareIpo } from '../../src/features/ipo/utils/share.util';
 import {
   fetchJournalByIpo,
   JournalRecordSheet,
@@ -372,6 +373,24 @@ export default function IpoDetailScreen() {
               </TouchableOpacity>
             ) : null}
             <TouchableOpacity
+              onPress={() =>
+                shareIpo(
+                  ipoData,
+                  scoreData?.total_score
+                    ? Number(scoreData.total_score)
+                    : undefined,
+                )
+              }
+              className="px-2 pt-0.5 justify-center items-center"
+              accessibilityLabel="공모주 공유"
+            >
+              <IconSymbol
+                name="square.and.arrow.up"
+                size={26}
+                color={isDark ? '#E5E7EB' : '#374151'}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
               onPress={onToggleFavorite}
               className="px-2 pt-0.5 justify-center items-center"
             >
@@ -613,6 +632,18 @@ export default function IpoDetailScreen() {
             공모 정보
           </Text>
           <View className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+            <View className="flex-row justify-between items-center py-3 px-3 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+              <Text className="text-sm text-gray-600 dark:text-gray-400 font-medium flex-1">
+                희망공모가
+              </Text>
+              <Text className="text-sm text-gray-900 dark:text-white font-semibold flex-1 text-right">
+                {ipoData.desiredprice &&
+                ipoData.desiredprice !== '' &&
+                ipoData.desiredprice !== '-원'
+                  ? ipoData.desiredprice
+                  : '-'}
+              </Text>
+            </View>
             <View className="flex-row justify-between items-center py-3 px-3 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
               <Text className="text-sm text-gray-600 dark:text-gray-400 font-medium flex-1">
                 확정공모가

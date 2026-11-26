@@ -9,3 +9,6 @@ export * from './constants/ipo.constants';
 
 // API
 export * from './api/ipo';
+
+// Utils
+export * from './utils/share.util';

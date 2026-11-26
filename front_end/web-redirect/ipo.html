@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>아이뽀픽 · 공모주 정보</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
+          'Malgun Gothic', sans-serif;
+        background: #0f172a;
+        color: #e5e7eb;
+        display: flex;
+        min-height: 100vh;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 24px;
+      }
+      .box { max-width: 360px; }
+      h1 { font-size: 20px; margin: 0 0 8px; }
+      p { color: #94a3b8; font-size: 14px; line-height: 1.5; }
+      a.btn {
+        display: inline-block;
+        margin-top: 16px;
+        padding: 12px 20px;
+        background: #2563eb;
+        color: #fff;
+        border-radius: 10px;
+        text-decoration: none;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="box">
+      <h1>아이뽀픽 공모주 정보</h1>
+      <p>앱으로 이동 중입니다…<br />앱이 없으면 스토어로 안내됩니다.</p>
+      <a id="fallback" class="btn" href="#">스토어에서 열기</a>
+    </div>
+
+    <script>
+      // ── 배포 전 확인 필요 값 ──────────────────────────────
+      // iOS App Store 숫자 ID (예: https://apps.apple.com/kr/app/id0000000000)
+      var IOS_APP_STORE_ID = 'REPLACE_WITH_IOS_APP_STORE_ID';
+      var ANDROID_PACKAGE = 'com.itl.aippopick';
+      var APP_SCHEME = 'frontend';
+      // ────────────────────────────────────────────────────
+
+      var APP_STORE_URL = 'https://apps.apple.com/kr/app/id' + IOS_APP_STORE_ID;
+      var PLAY_STORE_URL =
+        'https://play.google.com/store/apps/details?id=' + ANDROID_PACKAGE;
+
+      // 경로 /s/ipo/<codeId> 에서 codeId 추출
+      function getCodeId() {
+        var parts = location.pathname.split('/').filter(Boolean);
+        var idx = parts.indexOf('ipo');
+        if (idx !== -1 && parts[idx + 1]) return parts[idx + 1];
+        return '';
+      }
+
+      var codeId = getCodeId();
+      var appPath = 'ipo/' + encodeURIComponent(codeId);
+      var ua = navigator.userAgent || '';
+      var isAndroid = /android/i.test(ua);
+      var isIOS = /iphone|ipad|ipod/i.test(ua);
+
+      var fallbackEl = document.getElementById('fallback');
+
+      if (!codeId) {
+        // 잘못된 링크 → 스토어로만 안내
+        fallbackEl.href = isAndroid ? PLAY_STORE_URL : APP_STORE_URL;
+      } else if (isAndroid) {
+        // Android: intent:// 로 설치 시 앱, 미설치 시 Play Store 자동 폴백
+        fallbackEl.href = PLAY_STORE_URL;
+        var intentUrl =
+          'intent://' +
+          appPath +
+          '#Intent;scheme=' +
+          APP_SCHEME +
+          ';package=' +
+          ANDROID_PACKAGE +
+          ';S.browser_fallback_url=' +
+          encodeURIComponent(PLAY_STORE_URL) +
+          ';end';
+        location.href = intentUrl;
+      } else if (isIOS) {
+        // iOS: 커스텀 스킴 시도 후, 앱이 없으면 App Store 폴백
+        fallbackEl.href = APP_STORE_URL;
+        var opened = false;
+        var onHide = function () {
+          opened = true;
+        };
+        document.addEventListener('visibilitychange', onHide);
+        window.addEventListener('pagehide', onHide);
+        location.href = APP_SCHEME + '://' + appPath;
+        setTimeout(function () {
+          if (!opened) location.href = APP_STORE_URL;
+        }, 1500);
+      } else {
+        // 데스크톱 등: 스토어 안내 버튼만
+        fallbackEl.href = PLAY_STORE_URL;
+      }
+    </script>
+  </body>
+</html>
